@@ -1,7 +1,7 @@
 # components/recipes.py
-# Multilingual scaffolds, tone guidance, and prompt recipes for
-# LexisNexis Customer Success / RM / Sales Consulting
-# Languages: English (en), Chinese (zh), Korean (ko), Japanese (ja)
+# Multilingual scaffolds, tone guidance, product highlights, and prompt recipes
+# for LexisNexis CS / RM / Sales Consulting
+# Languages supported: English (en), Chinese (zh), Korean (ko), Japanese (ja)
 from datetime import datetime
 
 # ---------------------------
@@ -89,6 +89,71 @@ LN_CONTEXT = {
         "practice adoption",
         "risk flag reduction",
     ],
+}
+
+# ---------------------------
+# Product highlights by region (auto-injected bullets)
+# ---------------------------
+PRODUCT_HIGHLIGHTS = {
+    "Practical Guidance": {
+        "Hong Kong": {
+            "Financial Services": {
+                "updates": 50,
+                "notable": [
+                    "Tokenization of Real-World Assets and Native Tokenization Techniques",
+                    "HKMA regulatory guideline on tokenised product",
+                    "HKMA guidance to authorised institutions on tokenised products",
+                    "Securities and Futures Commission regulatory framework on security token offerings",
+                    "SFC insights on offering tokenised public funds in Hong Kong",
+                    "Hong Kong’s Dual Licensing Regime for Virtual Asset Trading Platforms and Service Providers",
+                    "Cryptocurrencies or virtual assets in insolvency",
+                    "Hong Kong financial regulation of crypto-assets",
+                    "Fund Manager Code of Conduct",
+                    "Open-Ended Fund Company Regime in Hong Kong",
+                ],
+            },
+            "Corporate": {
+                "updates": 261,
+                "notable": [
+                    "Custom Articles of Association (private company limited by shares)",
+                    "Model Articles of Association (private companies limited by shares)",
+                    "Deadlock (50/50) and majority–minority AOA examples",
+                    "Board minutes – skeleton samples",
+                    "Virtual General Meetings – use of technology",
+                    "Non-disclosure of residential address of directors",
+                    "Registration of non-Hong Kong companies in Hong Kong",
+                    "First board minutes (private/public; bespoke/shelf)",
+                    "Resisting winding up petitions (Evergrande and beyond)",
+                    "Companies Registry forms (NAR1, NSC1, NN1, etc.)",
+                ],
+            },
+            "Employment": {
+                "updates": 341,
+                "notable": [
+                    "Executive service agreement (director or senior employee)",
+                    "Employment contract",
+                    "Hong Kong minimum wage",
+                    "Policy – anti-harassment",
+                    "Mental health and well-being policy – Hong Kong",
+                    "MPF/ORS overview",
+                    "Taxation of termination payments",
+                    "Share options / share awards",
+                    "Data protection and social media",
+                ],
+            },
+            "Dispute Resolution (HKIAC)": {
+                "updates": 242,
+                "notable": [
+                    "HKIAC (2024) – consolidation of arbitrations",
+                    "HKIAC (2024) – awards, decisions and orders of the arbitral tribunal",
+                    "HKIAC (2024) – disclosure of third-party funding of arbitration",
+                    "HKIAC (2024) – emergency relief",
+                    "HKIAC (2024) – statement of claim/defence and amendments",
+                    "HKIAC (2024) – time limits",
+                ],
+            },
+        }
+    }
 }
 
 # ---------------------------
@@ -205,7 +270,6 @@ Assess tone & engagement. Flag satisfaction/risk/opportunity and suggest 2 reten
 
 # ---------------------------
 # Localized (i18n) recipe bodies for key use cases
-# If a recipe/lang pair is missing, we fall back to English defaults above.
 # ---------------------------
 RECIPES_I18N = {
     "Renewal Email": {
@@ -323,7 +387,7 @@ RECIPES_I18N = {
 }
 
 # ---------------------------
-# Helpers to assemble the final prompt
+# Helpers
 # ---------------------------
 def _few_shot_block(lang_code: str, ex_input: str, ex_output: str) -> str:
     s = SCAFFOLDS[lang_code]
@@ -339,6 +403,26 @@ def _get_recipe_text(recipe: str, lang_code: str, vals: dict) -> str:
     table = RECIPES_I18N.get(recipe, {})
     template = table.get(lang_code) or table.get("en") or PROMPT_RECIPES[recipe]
     return template.format(**vals)
+
+def render_product_highlights(lang_code: str, products_used: list, region: str) -> str:
+    if not products_used or not region or region == "Global":
+        return ""
+    label = {"en":"Product highlights","zh":"产品亮点","ko":"제품 하이라이트","ja":"製品ハイライト"}[lang_code]
+    lines = []
+    for p in products_used:
+        reg_table = PRODUCT_HIGHLIGHTS.get(p, {}).get(region)
+        if not reg_table:
+            continue
+        lines.append(f"- **{p} — {region}**")
+        for cat, info in reg_table.items():
+            updates = info.get("updates")
+            notables = info.get("notable", [])
+            lines.append(f"  - {cat} — {updates} updates")
+            for item in notables:
+                lines.append(f"    - {item}")
+    if not lines:
+        return ""
+    return f"- **{label}**\n" + "\n".join(lines)
 
 def fill_recipe(recipe: str, lang_code: str, ctx: dict) -> str:
     s = SCAFFOLDS[lang_code]
@@ -380,19 +464,7 @@ def fill_recipe(recipe: str, lang_code: str, ctx: dict) -> str:
 
     few_shot = _few_shot_block(lang_code, ctx.get("ex_input", ""), ctx.get("ex_output", ""))
 
-    def bulletify(label, content):
-        if not content:
-            return ""
-        lines = [l.strip() for l in content.split("\n") if l.strip()]
-        if not lines:
-            return ""
-        return f"- **{label}**\n" + "\n".join([f"  - {l}" for l in lines])
-
-    goal_block = bulletify("Goal", goal if lang_code == "en" else {
-        "zh": "目标", "ko": "목표", "ja": "目的"
-    }.get(lang_code, "Goal") and goal)  # label translation handled below
-
-    # Translate bullet labels for non-English
+    # Localized bullet labels
     label_goal = {"en": "Goal", "zh": "目标", "ko": "목표", "ja": "目的"}[lang_code]
     label_inputs = {"en": "Inputs", "zh": "输入", "ko": "입력", "ja": "入力"}[lang_code]
 
@@ -407,6 +479,13 @@ def fill_recipe(recipe: str, lang_code: str, ctx: dict) -> str:
     goal_block = bulletify_local(label_goal, goal)
     inputs_block = bulletify_local(label_inputs, inputs)
 
+    # Optional HK highlights
+    highlights_block = ""
+    if ctx.get("include_highlights"):
+        highlights_block = render_product_highlights(
+            lang_code, ctx.get("products_used") or [], ctx.get("region") or ""
+        )
+
     # Language tone guidance
     style_tail = ""
     if lang_code in STYLE_TEMPLATES:
@@ -418,7 +497,7 @@ def fill_recipe(recipe: str, lang_code: str, ctx: dict) -> str:
         f"[system]\n{s['system']}\n\n"
         f"[user]\n{body}\n"
         f"- Tone: {tone}\n- Depth: {depth}\n- Target length: {length}\n"
-        f"{goal_block}\n{inputs_block}\n\n"
+        f"{goal_block}\n{inputs_block}\n{highlights_block}\n\n"
         f"{s['notes_header']}\n"
         f"- Respect confidentiality; avoid legal advice.\n"
         f"- Be precise; prefer verifiable statements.\n"
