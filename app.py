@@ -1,6 +1,9 @@
 import streamlit as st
 from datetime import datetime, date
-from components.recipes import SCAFFOLDS, LN_CONTEXT, PROMPT_RECIPES, fill_recipe, shape_output
+from components.recipes import (
+    SCAFFOLDS, LN_CONTEXT, PROMPT_RECIPES,
+    fill_recipe, shape_output
+)
 from components.presets import export_preset_bytes, load_preset_into_state
 
 # ---------- Page setup ----------
@@ -8,12 +11,12 @@ st.set_page_config(page_title="LexisNexis Prompt Builder (no APIs)", page_icon="
 st.title("🧠 LexisNexis Prompt Builder (no APIs)")
 st.caption("Generate multilingual, LexisNexis-specific prompts safely — no APIs or external calls required.")
 
-# ---------- Language and output format ----------
+# ---------- Language & output format ----------
 col_lang, col_format = st.columns([1, 1])
 with col_lang:
     lang_code = st.selectbox(
         "Target language",
-        options=list(SCAFFOLDS.keys()),
+        options=list(SCAFFOLDS.keys()),  # en / zh / ko / ja
         format_func=lambda k: SCAFFOLDS[k]["name"],
         index=0
     )
@@ -24,15 +27,19 @@ with col_format:
         index=0
     )
 
-# ---------- Sidebar: Client Profile ----------
+# ---------- Sidebar: Client & context ----------
 with st.sidebar:
     st.header("Client Profile")
     client_name = st.text_input("Client name")
     client_type = st.selectbox("Client type", ["law firm", "in-house legal", "government", "corporate"], index=0)
     products_used = st.multiselect("Products in use", LN_CONTEXT["products"])
+    region = st.selectbox("Region", ["Global", "Hong Kong"], index=1)
+    include_highlights = st.checkbox("Auto-include product highlights", value=True)
+
     primary_role = st.selectbox("Your role", LN_CONTEXT["roles"])
     audience_role = st.selectbox("Primary audience", LN_CONTEXT["audiences"])
     key_metrics = st.multiselect("Metrics to emphasise", LN_CONTEXT["metrics"])
+
     wins_or_metrics = st.text_area("Recent wins / metrics (free text)")
     objection = st.text_input("Top renewal objection (optional)")
     meeting_notes = st.text_area("Paste meeting notes (optional)")
@@ -49,7 +56,6 @@ with st.sidebar:
         file_name="client_preset.json",
         mime="application/json"
     )
-
     uploaded = st.file_uploader("📂 Import client preset (.json)", type="json")
     if uploaded:
         import json
@@ -57,7 +63,7 @@ with st.sidebar:
         load_preset_into_state(data)
         st.success("✅ Preset loaded. Update fields as needed.")
 
-# ---------- Main Controls ----------
+# ---------- Main controls ----------
 col_left, col_right = st.columns([2, 3])
 
 with col_left:
@@ -89,9 +95,9 @@ checks = [
     "Outcome/ROI linked to client metrics",
     "Clear CTA / next steps included",
 ]
-completed = [st.checkbox(c) for c in checks]
+_ = [st.checkbox(c) for c in checks]
 
-# ---------- Generate Prompt ----------
+# ---------- Generate ----------
 if st.button("✨ Generate Prompt"):
     ctx = dict(
         role=primary_role,
@@ -112,6 +118,8 @@ if st.button("✨ Generate Prompt"):
         inputs=inputs,
         ex_input=ex_input,
         ex_output=ex_output,
+        region=region,
+        include_highlights=include_highlights,
     )
 
     final_prompt = fill_recipe(recipe, lang_code, ctx)
@@ -128,4 +136,4 @@ if st.button("✨ Generate Prompt"):
         mime="text/plain"
     )
 
-st.caption("💡 This app is rule-based, multilingual, and uses no external APIs — safe for LexisNexis internal use.")
+st.caption("💡 Rule-based, multilingual, and safe: no external APIs. Add more locales/products by editing components/recipes.py.")
