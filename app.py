@@ -9,7 +9,7 @@ from components.presets import export_preset_bytes, load_preset_into_state
 # ---------- Page setup ----------
 st.set_page_config(page_title="LexisNexis Prompt Builder (no APIs)", page_icon="🧠", layout="wide")
 st.title("🧠 LexisNexis Prompt Builder (no APIs)")
-st.caption("Generate multilingual, LexisNexis-specific prompts safely — no APIs or external calls required.")
+st.caption("Multilingual, guided workflows (Renewal, QBR, Client Snapshot, Objection Coach) — no external APIs.")
 
 # ---------- Language & output format ----------
 col_lang, col_format = st.columns([1, 1])
@@ -33,7 +33,7 @@ with st.sidebar:
     client_name = st.text_input("Client name")
     client_type = st.selectbox("Client type", ["law firm", "in-house legal", "government", "corporate"], index=0)
     products_used = st.multiselect("Products in use", LN_CONTEXT["products"])
-    region = st.selectbox("Region", ["Global", "Hong Kong"], index=1)
+    region = st.selectbox("Region", ["Global", "Hong Kong"], index=0)
     include_highlights = st.checkbox("Auto-include product highlights", value=True)
 
     primary_role = st.selectbox("Your role", LN_CONTEXT["roles"])
@@ -67,7 +67,9 @@ with st.sidebar:
 col_left, col_right = st.columns([2, 3])
 
 with col_left:
-    recipe = st.selectbox("Use-case (Prompt Recipe)", list(PROMPT_RECIPES.keys()), index=0)
+    recipe = st.selectbox("Function / Use-case", list(PROMPT_RECIPES.keys()), index=0)
+
+    # Global style sliders
     tone = st.select_slider(
         "Tone",
         options=["neutral", "friendly", "formal", "persuasive", "technical", "concise"],
@@ -87,6 +89,61 @@ with col_right:
     with ex_col2:
         ex_output = st.text_area("Few-shot: Example output", height=100, placeholder="Desired example output")
 
+# ---------- Dynamic guided workflow (forms change by function) ----------
+st.markdown("---")
+st.markdown("### 🧩 Guided options (change by function)")
+
+guided_ctx = {}
+
+if recipe == "Renewal Email":
+    with st.expander("Renewal-specific options", expanded=True):
+        pricing_concern_level = st.select_slider("Pricing concern level", options=["Mild","Moderate","High"], value="Moderate")
+        meeting_options = st.text_input("2–3 date/time options (comma-separated)", placeholder="e.g., Tue 10am, Wed 2pm, Thu 4pm")
+        guided_ctx.update({
+            "pricing_concern_level": pricing_concern_level,
+            "meeting_options": meeting_options,
+        })
+
+elif recipe == "QBR Brief":
+    with st.expander("QBR-specific options", expanded=True):
+        qbr_window = st.selectbox("Time window", ["Last Month","Last Quarter","Last 6 Months","Last 12 Months"], index=1)
+        qbr_compare_benchmarks = st.checkbox("Include benchmarks comparison", value=False)
+        qbr_sections = st.multiselect(
+            "Sections to emphasize",
+            ["Usage & Engagement","Business Impact","Wins","Underused Features","Recommendations"],
+            default=["Usage & Engagement","Business Impact","Recommendations"]
+        )
+        guided_ctx.update({
+            "qbr_window": qbr_window,
+            "qbr_compare_benchmarks": qbr_compare_benchmarks,
+            "qbr_sections": qbr_sections,
+        })
+
+elif recipe == "Client Snapshot & Risk Signals":
+    with st.expander("Snapshot-specific options", expanded=True):
+        prepared_by = st.selectbox("Prepared by", ["Sales","Pre-Sales","Customer Success"], index=0)
+        last_engagement_date = st.text_input("Last engagement date (optional)", placeholder="e.g., 2025-02-05 or '2 weeks ago'")
+        risk_level = st.select_slider("Risk level", options=["Low","Medium","High"], value="Medium")
+        guided_ctx.update({
+            "prepared_by": prepared_by,
+            "last_engagement_date": last_engagement_date,
+            "risk_level": risk_level,
+        })
+
+elif recipe == "Objection Coach":
+    with st.expander("Objection-specific options", expanded=True):
+        objection_type = st.selectbox("Client's reason for hesitation", ["Price","Usability","Prefer Competitor"], index=0)
+        objection_severity = st.slider("Severity", 1, 5, 3)
+        competitor_name = st.text_input("Competitor (optional)")
+        supporting_data = st.multiselect("Supporting data available", ["Usage metrics","ROI","NPS quotes","Case studies","Benchmarks"])
+        guided_ctx.update({
+            "objection_type": objection_type,
+            "objection_severity": objection_severity,
+            "competitor_name": competitor_name,
+            "supporting_data": supporting_data,
+        })
+
+# ---------- Quality checklist ----------
 st.markdown("---")
 st.markdown("### ✅ Quality Checklist")
 checks = [
@@ -120,6 +177,8 @@ if st.button("✨ Generate Prompt"):
         ex_output=ex_output,
         region=region,
         include_highlights=include_highlights,
+        # Guided, per function:
+        **guided_ctx
     )
 
     final_prompt = fill_recipe(recipe, lang_code, ctx)
@@ -136,4 +195,4 @@ if st.button("✨ Generate Prompt"):
         mime="text/plain"
     )
 
-st.caption("💡 Rule-based, multilingual, and safe: no external APIs. Add more locales/products by editing components/recipes.py.")
+st.caption("💡 Guided workflows + ‘prompt-as-a-brief’ = consistent, high-quality outputs in any supported language.")
