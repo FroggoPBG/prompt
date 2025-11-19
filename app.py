@@ -8,9 +8,13 @@ from components.recipes import (
     fill_recipe,
     shape_output
 )
-
 from components.presets import export_preset_bytes, load_preset_into_state
 
+# ---------- session defaults ----------
+if "templates" not in st.session_state:
+    st.session_state["templates"] = []  # list of dicts: {name, recipe, lang, output, ctx, created}
+if "history" not in st.session_state:
+    st.session_state["history"] = []    # list of dicts: {ts, recipe, lang, output, ctx, prompt}
 
 # -------------------- Page --------------------
 st.set_page_config(page_title="LexisNexis Prompt Composer (no APIs)", page_icon="🧠", layout="wide")
@@ -22,12 +26,12 @@ col_lang, col_out = st.columns([1, 1])
 with col_lang:
     lang_code = st.selectbox(
         "Target language",
-        options=list(SCAFFOLDS.keys()),  # en/zh/ko/ja
+        options=list(SCAFFOLDS.keys()),
         format_func=lambda k: SCAFFOLDS[k]["name"],
         index=0,
     )
 with col_out:
-    output_format = st.selectbox("Output target", LN_CONTEXT["outputs"], index=0)  # "plain prompt" by default
+    output_format = st.selectbox("Output target", LN_CONTEXT["outputs"], index=0)
 
 # -------------------- Sidebar: global schema --------------------
 with st.sidebar:
@@ -48,8 +52,7 @@ with st.sidebar:
     nps_info = st.text_area("NPS score / feedback theme (paste)")
 
     st.header("Communication settings")
-    # Tone “auto” = localized by Region + Stage (JP/KR more formal; Complaint -> apologetic)
-    tone = st.selectbox("Tone", LN_CONTEXT["tones"], index=0)
+    tone = st.selectbox("Tone", LN_CONTEXT["tones"], index=0)  # 'auto' is default
     length = st.selectbox("Length preference", LN_CONTEXT["lengths"], index=2)
     include_highlights = st.checkbox("Auto-include product highlights (region-aware)", value=True)
 
@@ -198,7 +201,7 @@ elif recipe == "Objection Coach":
         })
 
 elif recipe == "NPS Engagement":
-    with st.expander("NPS options", expanded=True):
+    with st.expander("NPS options (auto-variants)", expanded=True):
         nps_previous_rating = st.selectbox("Previous NPS", ["Promoter (9–10)", "Passive (7–8)", "Detractor (0–6)"], index=1)
         nps_feedback_theme = st.text_input("Feedback theme (summary)")
         nps_survey_link = st.text_input("Survey link / CTA")
@@ -222,7 +225,6 @@ for item in [
 # -------------------- Generate --------------------
 if st.button("✨ Generate Prompt"):
     ctx = dict(
-        # Global schema
         client_name=client_name,
         client_type=client_type,
         region=region,
@@ -237,13 +239,9 @@ if st.button("✨ Generate Prompt"):
         length=length,
         include_highlights=include_highlights,
         output_target=output_format,
-
-        # Few-shot
         ex_input=ex_input or "",
         ex_output=ex_output or "",
     )
-
-    # Guided, function-specific
     ctx.update(guided)
 
     final_prompt = fill_recipe(recipe, lang_code, ctx)
@@ -252,6 +250,7 @@ if st.button("✨ Generate Prompt"):
     st.subheader("📝 Copy-ready Prompt for AI tool")
     st.code(shaped, language="markdown")
 
+    # download
     fname = f"ln_prompt_{recipe.replace('/','_')}_{lang_code}_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}.txt"
     st.download_button(
         "📥 Download (.txt)",
@@ -260,4 +259,114 @@ if st.button("✨ Generate Prompt"):
         mime="text/plain"
     )
 
+    # history push
+    st.session_state["history"].append({
+        "ts": datetime.utcnow().isoformat() + "Z",
+        "recipe": recipe,
+        "lang": lang_code,
+        "output": output_format,
+        "ctx": ctx,
+        "prompt": shaped.replace("{today}", str(date.today())),
+    })
+    # keep last 50
+    st.session_state["history"] = st.session_state["history"][-50:]
+
+# -------------------- Templates, Sharing, History --------------------
+st.markdown("---")
+st.markdown("### 🧰 Templates, Sharing & History")
+
+tcol1, tcol2, tcol3 = st.columns([2, 2, 2])
+
+with tcol1:
+    st.markdown("**Save this prompt as template**")
+    tpl_name = st.text_input("Template name", placeholder="e.g., NPS Detractor (JP) short")
+    if st.button("💾 Save template"):
+        if tpl_name.strip():
+            st.session_state["templates"].append({
+                "name": tpl_name.strip(),
+                "recipe": recipe,
+                "lang": lang_code,
+                "output": output_format,
+                "ctx": {
+                    "client_name": client_name,
+                    "client_type": client_type,
+                    "region": region,
+                    "practice_areas": practice_areas,
+                    "account_owner": account_owner,
+                    "relationship_stage": relationship_stage,
+                    "products_used": products_used,
+                    "usage_metrics": usage_metrics,
+                    "time_saved": time_saved,
+                    "nps_info": nps_info,
+                    "tone": tone,
+                    "length": length,
+                    "include_highlights": include_highlights,
+                    "output_target": output_format,
+                    "ex_input": ex_input or "",
+                    "ex_output": ex_output or "",
+                    **guided,
+                },
+                "created": datetime.utcnow().isoformat() + "Z",
+            })
+            st.success("Template saved locally.")
+        else:
+            st.warning("Please enter a template name.")
+
+with tcol2:
+    st.markdown("**Share with team**")
+    # Export the newest generated prompt (if any) as a .json context pack
+    if st.session_state["history"]:
+        latest = st.session_state["history"][-1]
+        import json, io
+        pack = {
+            "type": "ln-prompt-pack",
+            "version": 1,
+            "recipe": latest["recipe"],
+            "lang": latest["lang"],
+            "output": latest["output"],
+            "ctx": latest["ctx"],
+            "prompt": latest["prompt"],
+            "created": latest["ts"],
+        }
+        bio = io.BytesIO(json.dumps(pack, indent=2, ensure_ascii=False).encode())
+        bio.seek(0)
+        st.download_button("⬇️ Download share pack (.json)", bio, file_name="ln_prompt_share_pack.json", mime="application/json")
+    else:
+        st.info("Generate a prompt first to export a share pack.")
+
+with tcol3:
+    st.markdown("**Templates & History**")
+    # templates list
+    if st.session_state["templates"]:
+        tpl_names = [t["name"] for t in st.session_state["templates"]]
+        pick = st.selectbox("Templates", options=["— select —"] + tpl_names, index=0)
+        if pick != "— select —":
+            idx = tpl_names.index(pick)
+            tpl = st.session_state["templates"][idx]
+            if st.button("📥 Load template"):
+                # hydrate fields into session_state
+                for k, v in tpl["ctx"].items():
+                    st.session_state[k] = v
+                st.success("Template loaded. Adjust fields if needed, then click Generate.")
+    else:
+        st.caption("No templates yet.")
+
+st.markdown("#### History")
+if st.session_state["history"]:
+    # simple viewer of last 5
+    last5 = st.session_state["history"][-5:][::-1]
+    labels = [f"{h['ts']} — {h['recipe']} [{h['lang']}] → {h['output']}" for h in last5]
+    picked = st.selectbox("Recent prompts", options=["— select —"] + labels, index=0)
+    if picked != "— select —":
+        idx = labels.index(picked)
+        h = last5[idx]
+        st.code(h["prompt"], language="markdown")
+        if st.button("🔁 Reuse this prompt’s inputs"):
+            # Restore context to current form
+            for k, v in h["ctx"].items():
+                st.session_state[k] = v
+            st.success("Restored inputs from history. Review and click Generate.")
+else:
+    st.caption("No history yet — generate a prompt to start.")
+    
 st.caption("Tip: set Tone to ‘auto’ to localize by Region + Stage (e.g., Japan=polite; Complaint=apologetic).")
