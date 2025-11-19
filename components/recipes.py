@@ -177,7 +177,6 @@ STYLE_TEMPLATES = {
             "neutral": "専門的で中立的なトーンを維持し、明確で実行可能な表現を用いてください。",
             "friendly": "親しみやすさを保ちつつ、専門性を損なわないでください。",
             "consultative": "コンサルティブな口調でニーズを特定し、次の一手を導いてください。",
-             "consultative": "コンサルティブな口調でニーズを特定し、次の一手を導いてください。",
             "persuasive": "価値と成果・ROIを分かりやすく強調してください。",
             "formal": "丁寧で礼儀正しい表現を用い、くだけた言い回しは避けてください。",
             "polite": "より丁寧で配慮ある表現を優先してください。",
@@ -223,10 +222,8 @@ PROMPT_RECIPES = {
         "Create empathetic, data-backed talking points, plus one reframing question "
         "that shifts from cost to outcomes."
     ),
-    "NPS Engagement": (
-        "Draft a short NPS engagement email that adapts tone based on previous rating "
-        "and requests quick feedback via link."
-    ),
+    # Base key kept for UI; variant text chosen dynamically by nps_previous_rating
+    "NPS Engagement": "Draft an NPS engagement email (variant will adapt to prior score).",
 }
 
 # ---------- Brief headings ----------
@@ -275,6 +272,34 @@ def render_product_highlights(lang_code: str, products_used: list, region: str) 
             for item in info.get("notable", []):
                 lines.append(f"    - {item}")
     return f"**{label}:**\n" + "\n".join(lines) if lines else ""
+
+def _nps_variant_body(previous_rating: str) -> str:
+    """Return instruction body for NPS by previous rating bucket."""
+    if "Promoter" in (previous_rating or ""):
+        return (
+            "Write a warm, appreciative NPS engagement email for customers who previously rated 9–10. "
+            "Tone: grateful and collaborative; position the client as a partner. "
+            "Acknowledge their support and our commitment to maintain high standards. "
+            "Mention the survey takes under 2 minutes. Keep concise; avoid being overly effusive. "
+            "Subject line should reflect appreciation for their insights."
+        )
+    if "Passive" in (previous_rating or ""):
+        return (
+            "Write an aspirational NPS engagement email for customers who previously rated 7–8. "
+            "Tone: humble yet motivated. Recognize we've been good and are striving to be great. "
+            "Frame their feedback as key to making the experience exceptional. "
+            "Ask what to keep, stop, or change. Mention the survey takes under 2 minutes and that we personally read every response. "
+            "Subject line should focus on improvement and earning their enthusiastic recommendation."
+        )
+    # Detractors / default
+    return (
+        "Write a humble, sincere NPS engagement email for customers who previously rated 0–6. "
+        "Tone: respectful, non-defensive, genuinely open. "
+        "Acknowledge we've been working on improvements and their honest perspective matters. "
+        "Do not over-promise; ask whether things have improved, stayed the same, or still need work. "
+        "Mention the survey takes under 2 minutes. Keep brief and respectful. "
+        "Subject line should be gentle and non-presumptuous."
+    )
 
 # ---------- Build the structured brief ----------
 def build_brief(recipe: str, lang: str, ctx: dict) -> str:
@@ -389,9 +414,9 @@ def build_brief(recipe: str, lang: str, ctx: dict) -> str:
             "Ask 1 reframing question to lead into ROI.",
         ],
         "NPS Engagement": [
-            "Adapt tone to prior NPS (promoter/passive/detractor).",
-            "Briefly state why feedback matters now.",
-            "Provide survey link and a concise CTA.",
+            "Use the appropriate variant based on prior NPS bucket.",
+            "Keep concise and respectful of the reader's time.",
+            "Include survey link and a clear, low-friction CTA.",
         ],
     }
 
@@ -406,7 +431,6 @@ def build_brief(recipe: str, lang: str, ctx: dict) -> str:
 
     # Build context line
     bits = []
-
     def add(label, value):
         if value:
             bits.append(f"{label}: {value}")
@@ -459,7 +483,8 @@ def build_brief(recipe: str, lang: str, ctx: dict) -> str:
 
     context = "; ".join([b for b in bits if b])
 
-    brief = [
+    # Assemble brief body
+    brief_lines = [
         f"**{BRIEF_LABELS['ROLE'][lang]}**: {role}",
         f"**{BRIEF_LABELS['GOAL'][lang]}**: {goals[recipe][lang]}",
         f"**{BRIEF_LABELS['CONTEXT'][lang]}**: {context or '—'}",
@@ -472,12 +497,15 @@ def build_brief(recipe: str, lang: str, ctx: dict) -> str:
     if ctx.get("include_highlights"):
         hl = render_product_highlights(lang, ctx.get("products_used") or [], region)
         if hl:
-            brief.append(hl)
+            brief_lines.append(hl)
 
-    body = PROMPT_RECIPES[recipe].format(
-        client_name=ctx.get("client_name") or "[Client]"
-    )
-    return "\n".join(brief) + "\n\n" + body
+    # Choose body text (standard recipe or NPS bucketed variant)
+    if recipe == "NPS Engagement":
+        body = _nps_variant_body(ctx.get("nps_previous_rating"))
+    else:
+        body = PROMPT_RECIPES[recipe].format(client_name=ctx.get("client_name") or "[Client]")
+
+    return "\n".join(brief_lines) + "\n\n" + body
 
 # ---------- Public API ----------
 def fill_recipe(recipe: str, lang_code: str, ctx: dict) -> str:
