@@ -387,6 +387,20 @@ RECIPES_I18N = {
 }
 
 # ---------------------------
+# Headings for the "prompt-as-a-brief" wrapper (localized)
+# ---------------------------
+BRIEF_LABELS = {
+    "ROLE": {"en": "ROLE", "zh": "角色", "ko": "역할", "ja": "役割"},
+    "GOAL": {"en": "GOAL", "zh": "目标", "ko": "목표", "ja": "目的"},
+    "REQUIREMENTS": {"en": "DELIVERABLE REQUIREMENTS", "zh": "交付要求", "ko": "전달물 요구사항", "ja": "成果物要件"},
+    "TONE": {"en": "TONE", "zh": "语气", "ko": "톤", "ja": "トーン"},
+    "LENGTH": {"en": "LENGTH", "zh": "长度", "ko": "분량", "ja": "長さ"},
+    "INFO": {"en": "INFORMATION TO GATHER", "zh": "需收集信息", "ko": "수집해야 할 정보", "ja": "収集すべき情報"},
+    "CONTEXT": {"en": "CONTEXT", "zh": "上下文", "ko": "컨텍스트", "ja": "コンテキスト"},
+    "HIGHLIGHTS": {"en": "Product highlights", "zh": "产品亮点", "ko": "제품 하이라이트", "ja": "製品ハイライト"},
+}
+
+# ---------------------------
 # Helpers
 # ---------------------------
 def _few_shot_block(lang_code: str, ex_input: str, ex_output: str) -> str:
@@ -407,7 +421,7 @@ def _get_recipe_text(recipe: str, lang_code: str, vals: dict) -> str:
 def render_product_highlights(lang_code: str, products_used: list, region: str) -> str:
     if not products_used or not region or region == "Global":
         return ""
-    label = {"en":"Product highlights","zh":"产品亮点","ko":"제품 하이라이트","ja":"製品ハイライト"}[lang_code]
+    label = BRIEF_LABELS["HIGHLIGHTS"][lang_code]
     lines = []
     for p in products_used:
         reg_table = PRODUCT_HIGHLIGHTS.get(p, {}).get(region)
@@ -424,6 +438,256 @@ def render_product_highlights(lang_code: str, products_used: list, region: str) 
         return ""
     return f"- **{label}**\n" + "\n".join(lines)
 
+# ---------------------------
+# Structured brief builders per recipe (pulls from dynamic form fields)
+# ---------------------------
+def _build_brief_sections(recipe: str, lang: str, ctx: dict) -> dict:
+    """Return dict with role, goal, requirements(list), tone, length, info_to_gather(list), context(str)"""
+
+    # Translated option labels for objection types
+    OBJECTION_MAP = {
+        "Price": {"en":"Price","zh":"价格","ko":"가격","ja":"価格"},
+        "Usability": {"en":"Usability","zh":"可用性","ko":"사용성","ja":"使いやすさ"},
+        "Prefer Competitor": {"en":"Prefer Competitor","zh":"偏好竞品","ko":"경쟁사 선호","ja":"競合の方を好む"},
+    }
+
+    # Defaults
+    role = ctx.get("role") or "Customer Success Manager"
+    tone = ctx.get("tone") or "neutral"
+    length = ctx.get("length") or "medium"
+    goal = ""
+    req = []
+    info = []
+    context = ""
+
+    if recipe == "Renewal Email":
+        level = ctx.get("pricing_concern_level") or "Moderate"
+        meeting_opts = (ctx.get("meeting_options") or "").strip()
+        products_to_mention = ", ".join(ctx.get("products_used") or [])
+        goal = {
+            "en": "Demonstrate tangible ROI and reframe the conversation from cost to value.",
+            "zh": "展示可量化的投资回报，将讨论从“成本”转向“价值”。",
+            "ko": "가시적 ROI를 제시하여 대화를 비용에서 가치 중심으로 전환합니다.",
+            "ja": "具体的なROIを示し、議論をコストから価値へ転換します。",
+        }[lang]
+        req = {
+            "en": [
+                "Open with appreciation and acknowledge pricing feedback.",
+                "Demonstrate delivered value: usage metrics, positive feedback (e.g., NPS), and business outcomes.",
+                f"Highlight forward-looking value: introduce {products_to_mention or 'relevant LexisNexis tools'} and upcoming enhancements.",
+                "Propose next steps: offer an ROI/value review and include 2–3 date/time options.",
+            ],
+            "zh": [
+                "以感谢合作开篇，并正面回应对价格的反馈。",
+                "展示已实现的价值：使用数据、正向反馈（如 NPS）、与业务结果的关联。",
+                f"强调前瞻价值：介绍 {products_to_mention or '相关 LexisNexis 工具'} 及即将推出的功能。",
+                "提出下一步：邀请进行 ROI/价值复盘，并给出 2–3 个时间选项。",
+            ],
+            "ko": [
+                "감사의 인사로 시작하고 가격 관련 피드백을 공감합니다.",
+                "제공한 가치 제시: 사용 지표, 긍정적 피드백(NPS 등), 비즈니스 성과 연결.",
+                f"미래 가치 강조: {products_to_mention or '관련 LexisNexis 도구'} 및 예정 기능 소개.",
+                "다음 단계 제안: ROI/가치 리뷰 제안 및 2–3개 일정 옵션 포함.",
+            ],
+            "ja": [
+                "感謝の言葉で始め、価格に関するフィードバックに丁寧に言及します。",
+                "提供価値の提示：利用指標、ポジティブな評価（NPS等）、業務成果との結び付け。",
+                f"将来価値の強調：{products_to_mention or '関連する LexisNexis ツール'} や今後の機能強化を紹介。",
+                "次のステップ：ROI/価値レビューの提案と 2～3 の候補日時を記載。",
+            ],
+        }[lang]
+        info = {
+            "en": ["Usage metrics", "ROI/time saved", "Practice areas", "Contract details", "NPS quotes"],
+            "zh": ["使用数据", "ROI/节省时间", "业务领域", "合同细节", "NPS 评价"],
+            "ko": ["사용 지표", "ROI/절감 시간", "업무 영역", "계약 세부사항", "NPS 코멘트"],
+            "ja": ["利用指標", "ROI/時間削減", "プラクティス領域", "契約詳細", "NPS コメント"],
+        }[lang]
+        context = {
+            "en": f"Pricing concern level: {level}. Meeting options: {meeting_opts or '[add 2–3 options]'}",
+            "zh": f"价格关注程度：{level}。可选会面时间：{meeting_opts or '[添加 2–3 个选项]'}",
+            "ko": f"가격 우려 수준: {level}. 미팅 옵션: {meeting_opts or '[2–3개 옵션 추가]'}",
+            "ja": f"価格に関する懸念度：{level}。ミーティング候補：{meeting_opts or '[候補を2～3件入力]'}",
+        }[lang]
+
+    elif recipe == "QBR Brief":
+        window = ctx.get("qbr_window") or "Last Quarter"
+        compare = ctx.get("qbr_compare_benchmarks")
+        sections = ctx.get("qbr_sections") or []
+        goal = {
+            "en": "Create a consultative, data-driven QBR that demonstrates outcomes and identifies opportunities.",
+            "zh": "生成以数据与咨询为导向的 QBR，展示成果并识别机会。",
+            "ko": "성과를 보여주고 기회를 식별하는 데이터 기반 컨설팅형 QBR을 작성합니다.",
+            "ja": "成果を示し、機会を特定するデータドリブンなコンサル型QBRを作成します。",
+        }[lang]
+        chosen = ", ".join(sections) if sections else "All standard sections"
+        req = {
+            "en": [
+                f"Usage & engagement trends for {window}.",
+                "Business impact: time saved, risk mitigated, efficiency gains.",
+                "Wins since last review, underused features, and clear recommendations.",
+            ],
+            "zh": [
+                f"{window} 的使用与参与度趋势。",
+                "业务影响：节省时间、降低风险、提升效率。",
+                "自上次评审以来的亮点、未充分使用功能与明确建议。",
+            ],
+            "ko": [
+                f"{window} 기간의 사용/참여 트렌드.",
+                "비즈니스 임팩트: 시간 절감, 리스크 완화, 효율 향상.",
+                "지난 리뷰 이후의 성과, 미활용 기능, 명확한 제안.",
+            ],
+            "ja": [
+                f"{window} の利用・エンゲージメント傾向。",
+                "ビジネス効果：時間短縮、リスク低減、効率化。",
+                "前回以降の成果、未活用機能、明確な提言。",
+            ],
+        }[lang]
+        if compare:
+            req.append({
+                "en": "Include relevant benchmarks for comparison.",
+                "zh": "加入相关基准对比。",
+                "ko": "관련 벤치마크 비교 포함.",
+                "ja": "関連ベンチマークとの比較を含める。",
+            }[lang])
+        context = {
+            "en": f"Selected sections: {chosen}",
+            "zh": f"所选章节：{chosen}",
+            "ko": f"선택 섹션: {chosen}",
+            "ja": f"選択セクション：{chosen}",
+        }[lang]
+
+    elif recipe == "Client Snapshot & Risk Signals":
+        prepared_by = ctx.get("prepared_by") or "Sales"
+        last_eng = ctx.get("last_engagement_date") or ""
+        risk = ctx.get("risk_level") or "Medium"
+        goal = {
+            "en": "Provide a concise briefing for Customer Success before renewal or review.",
+            "zh": "在续约或评审前，为客户成功团队提供简明简报。",
+            "ko": "갱신/리뷰 전 고객 성공팀을 위한 간결한 브리핑을 제공합니다.",
+            "ja": "更新/レビュー前にカスタマーサクセス向けの簡潔なブリーフィングを提供します。",
+        }[lang]
+        req = {
+            "en": [
+                "Firm overview and recent developments.",
+                "Engagement insights and sentiment.",
+                "Risk indicators and growth signals.",
+            ],
+            "zh": ["客户概况与近期动态。", "互动洞察与情绪。", "风险信号与扩展信号。"],
+            "ko": ["고객 개요와 최근 동향.", "참여 인사이트와 분위기.", "리스크 신호와 성장 신호."],
+            "ja": ["概要と直近の動向。", "エンゲージメント洞察と感触。", "リスク指標と成長シグナル。"],
+        }[lang]
+        context = {
+            "en": f"Prepared by: {prepared_by}. Last engagement: {last_eng or '—'}. Risk level: {risk}.",
+            "zh": f"准备人：{prepared_by}。最近互动：{last_eng or '—'}。风险等级：{risk}。",
+            "ko": f"작성자: {prepared_by}. 최근 접점: {last_eng or '—'}. 리스크 수준: {risk}.",
+            "ja": f"作成者：{prepared_by}。直近の接点：{last_eng or '—'}。リスクレベル：{risk}。",
+        }[lang]
+
+    elif recipe == "Objection Coach":
+        typ = ctx.get("objection_type") or "Price"
+        severity = ctx.get("objection_severity") or 3
+        comp = ctx.get("competitor_name") or ""
+        data_pts = ctx.get("supporting_data") or []
+        typ_local = OBJECTION_MAP.get(typ, OBJECTION_MAP["Price"])[lang]
+        goal = {
+            "en": "Craft empathetic, data-backed responses that shift focus from cost to outcomes.",
+            "zh": "以同理心与数据支撑回应，将焦点从“成本”转向“结果/价值”。",
+            "ko": "공감과 데이터로 뒷받침된 응답을 통해 비용에서 결과 중심으로 초점을 전환합니다.",
+            "ja": "共感とデータに基づく回答で、焦点をコストから成果へ転換します。",
+        }[lang]
+        req = {
+            "en": [
+                f"Acknowledge the concern ({typ_local}); keep tone collaborative.",
+                "Provide 2–3 value points with data where possible.",
+                "Ask one reframing question that leads to ROI discussion.",
+            ],
+            "zh": [
+                f"认可并回应其顾虑（{typ_local}），保持合作姿态。",
+                "给出 2–3 个以数据支撑的价值点。",
+                "提出 1 个引导至 ROI 讨论的重构问题。",
+            ],
+            "ko": [
+                f"우려를 인정하고 공감 표명 ({typ_local}); 협업적 톤 유지.",
+                "데이터 기반 가치 포인트 2–3개 제시.",
+                "ROI 논의로 연결하는 재프레이밍 질문 1개.",
+            ],
+            "ja": [
+                f"懸念（{typ_local}）を認め、共感を示す（協調的トーン）。",
+                "可能であればデータを添えた価値ポイントを2～3提示。",
+                "ROI 議論に導くリフレーミングの質問を1つ。",
+            ],
+        }[lang]
+        info = {
+            "en": ["Usage metrics", "ROI/time saved", "NPS quotes", "Case studies", "Benchmarks"],
+            "zh": ["使用数据", "ROI/节省时间", "NPS 评价", "案例研究", "行业基准"],
+            "ko": ["사용 지표", "ROI/절감 시간", "NPS 코멘트", "사례 연구", "벤치마크"],
+            "ja": ["利用指標", "ROI/時間削減", "NPS コメント", "事例", "ベンチマーク"],
+        }[lang]
+        context = {
+            "en": f"Type: {typ_local}; Severity: {severity}/5; Competitor: {comp or '—'}; Data available: {', '.join(data_pts) or '—'}",
+            "zh": f"类型：{typ_local}；严重程度：{severity}/5；竞品：{comp or '—'}；可用数据：{', '.join(data_pts) or '—'}",
+            "ko": f"유형: {typ_local}; 심각도: {severity}/5; 경쟁사: {comp or '—'}; 보유 데이터: {', '.join(data_pts) or '—'}",
+            "ja": f"タイプ：{typ_local}／深刻度：{severity}/5／競合：{comp or '—'}／保有データ：{', '.join(data_pts) or '—'}",
+        }[lang]
+
+    else:
+        goal = {
+            "en": "Deliver a professional, complete response.",
+            "zh": "生成专业且完整的回应。",
+            "ko": "전문적이고 완결성 있는 결과물을 제공합니다.",
+            "ja": "専門的で抜け漏れのない成果物を作成します。",
+        }[lang]
+        req = {
+            "en": ["Follow the user’s instructions exactly.", "Be concise and precise."],
+            "zh": ["严格遵循指令。", "表述简洁且准确。"],
+            "ko": ["지시를 정확히 따르세요.", "간결하고 정확하게 작성하세요."],
+            "ja": ["指示に正確に従ってください。", "簡潔かつ正確に記述してください。"],
+        }[lang]
+
+    # Length guidance per recipe
+    length_map = {
+        "Renewal Email": {"en":"250–350 words","zh":"250–350 字","ko":"250–350 단어","ja":"250～350語"},
+        "QBR Brief": {"en":"400–500 words","zh":"400–500 字","ko":"400–500 단어","ja":"400～500語"},
+        "Client Snapshot & Risk Signals": {"en":"300–400 words","zh":"300–400 字","ko":"300–400 단어","ja":"300～400語"},
+        "Objection Coach": {"en":"150–200 words","zh":"150–200 字","ko":"150–200 단어","ja":"150～200語"},
+    }
+    length_local = length_map.get(recipe, {}).get(lang, "")
+
+    return {
+        "role": role,
+        "goal": goal,
+        "requirements": req,
+        "tone": tone,
+        "length": length_local or length,
+        "info": info,
+        "context": context,
+    }
+
+def _render_brief(lang: str, sections: dict) -> str:
+    # Assemble a localized "prompt-as-a-brief"
+    def bullets(items):
+        if not items: return ""
+        return "\n" + "\n".join([f"- {i}" for i in items])
+
+    L = BRIEF_LABELS
+    out = []
+    out.append(f"**{L['ROLE'][lang]}**: {sections['role']}")
+    out.append(f"**{L['GOAL'][lang]}**: {sections['goal']}")
+    if sections.get("context"):
+        out.append(f"**{L['CONTEXT'][lang]}**: {sections['context']}")
+    if sections.get("requirements"):
+        out.append(f"**{L['REQUIREMENTS'][lang]}**:{bullets(sections['requirements'])}")
+    if sections.get("info"):
+        out.append(f"**{L['INFO'][lang]}**:{bullets(sections['info'])}")
+    if sections.get("tone"):
+        out.append(f"**{L['TONE'][lang]}**: {sections['tone']}")
+    if sections.get("length"):
+        out.append(f"**{L['LENGTH'][lang]}**: {sections['length']}")
+    return "\n".join(out)
+
+# ---------------------------
+# Main fill function
+# ---------------------------
 def fill_recipe(recipe: str, lang_code: str, ctx: dict) -> str:
     s = SCAFFOLDS[lang_code]
     vals = dict(
@@ -441,43 +705,23 @@ def fill_recipe(recipe: str, lang_code: str, ctx: dict) -> str:
         signal_snippets=ctx.get("signal_snippets") or "[paste excerpts]",
     )
 
-    body = _get_recipe_text(recipe, lang_code, vals)
+    # Localized core body (stays as a compact instruction set for the LLM)
+    core_body = _get_recipe_text(recipe, lang_code, vals)
 
-    # Optional user goal / inputs
-    goal = ctx.get("user_goal") or ""
+    # Structured brief wrapper (driven by dynamic UI fields)
+    brief_sections = _build_brief_sections(recipe, lang_code, ctx)
+    brief_text = _render_brief(lang_code, brief_sections)
+
+    # Optional user goal / inputs from the right panel
+    user_goal = ctx.get("user_goal") or ""
     inputs = ctx.get("inputs") or ""
 
-    # Style controls
-    tone = ctx.get("tone") or "neutral"
-    depth = ctx.get("depth") or "standard"
-    length = ctx.get("length") or "medium"
-
-    # Critique step
-    add_critique = bool(ctx.get("add_critique"))
-    critique_map = {
-        "en": "Before finalizing, critique for accuracy, clarity, completeness, and bias. Revise once.",
-        "zh": "在定稿前，请从准确性、清晰度、完整性与偏见等角度进行自我评估，并进行一次修订。",
-        "ko": "최종 제출 전 정확성, 명확성, 완결성, 편향 여부를 점검하고 한 차례 수정하세요.",
-        "ja": "最終化の前に、正確性・明確さ・網羅性・偏りを自己点検し、1回修正してください。",
-    }
-    critique_line = f"- {critique_map[lang_code]}" if add_critique else ""
-
-    few_shot = _few_shot_block(lang_code, ctx.get("ex_input", ""), ctx.get("ex_output", ""))
-
-    # Localized bullet labels
-    label_goal = {"en": "Goal", "zh": "目标", "ko": "목표", "ja": "目的"}[lang_code]
-    label_inputs = {"en": "Inputs", "zh": "输入", "ko": "입력", "ja": "入力"}[lang_code]
-
-    def bulletify_local(label, content):
-        if not content:
-            return ""
-        lines = [l.strip() for l in content.split("\n") if l.strip()]
-        if not lines:
-            return ""
-        return f"- **{label}**\n" + "\n".join([f"  - {l}" for l in lines])
-
-    goal_block = bulletify_local(label_goal, goal)
-    inputs_block = bulletify_local(label_inputs, inputs)
+    # Language tone guidance
+    style_tail = ""
+    if lang_code in STYLE_TEMPLATES:
+        tone_line = STYLE_TEMPLATES[lang_code]["tone_map"].get(ctx.get("tone") or "neutral", "")
+        closing = STYLE_TEMPLATES[lang_code]["closing"]
+        style_tail = f"\n- {tone_line}\n- {closing}" if tone_line else f"\n- {closing}"
 
     # Optional HK highlights
     highlights_block = ""
@@ -486,25 +730,33 @@ def fill_recipe(recipe: str, lang_code: str, ctx: dict) -> str:
             lang_code, ctx.get("products_used") or [], ctx.get("region") or ""
         )
 
-    # Language tone guidance
-    style_tail = ""
-    if lang_code in STYLE_TEMPLATES:
-        tone_line = STYLE_TEMPLATES[lang_code]["tone_map"].get(tone, "")
-        closing = STYLE_TEMPLATES[lang_code]["closing"]
-        style_tail = f"\n- {tone_line}\n- {closing}" if tone_line else f"\n- {closing}"
+    # Few-shot examples if provided
+    few_shot = _few_shot_block(lang_code, ctx.get("ex_input", ""), ctx.get("ex_output", ""))
+
+    # Assemble final prompt
+    def bulletify(label, content):
+        if not content: return ""
+        lines = [l.strip() for l in content.split("\n") if l.strip()]
+        if not lines: return ""
+        return f"- **{label}**\n" + "\n".join([f"  - {l}" for l in lines])
+
+    label_goal = {"en": "Goal", "zh": "目标", "ko": "목표", "ja": "目的"}[lang_code]
+    label_inputs = {"en": "Inputs", "zh": "输入", "ko": "입력", "ja": "入力"}[lang_code]
+    goal_block = bulletify(label_goal, user_goal)
+    inputs_block = bulletify(label_inputs, inputs)
 
     final = (
         f"[system]\n{s['system']}\n\n"
-        f"[user]\n{body}\n"
-        f"- Tone: {tone}\n- Depth: {depth}\n- Target length: {length}\n"
-        f"{goal_block}\n{inputs_block}\n{highlights_block}\n\n"
+        f"[user]\n{brief_text}\n\n"
+        f"{core_body}\n"
+        f"{goal_block}\n{inputs_block}\n"
+        f"{highlights_block}\n\n"
         f"{s['notes_header']}\n"
         f"- Respect confidentiality; avoid legal advice.\n"
         f"- Be precise; prefer verifiable statements.\n"
         f"- Highlight ROI using {vals['metrics']}.\n"
         f"- Suggest next steps with owners & dates."
         f"{style_tail}\n"
-        f"{critique_line}"
         f"{few_shot}"
     ).strip()
 
