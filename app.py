@@ -1,3 +1,14 @@
+import os, sys, pathlib
+st.sidebar.markdown("**Debug**")
+st.sidebar.write("Working dir:", os.getcwd())
+st.sidebar.write("Main file:", __file__)
+st.sidebar.write("Exists components/recipes.py:", pathlib.Path("components/recipes.py").exists())
+try:
+    import components.recipes as _r
+    st.sidebar.write("recipes loaded:", True, "| functions:", hasattr(_r, "build_brief"))
+except Exception as e:
+    st.sidebar.write("recipes import error:", e)
+
 import streamlit as st
 from datetime import datetime, date
 
