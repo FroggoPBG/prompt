@@ -1,12 +1,15 @@
 import streamlit as st
 from datetime import datetime, date
 
-# Local modules
 from components.recipes import (
-    SCAFFOLDS, LN_CONTEXT, PROMPT_RECIPES,
-    fill_recipe, shape_output
+    SCAFFOLDS,
+    LN_CONTEXT,
+    PROMPT_RECIPES,
+    fill_recipe,
+    shape_output
 )
 from components.presets import export_preset_bytes, load_preset_into_state
+
 
 # -------------------- Page --------------------
 st.set_page_config(page_title="LexisNexis Prompt Composer (no APIs)", page_icon="🧠", layout="wide")
