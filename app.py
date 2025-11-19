@@ -1,17 +1,19 @@
 import streamlit as st
 from datetime import datetime, date
 
+# Local modules
 from components.recipes import (
     SCAFFOLDS, LN_CONTEXT, PROMPT_RECIPES,
     fill_recipe, shape_output
 )
 from components.presets import export_preset_bytes, load_preset_into_state
 
+# -------------------- Page --------------------
 st.set_page_config(page_title="LexisNexis Prompt Composer (no APIs)", page_icon="🧠", layout="wide")
 st.title("🧠 LexisNexis Prompt Composer (no APIs)")
-st.caption("Generate high-quality, localized prompt briefs for AI tools (ChatGPT, Copilot, Gemini) — no external APIs.")
+st.caption("Generate high-quality, localized prompt briefs for any AI tool (ChatGPT, Copilot, Gemini) — no external APIs.")
 
-# ---------- Language & output ----------
+# -------------------- Language & output --------------------
 col_lang, col_out = st.columns([1, 1])
 with col_lang:
     lang_code = st.selectbox(
@@ -21,9 +23,9 @@ with col_lang:
         index=0,
     )
 with col_out:
-    output_format = st.selectbox("Output target", LN_CONTEXT["outputs"], index=0)  # plain prompt default
+    output_format = st.selectbox("Output target", LN_CONTEXT["outputs"], index=0)  # "plain prompt" by default
 
-# ---------- Sidebar: Global schema fields ----------
+# -------------------- Sidebar: global schema --------------------
 with st.sidebar:
     st.header("Client identity")
     client_name = st.text_input("Client name")
@@ -42,7 +44,7 @@ with st.sidebar:
     nps_info = st.text_area("NPS score / feedback theme (paste)")
 
     st.header("Communication settings")
-    # Tone "auto" = localize by region + stage; users can override
+    # Tone “auto” = localized by Region + Stage (JP/KR more formal; Complaint -> apologetic)
     tone = st.selectbox("Tone", LN_CONTEXT["tones"], index=0)
     length = st.selectbox("Length preference", LN_CONTEXT["lengths"], index=2)
     include_highlights = st.checkbox("Auto-include product highlights (region-aware)", value=True)
@@ -50,17 +52,20 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("Presets")
     preset_bytes = export_preset_bytes(
-        client_name, client_type, products_used, account_owner, "—", []  # keep backward compatible
+        client_name=client_name,
+        client_type=client_type,
+        products_used=products_used,
+        account_owner=account_owner,
+        practice_areas=practice_areas,
+        region=region,
     )
     st.download_button("💾 Export client preset (.json)", preset_bytes, file_name="client_preset.json", mime="application/json")
     uploaded = st.file_uploader("📂 Import client preset (.json)", type="json")
     if uploaded:
-        import json
-        data = json.load(uploaded)
-        load_preset_into_state(data)
+        load_preset_into_state(uploaded)
         st.success("✅ Preset loaded. Update fields as needed.")
 
-# ---------- Main: function selection ----------
+# -------------------- Main: function selection --------------------
 left, right = st.columns([2, 3])
 
 with left:
@@ -88,7 +93,7 @@ with right:
     with ex_col2:
         ex_output = st.text_area("Example output", height=80, placeholder="Desired example output")
 
-# ---------- Dynamic guided forms by function ----------
+# -------------------- Guided forms by function --------------------
 st.markdown("---")
 st.markdown("### 🧩 Guided options")
 
@@ -199,17 +204,18 @@ elif recipe == "NPS Engagement":
             "nps_survey_link": nps_survey_link,
         })
 
-# ---------- Quality checklist ----------
+# -------------------- Quality checklist --------------------
 st.markdown("---")
 st.markdown("### ✅ Quality Checklist")
-_ = [st.checkbox(c) for c in [
+for item in [
     "No confidential client data present",
     "Claims are accurate/verifiable (no legal advice)",
     "Outcome/ROI linked to metrics",
     "Clear CTA / next steps included",
-]]
+]:
+    st.checkbox(item)
 
-# ---------- Generate ----------
+# -------------------- Generate --------------------
 if st.button("✨ Generate Prompt"):
     ctx = dict(
         # Global schema
@@ -229,17 +235,13 @@ if st.button("✨ Generate Prompt"):
         output_target=output_format,
 
         # Few-shot
-        ex_input=st.session_state.get("ex_input", "") if "ex_input" in st.session_state else "",
-        ex_output=st.session_state.get("ex_output", "") if "ex_output" in st.session_state else "",
+        ex_input=ex_input or "",
+        ex_output=ex_output or "",
     )
-    # streamlit text areas not in session_state by default; pass directly:
-    ctx["ex_input"] = st.session_state.get("ex_input", "") or ""
-    ctx["ex_output"] = st.session_state.get("ex_output", "") or ""
 
-    # Guided function-specific fields
+    # Guided, function-specific
     ctx.update(guided)
 
-    # Build prompt
     final_prompt = fill_recipe(recipe, lang_code, ctx)
     shaped = shape_output(final_prompt, output_format, client_name, recipe)
 
@@ -254,4 +256,4 @@ if st.button("✨ Generate Prompt"):
         mime="text/plain"
     )
 
-st.caption("Tips: set Tone to ‘auto’ to localize by Region + Stage (e.g., JP=polite; Complaint=apologetic).")
+st.caption("Tip: set Tone to ‘auto’ to localize by Region + Stage (e.g., Japan=polite; Complaint=apologetic).")
