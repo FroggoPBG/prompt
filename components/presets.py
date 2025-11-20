@@ -1,17 +1,21 @@
-import io, json
+# components/presets.py
+import io
+import json
 import streamlit as st
 
 def export_preset_bytes(
-    client_name=None,
-    client_type=None,
+    client_name: str = "",
+    client_type: str = "",
     products_used=None,
-    account_owner=None,
+    account_owner: str = "",
     practice_areas=None,
-    region=None,
+    region: str = "",
 ):
-    ...
+    if products_used is None:
+        products_used = []
+    if practice_areas is None:
+        practice_areas = []
 
-    """Export current sidebar client data as downloadable JSON."""
     payload = {
         "client_name": client_name,
         "client_type": client_type,
@@ -20,16 +24,11 @@ def export_preset_bytes(
         "practice_areas": practice_areas,
         "region": region,
     }
-    b = io.BytesIO(json.dumps(payload, indent=2, ensure_ascii=False).encode())
+    b = io.BytesIO(json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8"))
     b.seek(0)
     return b
 
-def load_preset_into_state(uploaded_file):
-    """Import preset from uploaded JSON and populate session_state."""
-    try:
-        data = json.load(uploaded_file)
-        for k, v in data.items():
-            st.session_state[k] = v
-        st.success("Preset imported successfully.")
-    except Exception as e:
-        st.error(f"Error importing preset: {e}")
+def load_preset_into_state(data: dict):
+    # Update Streamlit session_state with keys from the preset JSON
+    for k, v in data.items():
+        st.session_state[k] = v
