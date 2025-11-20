@@ -8,15 +8,17 @@ from __future__ import annotations
 from typing import Dict, List
 
 # ----------------------------
-# Language scaffolds
+# Language scaffolds (email drafting focus)
 # ----------------------------
-SCAFFOLDS: Dict[str, Dict[str, str]] = {
+SCAFFOLDS = {
     "en": {
         "name": "English",
         "sys": (
             "You are an assistant for Customer Success in the legal-tech domain at LexisNexis. "
-            "Respond with a professional, concise prompt brief that another AI can use to generate "
-            "client communications. Use the structure and headings given."
+            "Draft a professional, clear, and client-ready email that another AI can generate directly. "
+            "Use the fields and headings below to inform tone, context, and purpose. "
+            "Do not describe a prompt or summary — focus on writing an effective client email. "
+            "Maintain accuracy, confidentiality, and a consultative tone appropriate to the situation."
         ),
         "role_lbl": "ROLE",
         "goal_lbl": "GOAL",
@@ -32,8 +34,8 @@ SCAFFOLDS: Dict[str, Dict[str, str]] = {
     "zh": {
         "name": "中文 (简体)",
         "sys": (
-            "你是 LexisNexis 法律科技领域的客户成功助理。请输出一份可供其他 AI 使用的提示说明，"
-            "结构清晰、简洁专业，并使用以下标题。"
+            "你是 LexisNexis 法律科技领域的客户成功助理。请根据以下结构撰写一封专业、清晰、可直接发送给客户的电子邮件。"
+            "不要描述提示或摘要，只写邮件内容。请确保表达准确、语气得体，并符合客户沟通的专业语境。"
         ),
         "role_lbl": "角色",
         "goal_lbl": "目标",
@@ -50,8 +52,9 @@ SCAFFOLDS: Dict[str, Dict[str, str]] = {
         "name": "한국어",
         "sys": (
             "당신은 LexisNexis 법률 테크 분야의 고객 성공 어시스턴트입니다. "
-            "다른 AI가 사용할 수 있는 전문적이고 간결한 프롬프트 브리프를 "
-            "아래 구조와 제목을 사용하여 작성하세요."
+            "아래 구조를 참고하여 고객에게 바로 보낼 수 있는 전문적이고 명확한 이메일을 작성하세요. "
+            "프롬프트나 요약을 설명하지 말고, 실제 이메일 내용을 작성하세요. "
+            "정확성과 기밀을 지키며, 상황에 맞는 컨설팅형 톤을 유지하세요."
         ),
         "role_lbl": "역할",
         "goal_lbl": "목표",
@@ -67,8 +70,10 @@ SCAFFOLDS: Dict[str, Dict[str, str]] = {
     "ja": {
         "name": "日本語",
         "sys": (
-            "あなたは LexisNexis のリーガルテック領域におけるカスタマーサクセスのアシスタントです。"
-            "他のAIが利用できるプロンプト・ブリーフを、以下の見出しで簡潔かつプロフェッショナルに作成してください。"
+            "あなたは LexisNexis のリーガルテック分野におけるカスタマーサクセスアシスタントです。"
+            "以下の構成に従い、クライアントに直接送信できるプロフェッショナルで明確なメール本文を作成してください。"
+            "プロンプトや要約は書かず、メール本文に集中してください。"
+            "正確性と機密性を守り、状況にふさわしいコンサルティブなトーンを維持してください。"
         ),
         "role_lbl": "役割",
         "goal_lbl": "ゴール",
@@ -82,6 +87,7 @@ SCAFFOLDS: Dict[str, Dict[str, str]] = {
         "nps_internal_lbl": "社内 NPS インサイト",
     },
 }
+
 
 # ----------------------------
 # General picklists for UI
