@@ -9,6 +9,8 @@ def export_preset_bytes(
     practice_areas=None,
     region=None,
 ):
+    ...
+
     """Export current sidebar client data as downloadable JSON."""
     payload = {
         "client_name": client_name,
