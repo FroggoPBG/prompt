@@ -6,6 +6,17 @@
 
 from __future__ import annotations
 from typing import Dict, List
+# Handy inserts the CSM can include in one click
+NPS_KB = {
+    "hk_reported_cases_filter": (
+        "To view reported cases only: scroll to the Publication tab and click “Hong Kong Cases.” "
+        "This filters results to reported cases only."
+    ),
+    "pg_crypto_pointer": (
+        "Cryptocurrency legal resources are available under Practical Guidance → Financial Services → "
+        "Fintech & Virtual Assets."
+    ),
+}
 
 # ----------------------------
 # Language scaffolds (email drafting focus)
@@ -14,7 +25,7 @@ SCAFFOLDS = {
     "en": {
         "name": "English",
         "sys": (
-            "You are an assistant for Customer Success in the legal-tech domain at LexisNexis. "
+            "You are a consultant for Customer Success in the legal-tech domain at LexisNexis. "
             "Draft a professional, clear, and client-ready email that another AI can generate directly. "
             "Use the fields and headings below to inform tone, context, and purpose. "
             "Do not describe a prompt or summary — focus on writing an effective client email. "
@@ -116,6 +127,7 @@ PROMPT_RECIPES = [
     "Client Snapshot & Risk Signals",
     "Objection Coach",
     "NPS Engagement",
+    "NPS Follow-up", 
 ]
 
 # ----------------------------
@@ -367,6 +379,55 @@ def build_brief(
             "Passives: humble and improvement-oriented. "
             "Detractors: sincere, non-defensive, respectful."
         )
+            elif r == "NPS Follow-up":
+        # Inputs expected from UI
+        prev = ctx.get("nps_follow_rating", "")  # Promoter/Passive/Detractor
+        comment = (ctx.get("nps_follow_comment") or "").strip()
+        ctype = (ctx.get("nps_follow_type") or "").strip()  # How-to / Feature / Bug / Praise
+        hint_key = ctx.get("nps_follow_hint")  # kb key or "None"
+        escalate = bool(ctx.get("nps_follow_escalate"))
+        team_note = (ctx.get("nps_follow_note") or "").strip()
+
+        # Show which variant we’re responding to
+        variant = "unknown"
+        if "Promoter" in prev:
+            variant = "promoter"
+        elif "Passive" in prev:
+            variant = "passive"
+        elif "Detractor" in prev:
+            variant = "detractor"
+
+        # Deliverable guidelines
+        deliverable = [
+            f"Adapt tone to prior NPS ({variant}).",
+            "Open by thanking them for the feedback and referencing their exact comment.",
+            "Address the comment based on its type (how-to, feature request, bug/issue, general praise/concern).",
+            "Offer either a quick tip, a pointer to existing functionality, or an invitation to clarify needs.",
+            "Close with a clear next step (reply or brief call) and appreciation."
+        ]
+
+        # Optional inserts
+        if hint_key and hint_key in NPS_KB:
+            deliverable.append(f"Include this helpful pointer: {NPS_KB[hint_key]}")
+
+        if escalate:
+            deliverable.append("Inform the client that the feedback has been shared with the relevant internal team.")
+            if team_note:
+                deliverable.append(f"Internal note (do not send verbatim): {team_note}")
+
+        # Add specific asks by type
+        if ctype:
+            deliverable.append(f"Comment type noted: {ctype}")
+
+        # Body instruction
+        body = (
+            "Draft a concise, respectful follow-up email tailored to their NPS rating and comment. "
+            "If it’s a how-to question and a solution exists, provide the steps. "
+            "If it’s a feature request, acknowledge, relate to roadmap/alternatives if applicable, and invite specifics. "
+            "If it’s a bug/issue, acknowledge impact, set expectation that the team is reviewing, and offer an update path. "
+            "Keep tone aligned to the rating (promoter: appreciative; passive: improvement-oriented; detractor: sincere, non-defensive)."
+        )
+
 
     else:
         deliverable = ["Produce a clear, helpful response."]
