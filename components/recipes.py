@@ -1,440 +1,204 @@
 # components/recipes.py
-# Multilingual prompt-brief builder for CS/RM/Sales (no external APIs)
+# ---------------------------------------------------------------------
+# Core prompt scaffolds, recipes, and builders used by the Streamlit UI.
+# Safe to use without any external APIs. Python 3.9+ compatible.
+# ---------------------------------------------------------------------
 
-# ---------- Language scaffolds ----------
-SCAFFOLDS = {
+from __future__ import annotations
+from typing import Dict, List
+
+# ----------------------------
+# Language scaffolds
+# ----------------------------
+SCAFFOLDS: Dict[str, Dict[str, str]] = {
     "en": {
         "name": "English",
-        "system": (
-            "You are a Customer Success consultant in the legal-tech domain at "
-            "LexisNexis. Respond with a professional, clear, and helpful tone. "
-            "Prioritize accuracy, brevity, and client understanding."
+        "sys": (
+            "You are an assistant for Customer Success in the legal-tech domain at LexisNexis. "
+            "Respond with a professional, concise prompt brief that another AI can use to generate "
+            "client communications. Use the structure and headings given."
         ),
-        "notes_header": "Additional notes & constraints:",
+        "role_lbl": "ROLE",
+        "goal_lbl": "GOAL",
+        "ctx_lbl": "CONTEXT",
+        "req_lbl": "DELIVERABLE REQUIREMENTS",
+        "info_lbl": "INFORMATION TO GATHER",
+        "tone_lbl": "TONE",
+        "len_lbl": "LENGTH",
+        "extra_lbl": "Additional notes & constraints",
+        "nps_pasted_lbl": "NPS Verbatim Insights (pasted)",
+        "nps_internal_lbl": "NPS Insights (internal)",
     },
     "zh": {
-        "name": "中文",
-        "system": (
-            "你是 LexisNexis 法律科技领域的客户成功顾问助理。"
-            "请以专业、清晰、亲切的语气回应，确保表达准确、简洁且有助于客户理解。"
+        "name": "中文 (简体)",
+        "sys": (
+            "你是 LexisNexis 法律科技领域的客户成功助理。请输出一份可供其他 AI 使用的提示说明，"
+            "结构清晰、简洁专业，并使用以下标题。"
         ),
-        "notes_header": "补充说明与约束条件：",
+        "role_lbl": "角色",
+        "goal_lbl": "目标",
+        "ctx_lbl": "上下文",
+        "req_lbl": "交付要求",
+        "info_lbl": "需收集信息",
+        "tone_lbl": "语气",
+        "len_lbl": "篇幅",
+        "extra_lbl": "补充说明与约束",
+        "nps_pasted_lbl": "NPS 文本洞察（粘贴）",
+        "nps_internal_lbl": "内部 NPS 洞察",
     },
     "ko": {
         "name": "한국어",
-        "system": (
-            "당신은 LexisNexis 법률 테크 분야의 고객 성공 컨설턴트입니다. "
-            "전문적이고 명확하며 친절한 어조로 응답하세요. 정확하고 간결하며 "
-            "고객의 이해를 돕는 표현을 사용하세요."
+        "sys": (
+            "당신은 LexisNexis 법률 테크 분야의 고객 성공 어시스턴트입니다. "
+            "다른 AI가 사용할 수 있는 전문적이고 간결한 프롬프트 브리프를 "
+            "아래 구조와 제목을 사용하여 작성하세요."
         ),
-        "notes_header": "추가 설명 및 제약 조건:",
+        "role_lbl": "역할",
+        "goal_lbl": "목표",
+        "ctx_lbl": "컨텍스트",
+        "req_lbl": "산출물 요구사항",
+        "info_lbl": "수집할 정보",
+        "tone_lbl": "톤",
+        "len_lbl": "길이",
+        "extra_lbl": "추가 메모 및 제약",
+        "nps_pasted_lbl": "NPS 원문 인사이트(붙여넣기)",
+        "nps_internal_lbl": "내부 NPS 인사이트",
     },
     "ja": {
         "name": "日本語",
-        "system": (
-            "あなたは LexisNexis のリーガルテック分野におけるカスタマーサクセス・"
-            "コンサルタントです。専門的で明確かつ丁寧な口調で回答し、正確さと簡潔さ、"
-            "そして相手の理解を重視してください。"
+        "sys": (
+            "あなたは LexisNexis のリーガルテック領域におけるカスタマーサクセスのアシスタントです。"
+            "他のAIが利用できるプロンプト・ブリーフを、以下の見出しで簡潔かつプロフェッショナルに作成してください。"
         ),
-        "notes_header": "補足説明と制約条件：",
+        "role_lbl": "役割",
+        "goal_lbl": "ゴール",
+        "ctx_lbl": "コンテキスト",
+        "req_lbl": "成果物要件",
+        "info_lbl": "収集すべき情報",
+        "tone_lbl": "トーン",
+        "len_lbl": "長さ",
+        "extra_lbl": "補足・制約",
+        "nps_pasted_lbl": "NPS テキスト・インサイト（貼り付け）",
+        "nps_internal_lbl": "社内 NPS インサイト",
     },
 }
 
-# ---------- UI pickers / context ----------
+# ----------------------------
+# General picklists for UI
+# ----------------------------
 LN_CONTEXT = {
-    "regions": ["Global", "Hong Kong", "Japan", "Korea", "Singapore"],
+    "outputs": ["plain text", "email", "crm note"],
     "client_types": ["law firm", "corporate", "government", "in-house legal"],
+    "regions": ["Hong Kong", "Japan", "Korea", "Singapore"],
     "practice_areas": [
-        "financial services", "litigation", "compliance", "arbitration",
-        "tort", "personal injury", "company", "corporate", "IP", "criminal",
-        "contract",
+        "Financial services", "Litigation", "Compliance", "Arbitration",
+        "Tort", "Personal injury", "Company", "Corporate", "IP", "Criminal", "Contract"
     ],
-    "products": [
-        "Lexis+",
-        "Lexis+ AI",
-        "Practical Guidance",
-        "Lexis PSL",
-        "Lexis Advance",
-        "Lexis Red",
-        "Mlex",
-        "LNC",
-        "Risk Solutions",
-        "Regulatory Compliance",
-        "Nexis Data+",
-    ],
-    "roles": [
-        "Customer Success Consultant",
-        "Relationship Manager",
-        "Sales / Account Executive",
-        "Marketing / Enablement",
-    ],
-    "audiences": [
-        "GC / CLO",
-        "Head of Compliance",
-        "Litigation Partner",
-        "KM / Innovation Lead",
-        "In-house Legal Ops",
-        "Procurement",
-    ],
-    "stages": [
-        "New", "Renewal", "Expansion", "Cancellation",
-        "Low usage", "Complaint", "Previous negative comments",
-        "Previous positive comments",
-    ],
-    "tones": [
-        "auto", "neutral", "friendly", "consultative", "persuasive", "formal",
-        "polite", "apologetic", "technical", "concise",
-    ],
-    "lengths": ["very short", "short", "medium", "long"],
-    "outputs": ["plain prompt", "email", "CRM note", "slide outline"],
+    "stages": ["New", "Renewal", "Expansion", "Cancellation", "Low usage", "Complaint"],
+    "products": ["Lexis+", "Practical Guidance", "Lexis Advance", "Lexis Red", "Lexis+ AI"],
+    "tones": ["auto", "warm", "consultative", "confident", "formal", "polite", "apologetic", "neutral", "persuasive"],
+    "lengths": ["short", "medium", "long"],
 }
 
-# ---------- Region product highlights (safe strings) ----------
-PRODUCT_HIGHLIGHTS = {
-    "Practical Guidance": {
-        "Hong Kong": {
-            "Financial Services": {
-                "updates": 50,
-                "notable": [
-                    "Tokenization of real-world assets; HKMA guidance on tokenised products",
-                    "SFC framework on security token offerings; insights on tokenised public funds",
-                    "Dual licensing regime for virtual-asset trading platforms",
-                    "Crypto-assets regulation; Fund Manager Code of Conduct; OFC regime",
-                ],
-            },
-            "Corporate": {
-                "updates": 261,
-                "notable": [
-                    "Custom/Model Articles of Association; majority-minority & deadlock examples",
-                    "Board minutes skeletons; virtual general meetings",
-                    "Director address non-disclosure; registration of non-HK companies",
-                    "First board minutes; resisting winding-up; Companies Registry forms (NAR1/NSC1/NN1)",
-                ],
-            },
-            "Employment": {
-                "updates": 341,
-                "notable": [
-                    "Executive service agreement; employment contract; minimum wage",
-                    "Anti-harassment policy; mental-health policy (HK); MPF/ORS overview",
-                    "Termination tax; share options/awards; data protection & social media",
-                ],
-            },
-            "Dispute Resolution (HKIAC)": {
-                "updates": 242,
-                "notable": [
-                    "HKIAC 2024: consolidation; awards & orders; third-party funding disclosure",
-                    "Emergency relief; pleadings & amendments; time limits",
-                ],
-            },
-        }
-    }
-}
+PROMPT_RECIPES = [
+    "Renewal Email",
+    "QBR Brief",
+    "Client Follow-up",
+    "Proposal / RFP Response",
+    "Upsell / Cross-sell Outreach",
+    "Client Risk Alert",
+    "Client Snapshot & Risk Signals",
+    "Objection Coach",
+    "NPS Engagement",
+]
 
-# ---------- Tone guidance ----------
-STYLE_TEMPLATES = {
-    "en": {
-        "tone_map": {
-            "neutral": "Use a neutral, professional tone focused on clarity and actionability.",
-            "friendly": "Sound approachable and supportive while remaining professional.",
-            "consultative": "Adopt a consultative tone; diagnose needs and guide next steps.",
-            "persuasive": "Structure value clearly and emphasize outcomes and ROI.",
-            "formal": "Maintain a formal, respectful tone; avoid colloquialisms.",
-            "polite": "Be courteous and deferential, prioritizing respectful phrasing.",
-            "apologetic": "Acknowledge issues sincerely and state corrective actions.",
-            "technical": "Use precise terminology; add brief explanations where needed.",
-            "concise": "Be brief and to the point; emphasize essentials.",
-        },
-        "closing": "Ensure accuracy, easy navigation, and client-centric framing.",
-    },
-    "zh": {
-        "tone_map": {
-            "neutral": "保持专业、平和的语气，重点在清晰与可操作性。",
-            "friendly": "语气自然亲切，体现合作与支持，同时保持专业度。",
-            "consultative": "以咨询式语气识别需求并引导下一步。",
-            "persuasive": "结构清晰、数据支撑，强调价值与预期成效。",
-            "formal": "保持正式且礼貌的表达，避免口语化与冗长句式。",
-            "polite": "用语委婉、礼貌，体现尊重。",
-            "apologetic": "真诚致歉并说明改进措施。",
-            "technical": "术语准确，必要处简要解释。",
-            "concise": "表达精炼，突出要点。",
-        },
-        "closing": "确保内容准确、易懂，并聚焦客户价值。",
-    },
-    "ko": {
-        "tone_map": {
-            "neutral": "전문적이고 중립적인 어조로 명확하고 실행 가능한 표현을 사용하세요.",
-            "friendly": "친근하되 전문성을 유지하세요.",
-            "consultative": "컨설팅 톤으로 니즈를 파악하고 다음 단계를 제시하세요.",
-            "persuasive": "가치를 체계적으로 제시하고 결과/ROI를 강조하세요.",
-            "formal": "격식과 예의를 갖춘 표현을 사용하세요.",
-            "polite": "정중하고 공손한 표현을 우선하세요.",
-            "apologetic": "문제를 진솔하게 인정하고 개선 조치를 명확히 하세요.",
-            "technical": "정확한 용어를 사용하고 필요한 경우 간단히 설명하세요.",
-            "concise": "간결하고 핵심만 전달하세요.",
-        },
-        "closing": "정확성, 이해 용이성, 고객 중심 관점을 보장하세요.",
-    },
-    "ja": {
-        "tone_map": {
-            "neutral": "専門的で中立的なトーンを維持し、明確で実行可能な表現を用いてください。",
-            "friendly": "親しみやすさを保ちつつ、専門性を損なわないでください。",
-            "consultative": "コンサルティブな口調でニーズを特定し、次の一手を導いてください。",
-            "persuasive": "価値と成果・ROIを分かりやすく強調してください。",
-            "formal": "丁寧で礼儀正しい表現を用い、くだけた言い回しは避けてください。",
-            "polite": "より丁寧で配慮ある表現を優先してください。",
-            "apologetic": "課題を真摯に認め、改善策を明確に述べてください。",
-            "technical": "正確な専門用語を使い、必要に応じて簡潔に説明してください。",
-            "concise": "簡潔に要点を示してください。",
-        },
-        "closing": "正確で読みやすく、顧客志向の構成であることを確認してください。",
-    },
-}
+# ----------------------------
+# Helpers
+# ----------------------------
 
-# ---------- Compact recipe bodies ----------
-PROMPT_RECIPES = {
-    "Renewal Email": (
-        "Write a consultative renewal email to {client_name}. Emphasize ROI, "
-        "acknowledge pricing feedback, and propose a value review with 2–3 time options."
-    ),
-    "QBR Brief": (
-        "Prepare a consultative QBR summary for {client_name}, highlighting usage trends, "
-        "business impact, wins, underused features, and clear recommendations."
-    ),
-    "Client Follow-up": (
-        "Draft a friendly follow-up note to {client_name} after the last meeting, "
-        "confirming takeaways and next steps."
-    ),
-    "Proposal / RFP Response": (
-        "Draft proposal language tailored to {client_name}'s sector and scope. Emphasize "
-        "differentiators, ROI, timeline, and next steps."
-    ),
-    "Upsell / Cross-sell Outreach": (
-        "Draft outreach that maps current pain points to specific LexisNexis products "
-        "with expected outcomes and ROI."
-    ),
-    "Client Risk Alert": (
-        "Draft an empathetic, proactive message addressing risk signals and proposing "
-        "mitigation actions."
-    ),
-    "Client Snapshot & Risk Signals": (
-        "Create an internal client snapshot: firm overview, recent developments, "
-        "engagement insights, risk & growth signals."
-    ),
-    "Objection Coach": (
-        "Create empathetic, data-backed talking points, plus one reframing question "
-        "that shifts from cost to outcomes."
-    ),
-    # Base key kept for UI; variant text chosen dynamically by nps_previous_rating
-    "NPS Engagement": "Draft an NPS engagement email (variant will adapt to prior score).",
-}
+def _tone_auto(lang: str, region: str, stage: str) -> str:
+    # Simple localization heuristic for "auto"
+    jpkr_formal = {"Japan", "Korea"}
+    if region in jpkr_formal:
+        base = "polite"
+    else:
+        base = "consultative"
+    if stage.lower() in {"complaint", "cancellation"}:
+        return "apologetic"
+    return base
 
-# ---------- Brief headings ----------
-BRIEF_LABELS = {
-    "ROLE": {"en": "ROLE", "zh": "角色", "ko": "역할", "ja": "役割"},
-    "GOAL": {"en": "GOAL", "zh": "目标", "ko": "목표", "ja": "目的"},
-    "CONTEXT": {"en": "CONTEXT", "zh": "上下文", "ko": "컨텍스트", "ja": "コンテキスト"},
-    "REQ": {"en": "DELIVERABLE REQUIREMENTS", "zh": "交付要求", "ko": "전달물 요구사항", "ja": "成果物要件"},
-    "INFO": {"en": "INFORMATION TO GATHER", "zh": "需收集信息", "ko": "수집해야 할 정보", "ja": "収集すべき情報"},
-    "TONE": {"en": "TONE", "zh": "语气", "ko": "톤", "ja": "トーン"},
-    "LENGTH": {"en": "LENGTH", "zh": "长度", "ko": "분량", "ja": "長さ"},
-    "HIGHLIGHTS": {"en": "Product highlights", "zh": "产品亮点", "ko": "제품 하이라이트", "ja": "製品ハイライト"},
-}
+def _fmt_list(items: List[str]) -> str:
+    return "\n".join([f"- {x}" for x in items])
 
-# ---------- Helpers ----------
-def _auto_tone(region: str, stage: str) -> str:
-    region_map = {
-        "Japan": "polite",
-        "Korea": "formal",
-        "Hong Kong": "consultative",
-        "Singapore": "neutral",
-        "Global": "neutral",
-    }
-    tone = region_map.get(region or "Global", "neutral")
-    if stage in ("Complaint", "Previous negative comments"):
-        tone = "apologetic"
-    return tone
+def _normalize_lines(text: str) -> List[str]:
+    """Best-effort cleanup to produce readable bullets from raw text."""
+    if not text:
+        return []
+    raw = [ln.strip(" \t-•\u2022") for ln in text.splitlines() if ln.strip()]
+    lines: List[str] = []
+    for ln in raw:
+        # keep headings and short bullets; split very long sentences on '; '
+        if "; " in ln and len(ln) > 140:
+            parts = [p.strip() for p in ln.split("; ") if p.strip()]
+            lines.extend(parts)
+        else:
+            lines.append(ln)
+    return lines[:20]
 
-def _bullets(items):
-    if not items:
+def _render_nps_text_block(lang: str, text: str) -> str:
+    if not text:
         return ""
-    return "\n" + "\n".join([f"- {i}" for i in items])
+    lbl = SCAFFOLDS[lang]["nps_pasted_lbl"]
+    bullets = _normalize_lines(text)
+    return f"**{lbl}:**\n" + _fmt_list(bullets)
 
-def render_product_highlights(lang_code: str, products_used: list, region: str) -> str:
-    if not products_used or region in ("", "Global"):
-        return ""
-    label = BRIEF_LABELS["HIGHLIGHTS"][lang_code]
-    lines = []
-    for p in products_used:
-        reg_table = PRODUCT_HIGHLIGHTS.get(p, {}).get(region)
-        if not reg_table:
-            continue
-        lines.append(f"- **{p} — {region}**")
-        for cat, info in reg_table.items():
-            lines.append(f"  - {cat} — {info.get('updates')} updates")
-            for item in info.get("notable", []):
-                lines.append(f"    - {item}")
-    return f"**{label}:**\n" + "\n".join(lines) if lines else ""
+# ----------------------------
+# Main brief builder
+# ----------------------------
 
-def _nps_variant_body(previous_rating: str) -> str:
-    """Return instruction body for NPS by previous rating bucket."""
-    if "promoter" in (previous_rating or "").lower():
-        return (
-            "Write a warm, appreciative NPS engagement email for customers who previously rated 9–10. "
-            "Tone: grateful and collaborative; position the client as a partner. "
-            "Acknowledge their support and our commitment to maintain high standards. "
-            "Mention the survey takes under 2 minutes. Keep concise; avoid being overly effusive. "
-            "Subject line should reflect appreciation for their insights."
-        )
-    if "passive" in (previous_rating or "").lower():
-        return (
-            "Write an aspirational NPS engagement email for customers who previously rated 7–8. "
-            "Tone: humble yet motivated. Recognize we've been good and are striving to be great. "
-            "Frame their feedback as key to making the experience exceptional. "
-            "Ask what to keep, stop, or change. Mention the survey takes under 2 minutes and that we personally read every response. "
-            "Subject line should focus on improvement and earning their enthusiastic recommendation."
-        )
-    # Detractors / default
-    return (
-        "Write a humble, sincere NPS engagement email for customers who previously rated 0–6. "
-        "Tone: respectful, non-defensive, genuinely open. "
-        "Acknowledge we've been working on improvements and their honest perspective matters. "
-        "Do not over-promise; ask whether things have improved, stayed the same, or still need work. "
-        "Mention the survey takes under 2 minutes. Keep brief and respectful. "
-        "Subject line should be gentle and non-presumptuous."
-    )
+def build_brief(
+    lang: str,
+    recipe_name: str,
+    ctx: Dict
+) -> str:
+    """
+    Build the *prompt brief* used by another AI to generate the final comms.
+    """
+    sc = SCAFFOLDS[lang]
+    role = sc["role_lbl"]; goal = sc["goal_lbl"]; context = sc["ctx_lbl"]
+    req = sc["req_lbl"]; info = sc["info_lbl"]; tone_lbl = sc["tone_lbl"]
+    len_lbl = sc["len_lbl"]; extra = sc["extra_lbl"]
 
-def _nps_bucket_label(previous_rating: str) -> str:
-    """Normalize bucket label for the requirements line."""
-    r = (previous_rating or "").lower()
-    if "promoter" in r:
-        return "promoter"
-    if "passive" in r:
-        return "passive"
-    return "detractor"
+    # Tone resolve
+    tone = ctx.get("tone", "auto")
+    if tone == "auto":
+        tone = _tone_auto(lang, ctx.get("region", "Hong Kong"), ctx.get("relationship_stage", "New"))
 
-# ---------- Build the structured brief ----------
-def build_brief(recipe: str, lang: str, ctx: dict) -> str:
-    role = ctx.get("role") or "Customer Success Manager"
-    region = ctx.get("region") or "Global"
-    stage = ctx.get("relationship_stage") or "Renewal"
-    tone = ctx.get("tone") or "auto"
-    tone = _auto_tone(region, stage) if tone == "auto" else tone
-    length_hint = ctx.get("length") or "medium"
+    # Shared context tokens
+    client_name = ctx.get("client_name", "").strip() or "client"
+    ctype = ctx.get("client_type", "law firm")
+    region = ctx.get("region", "Hong Kong")
+    practice = ", ".join(ctx.get("practice_areas", []) or [])
+    products = ", ".join(ctx.get("products_used", []) or [])
+    stage = ctx.get("relationship_stage", "New")
+    usage = ctx.get("usage_metrics", "")
+    time_saved = ctx.get("time_saved", "")
+    nps_info = ctx.get("nps_info", "")
+    length = ctx.get("length", "medium")
 
-    goals = {
-        "Renewal Email": {
-            "en": "Demonstrate tangible ROI and reframe the conversation from cost to value.",
-            "zh": "展示可量化 ROI，将讨论从“成本”转向“价值”。",
-            "ko": "명확한 ROI를 제시하여 대화를 비용에서 가치 중심으로 전환합니다.",
-            "ja": "具体的なROIを示し、議論をコストから価値へ転換します。",
-        },
-        "QBR Brief": {
-            "en": "Create a consultative, data-driven QBR that demonstrates outcomes and identifies opportunities.",
-            "zh": "生成以数据与咨询为导向的 QBR，展示成果并识别机会。",
-            "ko": "성과를 보여주고 기회를 식별하는 데이터 기반 컨설팅형 QBR을 작성합니다.",
-            "ja": "成果を示し、機会を特定するデータドリブンなコンサル型QBRを作成します。",
-        },
-        "Client Follow-up": {
-            "en": "Confirm shared understanding and move the account forward with clear next steps.",
-            "zh": "确认共识并以明确的下一步推动合作进展。",
-            "ko": "합의한 내용을 정리하고 명확한 다음 단계로 진행합니다.",
-            "ja": "合意事項を整理し、明確な次のアクションへ前進させます。",
-        },
-        "Proposal / RFP Response": {
-            "en": "Tailor proposal language to the client's scope, differentiators, ROI, and timelines.",
-            "zh": "围绕客户范围、差异化、ROI 与时间表量身定制提案语言。",
-            "ko": "고객 범위/차별화/ROI/일정을 반영한 제안 문안을 맞춤 제작합니다.",
-            "ja": "範囲・差別化・ROI・スケジュールを反映した提案文面を作成します。",
-        },
-        "Upsell / Cross-sell Outreach": {
-            "en": "Map pains to LexisNexis solutions with clear outcomes and ROI.",
-            "zh": "基于痛点匹配 LexisNexis 解决方案并明确结果与 ROI。",
-            "ko": "고객 페인포인트에 맞는 솔루션과 기대 성과/ROI를 제시합니다.",
-            "ja": "課題に合致するソリューションと成果・ROIを提示します。",
-        },
-        "Client Risk Alert": {
-            "en": "Address risk signals early with an empathetic, proactive plan.",
-            "zh": "以同理心与前瞻性方案尽早应对风险信号。",
-            "ko": "공감과 선제적 계획으로 리스크 신호에 조기 대응합니다.",
-            "ja": "共感と先手の計画でリスク兆候に早期対応します。",
-        },
-        "Client Snapshot & Risk Signals": {
-            "en": "Provide a concise internal briefing for Customer Success before renewal or review.",
-            "zh": "在续约或评审前，为客户成功团队提供简明的内部简报。",
-            "ko": "갱신/리뷰 전 고객 성공팀을 위한 간결한 내부 브리핑을 제공합니다.",
-            "ja": "更新/レビュー前にCS向けの簡潔な内部ブリーフィングを提供します。",
-        },
-        "Objection Coach": {
-            "en": "Craft empathetic, data-backed responses that shift focus from cost to outcomes.",
-            "zh": "以同理心与数据支撑回应，将焦点从“成本”转向“结果/价值”。",
-            "ko": "공감과 데이터로 응답하여 초점을 비용에서 결과로 전환합니다.",
-            "ja": "共感とデータに基づき、焦点をコストから成果へ転換します。",
-        },
-        "NPS Engagement": {
-            "en": "Encourage feedback with tone adapted to prior NPS; capture insights to improve.",
-            "zh": "根据既往 NPS 评分调整语气，鼓励反馈并收集改进洞察。",
-            "ko": "이전 NPS에 맞춘 톤으로 피드백을 유도하고 인사이트를 수집합니다.",
-            "ja": "過去のNPSに合わせたトーンでフィードバックを促し、改善の示唆を得ます。",
-        },
-    }
-    goal = goals[recipe][lang]
+    # Product highlights auto-include (simple example)
+    highlights: List[str] = []
+    if ctx.get("include_highlights"):
+        if "Practical Guidance" in products:
+            highlights.append("Practical Guidance: curated precedents, checklists, and how-to guidance.")
+        if "Lexis+ AI" in products:
+            highlights.append("Lexis+ AI: trusted, grounded responses with citations to primary law.")
+        if "Lexis+" in products and "Lexis+ AI" not in products:
+            highlights.append("Lexis+: integrated research, analytics and drafting tools.")
 
-    # NEW: dynamic NPS bucket label used in requirements
-    nps_bucket = _nps_bucket_label(ctx.get("nps_previous_rating"))
-
-    req_map = {
-        "Renewal Email": [
-            "Open with appreciation; acknowledge pricing feedback.",
-            "Quantify usage/impact; include any NPS quotes.",
-            "Connect outcomes to efficiency/risk reduction.",
-            "Introduce relevant products & near-term enhancements.",
-            "Propose value review; include 2–3 time options.",
-        ],
-        "QBR Brief": [
-            "Usage & engagement trends for the selected period.",
-            "Business impact: time saved, risk mitigated, efficiency gains.",
-            "Wins since last review; underused features.",
-            "Clear recommendations and next steps.",
-        ],
-        "Client Follow-up": [
-            "Restate objective and key decisions.",
-            "Confirm owner + due dates for each action.",
-            "Suggest the next check-in window.",
-        ],
-        "Proposal / RFP Response": [
-            "Reflect scope, pain points, and success criteria.",
-            "Highlight differentiators and compliance strengths.",
-            "Outline ROI, timeline, and responsibilities.",
-            "End with a clear CTA and schedule options.",
-        ],
-        "Upsell / Cross-sell Outreach": [
-            "Tie pains to specific LexisNexis products.",
-            "State expected outcomes/ROI and proof points.",
-            "Offer enablement/trial/training next steps.",
-        ],
-        "Client Risk Alert": [
-            "Acknowledge the risk signal and its impact.",
-            "Offer 2–3 mitigation actions (enablement, plan, cadence).",
-            "Invite a short call to align on next steps.",
-        ],
-        "Client Snapshot & Risk Signals": [
-            "Firm overview and recent developments.",
-            "Engagement insights and sentiment.",
-            "Risk indicators and growth signals.",
-        ],
-        "Objection Coach": [
-            "Acknowledge the concern respectfully.",
-            "Provide 2–3 data-backed value points.",
-            "Ask 1 reframing question to lead into ROI.",
-        ],
-        "NPS Engagement": [
-            f"Adapt tone to prior NPS ({nps_bucket}).",
-            "Briefly state why feedback matters now.",
-            "Provide survey link and a concise CTA.",
-        ],
-    }
-
-    info_map = [
+    # Guided extras per recipe
+    deliverable: List[str] = []
+    gather: List[str] = [
         "Client name, type, region, practice area(s)",
         "Products in use; relationship stage",
         "Usage metrics / adoption; time saved / ROI evidence",
@@ -443,125 +207,246 @@ def build_brief(recipe: str, lang: str, ctx: dict) -> str:
         "Preferred language and tone",
     ]
 
-    # Build context line
-    bits = []
-    def add(label, value):
-        if value:
-            bits.append(f"{label}: {value}")
+    # Body instruction (what we want the AI to write)
+    body = ""
 
-    add("Client", ctx.get("client_name"))
-    add("Type", ctx.get("client_type"))
-    add("Region", region)
-    add("Practice", ", ".join(ctx.get("practice_areas") or []))
-    add("Products", ", ".join(ctx.get("products_used") or []))
-    add("Stage", stage)
-    add("Owner", ctx.get("account_owner"))
-    add("Usage metrics", ctx.get("usage_metrics"))
-    add("Time saved / Efficiency", ctx.get("time_saved"))
-    add("NPS", ctx.get("nps_info"))
-    add("Contract", ctx.get("contract_details"))
-    add("Output target", ctx.get("output_target"))
+    # ---------- Per recipe ----------
+    r = recipe_name
 
-    if recipe == "Renewal Email":
-        add("Pricing concern", ctx.get("pricing_concern_level"))
-        add("Meeting options", ctx.get("meeting_options"))
-    if recipe == "QBR Brief":
-        add("Period", ctx.get("qbr_window"))
-        add("Benchmarks", "Yes" if ctx.get("qbr_include_benchmarks") else "")
-        add("Sections", ", ".join(ctx.get("qbr_sections") or []))
-    if recipe == "Client Follow-up":
-        add("Last meeting", ctx.get("last_meeting_date"))
-        add("Topics", ctx.get("meeting_topics"))
-    if recipe == "Proposal / RFP Response":
-        add("Sector", ctx.get("rfp_sector"))
-        add("Scope", ctx.get("rfp_scope"))
-        add("Differentiators", ctx.get("rfp_differentiators"))
-        add("Deadline", ctx.get("rfp_deadline"))
-    if recipe == "Upsell / Cross-sell Outreach":
-        add("Pain points", ctx.get("pains"))
-        add("Proposed products", ", ".join(ctx.get("proposed_products") or []))
-        add("Case studies", ctx.get("case_studies"))
-    if recipe == "Client Risk Alert":
-        add("Risk trigger", ctx.get("risk_trigger"))
-        add("Severity", ctx.get("risk_severity"))
-        add("Mitigations", ctx.get("risk_mitigations"))
-    if recipe == "Objection Coach":
-        add("Objection type", ctx.get("objection_type"))
-        add("Severity", ctx.get("objection_severity"))
-        add("Competitor", ctx.get("competitor_name"))
-        add("Data available", ", ".join(ctx.get("supporting_data") or []))
-    if recipe == "NPS Engagement":
-        add("Previous NPS", ctx.get("nps_previous_rating"))
-        add("Feedback theme", ctx.get("nps_feedback_theme"))
-        add("Survey link", ctx.get("nps_survey_link"))
+    if r == "Renewal Email":
+        deliverable = [
+            "Open with appreciation; acknowledge any pricing concerns.",
+            "Demonstrate concrete value delivered (usage metrics, outcomes).",
+            "Highlight forward-looking value (features, PG topics, roadmap).",
+            "Propose a collaborative value review; include 2–3 meeting options.",
+        ]
+        # guided
+        if ctx.get("contract_details"):
+            deliverable.append(f"Include contract context: {ctx['contract_details']}.")
+        if ctx.get("meeting_options"):
+            deliverable.append(f"Offer meeting time(s): {ctx['meeting_options']}.")
 
-    context = "; ".join([b for b in bits if b])
+        body = (
+            "Draft a consultative renewal email (250–350 words) reframing from cost to value. "
+            "Be warm and confident, not pushy."
+        )
 
-    # Assemble brief body
-    brief_lines = [
-        f"**{BRIEF_LABELS['ROLE'][lang]}**: {role}",
-        f"**{BRIEF_LABELS['GOAL'][lang]}**: {goals[recipe][lang]}",
-        f"**{BRIEF_LABELS['CONTEXT'][lang]}**: {context or '—'}",
-        f"**{BRIEF_LABELS['REQ'][lang]}**:{_bullets(req_map[recipe])}",
-        f"**{BRIEF_LABELS['INFO'][lang]}**:{_bullets(info_map)}",
-        f"**{BRIEF_LABELS['TONE'][lang]}**: {tone}",
-        f"**{BRIEF_LABELS['LENGTH'][lang]}**: {length_hint}",
-    ]
+    elif r == "QBR Brief":
+        deliverable = [
+            "Summarize usage & engagement trends.",
+            "Show wins/metrics since last period.",
+            "Call out underused features & opportunities.",
+            "Close with clear next-step recommendations."
+        ]
+        if ctx.get("qbr_window"):
+            deliverable.insert(0, f"Review period: {ctx['qbr_window']}.")
+        if ctx.get("qbr_sections"):
+            deliverable.append("Emphasize sections: " + ", ".join(ctx["qbr_sections"]))
+        if ctx.get("qbr_include_benchmarks"):
+            deliverable.append("Include relevant industry benchmarks where helpful.")
+        body = "Create a concise QBR narrative ready for slides or email summary."
 
-    if ctx.get("include_highlights"):
-        hl = render_product_highlights(lang, ctx.get("products_used") or [], region)
-        if hl:
-            brief_lines.append(hl)
+    elif r == "Client Follow-up":
+        deliverable = [
+            "Recap meeting purpose and key takeaways.",
+            "List action items with owners and dates.",
+            "Confirm next meeting or check-in."
+        ]
+        if ctx.get("last_meeting_date"):
+            deliverable.insert(0, f"Reference last meeting date: {ctx['last_meeting_date']}.")
+        if ctx.get("meeting_topics"):
+            deliverable.append("Topics covered: " + ctx["meeting_topics"])
+        body = "Write a brief, friendly follow-up email."
 
-    # Choose body text (standard recipe or NPS bucketed variant)
-    if recipe == "NPS Engagement":
-        body = _nps_variant_body(ctx.get("nps_previous_rating"))
+    elif r == "Proposal / RFP Response":
+        deliverable = [
+            "Restate client needs in their language.",
+            "Map capabilities to requirements; highlight differentiators.",
+            "Include timeline and next steps.",
+        ]
+        if ctx.get("rfp_sector"):
+            deliverable.insert(0, f"Client sector: {ctx['rfp_sector']}.")
+        if ctx.get("rfp_scope"):
+            deliverable.append("Scope/requirements: " + ctx["rfp_scope"])
+        if ctx.get("rfp_differentiators"):
+            deliverable.append("Differentiators: " + ctx["rfp_differentiators"])
+        if ctx.get("rfp_deadline"):
+            deliverable.append("Key deadline: " + ctx["rfp_deadline"])
+        body = "Draft a crisp response outline suitable for proposal text."
+
+    elif r == "Upsell / Cross-sell Outreach":
+        deliverable = [
+            "Lead with a relevant insight/pain point.",
+            "Position the recommended product(s) to solve it.",
+            "Offer enablement/trial/next step with a clear CTA."
+        ]
+        if ctx.get("pains"):
+            deliverable.insert(0, "Pain points: " + ctx["pains"])
+        if ctx.get("proposed_products"):
+            deliverable.append("Proposed products: " + ", ".join(ctx["proposed_products"]))
+        if ctx.get("case_studies"):
+            deliverable.append("Reference case studies: " + ctx["case_studies"])
+        body = "Write a short outreach email focused on business outcomes."
+
+    elif r == "Client Risk Alert":
+        deliverable = [
+            "State the risk signal and likely impact.",
+            "List 2–3 mitigation actions with owners and dates.",
+            "Set cadence for follow-up and measurement."
+        ]
+        if ctx.get("risk_trigger"):
+            deliverable.insert(0, f"Risk trigger: {ctx['risk_trigger']}.")
+        if ctx.get("risk_severity"):
+            deliverable.append(f"Severity (1-5): {ctx['risk_severity']}")
+        if ctx.get("risk_mitigations"):
+            deliverable.append("Mitigations to consider: " + ctx["risk_mitigations"])
+        body = "Create an internal note or client-safe summary outlining the risk plan."
+
+    elif r == "Client Snapshot & Risk Signals":
+        deliverable = [
+            "Client overview (size, practice focus, products).",
+            "Recent news or events affecting priorities.",
+            "3 likely challenges; churn or expansion signals.",
+            "Clear suggestions for next actions."
+        ]
+        if ctx.get("prepared_by"):
+            deliverable.insert(0, f"Prepared by: {ctx['prepared_by']}.")
+        if ctx.get("last_engagement_date"):
+            deliverable.append(f"Last engagement: {ctx['last_engagement_date']}")
+        if ctx.get("risk_level"):
+            deliverable.append(f"Risk level: {ctx['risk_level']}")
+        body = "Generate a one-page snapshot to brief a CS/AE colleague."
+
+    elif r == "Objection Coach":
+        # dynamic objection choices
+        ot = (ctx.get("objection_type") or "").lower()
+        deliverable = [
+            "Acknowledge the concern empathetically.",
+            "Provide 2 data-backed value points.",
+            "Ask 1 strategic question to re-focus on outcomes.",
+        ]
+        if ot:
+            deliverable.insert(0, f"Objection focus: {ot}.")
+        if ctx.get("objection_severity"):
+            deliverable.append(f"Severity (1-5): {ctx['objection_severity']}")
+        if ctx.get("competitor_name"):
+            deliverable.append("Competitor named: " + ctx["competitor_name"])
+        if ctx.get("supporting_data"):
+            deliverable.append("Use supporting data: " + ", ".join(ctx["supporting_data"]))
+        body = "Draft 3 short response options the CSM can adapt live."
+
+    elif r == "NPS Engagement":
+        # Variant line shows the single selected variant (not the triad)
+        prev = ctx.get("nps_previous_rating", "")
+        variant_txt = ""
+        if "Promoter" in prev:
+            variant_txt = "promoter"
+        elif "Passive" in prev:
+            variant_txt = "passive"
+        elif "Detractor" in prev:
+            variant_txt = "detractor"
+        else:
+            variant_txt = "unknown"
+
+        deliverable = [
+            f"Adapt tone to prior NPS ({variant_txt}).",
+            "Briefly state why feedback matters now.",
+            "Provide survey link and a concise CTA."
+        ]
+        if ctx.get("nps_survey_link"):
+            deliverable.append("Use the provided survey link/CTA.")
+        body = (
+            "Draft a short NPS engagement email. "
+            "Promoters: appreciative and collaborative. "
+            "Passives: humble and improvement-oriented. "
+            "Detractors: sincere, non-defensive, respectful."
+        )
+
     else:
-        body = PROMPT_RECIPES[recipe].format(client_name=ctx.get("client_name") or "[Client]")
+        deliverable = ["Produce a clear, helpful response."]
+        body = "Write a concise, professional message."
 
-    return "\n".join(brief_lines) + "\n\n" + body
+    # Compose main brief
+    brief_lines: List[str] = []
 
-# ---------- Public API ----------
-def fill_recipe(recipe: str, lang_code: str, ctx: dict) -> str:
-    s = SCAFFOLDS[lang_code]
-    auto = _auto_tone(ctx.get("region") or "Global", ctx.get("relationship_stage") or "")
-    effective = auto if (ctx.get("tone") or "auto") == "auto" else ctx.get("tone")
-    tone_line = STYLE_TEMPLATES[lang_code]["tone_map"].get(effective or "neutral", "")
-    closing = STYLE_TEMPLATES[lang_code]["closing"]
+    # System
+    brief_lines.append(f"[system]\n{sc['sys']}\n")
 
-    brief_text = build_brief(recipe, lang_code, ctx)
-    ex_in = (ctx.get("ex_input") or "").strip()
-    ex_out = (ctx.get("ex_output") or "").strip()
-    few = (
-        f"\n\nExamples for tone/structure:\n- Input: {ex_in or '[none]'}\n"
-        f"- Output: {ex_out or '[none]'}"
-        if (ex_in or ex_out)
-        else ""
+    # User block
+    brief_lines.append("[user]")
+    brief_lines.append(f"**{role}**: Customer Success Manager")
+    brief_lines.append(f"**{goal}**: {r} — create content ready to send or adapt.")
+    brief_lines.append(
+        f"**{context}**: Client: {client_name}; Type: {ctype}; Region: {region}; "
+        f"Practice: {practice or 'n/a'}; Products: {products or 'n/a'}; Stage: {stage}."
     )
 
-    final = (
-        f"[system]\n{s['system']}\n\n"
-        f"[user]\n{brief_text}{few}\n\n"
-        f"{s['notes_header']}\n"
-        f"- Respect confidentiality; avoid legal advice.\n"
-        f"- Be precise; prefer verifiable statements.\n"
-        f"- Suggest next steps with owners & dates.\n"
-        f"- {tone_line}\n- {closing}"
-    ).strip()
-    return final
+    if highlights:
+        brief_lines.append("**Product highlights to consider**:")
+        brief_lines.append(_fmt_list(highlights))
 
-def shape_output(text: str, mode: str, client_name: str, recipe: str) -> str:
-    if mode == "plain prompt":
-        return text
-    if mode == "email":
-        subj = f"{client_name or 'Client'} — {recipe}"
-        return f"Subject: {subj}\n\n[Paste the generated email from your AI tool here]"
-    if mode == "CRM note":
-        return f"# {recipe} — {client_name}\n- Date: {{today}}\n\n{text}\n\n**Next steps**: [owner] — [date]"
-    if mode == "slide outline":
-        return (
-            f"Title: {client_name or 'Client'} — {recipe}\n"
-            f"Slide 1: Context\nSlide 2: Insights\nSlide 3: Recommendations\n"
-            f"Slide 4: Next Steps\n\nContent:\n{text}"
-        )
-    return text
+    # Requirements + Info
+    brief_lines.append(f"**{req}**:")
+    brief_lines.append(_fmt_list(deliverable))
+
+    brief_lines.append(f"**{info}**:")
+    brief_lines.append(_fmt_list(gather))
+
+    # Tone/length
+    brief_lines.append(f"**{tone_lbl}**: {tone}")
+    brief_lines.append(f"**{len_lbl}**: {length}")
+
+    # Optional context notes
+    extras: List[str] = [
+        "Respect confidentiality; avoid legal advice.",
+        "Be precise; prefer verifiable statements.",
+        "Link outcomes/ROI to metrics where possible.",
+        "Suggest next steps with owners & dates.",
+    ]
+    if usage:
+        extras.append(f"Include usage insight: {usage}")
+    if time_saved:
+        extras.append(f"Include efficiency/ROI note: {time_saved}")
+    if nps_info:
+        extras.append(f"NPS theme/quote: {nps_info}")
+
+    brief_lines.append(f"\n{sc['extra_lbl']}:")
+    brief_lines.append(_fmt_list(extras))
+
+    # Attach pasted NPS text (no JSON required)
+    nps_text = ctx.get("nps_text", "")
+    if nps_text:
+        brief_lines.append("\n" + _render_nps_text_block(lang, nps_text))
+
+    # Final instruction
+    brief_lines.append("\n" + body)
+
+    return "\n".join(brief_lines).strip()
+
+
+# ----------------------------
+# Public API
+# ----------------------------
+
+def fill_recipe(recipe_name: str, lang: str, ctx: Dict) -> str:
+    """Return the full prompt brief string."""
+    if lang not in SCAFFOLDS:
+        lang = "en"
+    return build_brief(lang, recipe_name, ctx)
+
+
+def shape_output(prompt_text: str, output_format: str, client_name: str, recipe_name: str) -> str:
+    """
+    Light post-formatting for different output targets.
+    (No external templates to keep this self-contained.)
+    """
+    of = (output_format or "plain text").lower()
+    if of == "email":
+        # Wrap the brief as instructions for an email generator AI
+        header = f"## Email brief for {client_name or 'client'} — {recipe_name}\n\n"
+        return header + prompt_text
+    elif of == "crm note":
+        header = f"## CRM note for {client_name or 'client'} — {recipe_name}\n\n"
+        return header + prompt_text
+    # default: plain text
+    return prompt_text
