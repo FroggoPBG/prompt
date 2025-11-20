@@ -268,6 +268,57 @@ elif recipe == "NPS Engagement":
                 "nps_survey_link": nps_survey_link,
             }
         )
+elif recipe == "NPS Follow-up":
+    with st.expander("NPS follow-up options", expanded=True):
+        nps_follow_rating = st.selectbox(
+            "Previous NPS",
+            ["Promoter (9–10)", "Passive (7–8)", "Detractor (0–6)"],
+            index=0,
+        )
+        nps_follow_type = st.selectbox(
+            "Comment type",
+            ["How-to / Usage", "Feature request", "Bug / Issue", "General praise or concern"],
+            index=0,
+        )
+        nps_follow_comment = st.text_area(
+            "Paste the client's verbatim comment from the survey",
+            placeholder='e.g., "Generally good platform. It would be helpful to search reported cases only."',
+            height=100,
+        )
+
+        # Handy inserts for quick answers (optional)
+        nps_follow_hint = st.selectbox(
+            "Add a helpful pointer (optional)",
+            ["None", "HK: Reported-only cases filter", "PG: Crypto coverage pointer"],
+            index=0,
+        )
+        # Map selection to keys used in recipes
+        hint_map = {
+            "None": None,
+            "HK: Reported-only cases filter": "hk_reported_cases_filter",
+            "PG: Crypto coverage pointer": "pg_crypto_pointer",
+        }
+        nps_follow_hint_key = hint_map.get(nps_follow_hint)
+
+        # Escalation
+        nps_follow_escalate = st.checkbox(
+            "We escalated this internally / will update them", value=False
+        )
+        nps_follow_note = st.text_area(
+            "Internal note (for our records only; summarized to the client as appropriate)",
+            placeholder="e.g., Logged with Content Ops on 2025-11-20; investigating TOC rendering for commentaries.",
+            height=80,
+        )
+
+        guided.update({
+            "nps_follow_rating": nps_follow_rating,
+            "nps_follow_type": nps_follow_type,
+            "nps_follow_comment": nps_follow_comment,
+            "nps_follow_hint": nps_follow_hint_key,
+            "nps_follow_escalate": nps_follow_escalate,
+            "nps_follow_note": nps_follow_note,
+        })
+
 
 
 # -------------------- Quality checklist --------------------
