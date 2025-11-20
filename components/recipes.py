@@ -1,16 +1,18 @@
-# components/recipes.py
-# ---------------------------------------------------------------------
-# Core prompt scaffolds, recipes, and builders used by the Streamlit UI.
-# Safe to use without any external APIs. Python 3.9+ compatible.
-# ---------------------------------------------------------------------
+# --------------------------------------------------------------
+# Core prompt scaffolds, recipes, and builders used by the UI.
+# No external APIs; Python 3.9+ compatible.
+# --------------------------------------------------------------
 
 from __future__ import annotations
 from typing import Dict, List
-# Handy inserts the CSM can include in one click
+
+# --------------------------------------------------------------
+# Quick pointers a CSM can insert in NPS follow-ups
+# --------------------------------------------------------------
 NPS_KB = {
     "hk_reported_cases_filter": (
         "To view reported cases only: scroll to the Publication tab and click “Hong Kong Cases.” "
-        "This filters results to reported cases only."
+        "This filters the results to reported cases only."
     ),
     "pg_crypto_pointer": (
         "Cryptocurrency legal resources are available under Practical Guidance → Financial Services → "
@@ -18,18 +20,16 @@ NPS_KB = {
     ),
 }
 
-# ----------------------------
+# --------------------------------------------------------------
 # Language scaffolds (email drafting focus)
-# ----------------------------
-SCAFFOLDS = {
+# --------------------------------------------------------------
+SCAFFOLDS: Dict[str, Dict[str, str]] = {
     "en": {
         "name": "English",
         "sys": (
-            "You are a consultant for Customer Success in the legal-tech domain at LexisNexis. "
-            "Draft a professional, clear, and client-ready email that another AI can generate directly. "
-            "Use the fields and headings below to inform tone, context, and purpose. "
-            "Do not describe a prompt or summary — focus on writing an effective client email. "
-            "Maintain accuracy, confidentiality, and a consultative tone appropriate to the situation."
+            "You are an assistant for Customer Success in the legal-tech domain at LexisNexis. "
+            "Respond with a professional, concise email to be sent to a client. "
+            "Use the structure and headings provided."
         ),
         "role_lbl": "ROLE",
         "goal_lbl": "GOAL",
@@ -45,8 +45,8 @@ SCAFFOLDS = {
     "zh": {
         "name": "中文 (简体)",
         "sys": (
-            "你是 LexisNexis 法律科技领域的客户成功助理。请根据以下结构撰写一封专业、清晰、可直接发送给客户的电子邮件。"
-            "不要描述提示或摘要，只写邮件内容。请确保表达准确、语气得体，并符合客户沟通的专业语境。"
+            "你是 LexisNexis 法律科技领域的客户成功助理。请产出一封可直接发送给客户的专业电子邮件，"
+            "并使用下列结构与标题。"
         ),
         "role_lbl": "角色",
         "goal_lbl": "目标",
@@ -62,10 +62,8 @@ SCAFFOLDS = {
     "ko": {
         "name": "한국어",
         "sys": (
-            "당신은 LexisNexis 법률 테크 분야의 고객 성공 어시스턴트입니다. "
-            "아래 구조를 참고하여 고객에게 바로 보낼 수 있는 전문적이고 명확한 이메일을 작성하세요. "
-            "프롬프트나 요약을 설명하지 말고, 실제 이메일 내용을 작성하세요. "
-            "정확성과 기밀을 지키며, 상황에 맞는 컨설팅형 톤을 유지하세요."
+            "당신은 LexisNexis 법률 테크 분야의 고객 성공 담당자입니다. "
+            "아래 구조와 제목을 사용하여 고객에게 바로 보낼 수 있는 전문적이고 간결한 이메일을 작성하세요."
         ),
         "role_lbl": "역할",
         "goal_lbl": "목표",
@@ -81,10 +79,8 @@ SCAFFOLDS = {
     "ja": {
         "name": "日本語",
         "sys": (
-            "あなたは LexisNexis のリーガルテック分野におけるカスタマーサクセスアシスタントです。"
-            "以下の構成に従い、クライアントに直接送信できるプロフェッショナルで明確なメール本文を作成してください。"
-            "プロンプトや要約は書かず、メール本文に集中してください。"
-            "正確性と機密性を守り、状況にふさわしいコンサルティブなトーンを維持してください。"
+            "あなたは LexisNexis のリーガルテック領域におけるカスタマーサクセス担当です。"
+            "以下の構成・見出しで、顧客にそのまま送付できる簡潔なプロフェッショナルメールを作成してください。"
         ),
         "role_lbl": "役割",
         "goal_lbl": "ゴール",
@@ -99,25 +95,32 @@ SCAFFOLDS = {
     },
 }
 
-
-# ----------------------------
-# General picklists for UI
-# ----------------------------
-LN_CONTEXT = {
-    "outputs": ["plain text", "email", "crm note"],
+# --------------------------------------------------------------
+# Global picklists used across the UI
+# --------------------------------------------------------------
+LN_CONTEXT: Dict[str, List[str]] = {
     "client_types": ["law firm", "corporate", "government", "in-house legal"],
     "regions": ["Hong Kong", "Japan", "Korea", "Singapore"],
     "practice_areas": [
         "Financial services", "Litigation", "Compliance", "Arbitration",
-        "Tort", "Personal injury", "Company", "Corporate", "IP", "Criminal", "Contract"
+        "Personal injury", "Company", "Corporate", "IP",
+        "Criminal", "Contract", "Tort"
     ],
-    "stages": ["New", "Renewal", "Expansion", "Cancellation", "Low usage", "Complaint"],
+    "stages": [
+        "New", "Renewal", "Expansion", "Cancellation",
+        "Low usage", "Complaint", "Previous negative comments",
+        "Previous positive comments",
+    ],
     "products": ["Lexis+", "Practical Guidance", "Lexis Advance", "Lexis Red", "Lexis+ AI"],
-    "tones": ["auto", "warm", "consultative", "confident", "formal", "polite", "apologetic", "neutral", "persuasive"],
+    "tones": ["auto", "warm", "consultative", "confident", "polite", "apologetic", "neutral"],
     "lengths": ["short", "medium", "long"],
+    "outputs": ["plain prompt"],
 }
 
-PROMPT_RECIPES = [
+# --------------------------------------------------------------
+# Supported recipes (use-cases)
+# --------------------------------------------------------------
+PROMPT_RECIPES: List[str] = [
     "Renewal Email",
     "QBR Brief",
     "Client Follow-up",
@@ -127,96 +130,48 @@ PROMPT_RECIPES = [
     "Client Snapshot & Risk Signals",
     "Objection Coach",
     "NPS Engagement",
-    "NPS Follow-up", 
+    "NPS Follow-up",  # NEW
 ]
 
-# ----------------------------
+# --------------------------------------------------------------
 # Helpers
-# ----------------------------
+# --------------------------------------------------------------
+def _join_nonempty(items: List[str]) -> str:
+    return "\n".join([f"- {x}" for x in items if x and str(x).strip()])
 
-def _tone_auto(lang: str, region: str, stage: str) -> str:
-    # Simple localization heuristic for "auto"
-    jpkr_formal = {"Japan", "Korea"}
-    if region in jpkr_formal:
-        base = "polite"
-    else:
-        base = "consultative"
-    if stage.lower() in {"complaint", "cancellation"}:
-        return "apologetic"
-    return base
+def _variant_from_nps(label: str) -> str:
+    if not label:
+        return "unknown"
+    t = label.lower()
+    if "promoter" in t or "9" in t or "10" in t:
+        return "promoter"
+    if "passive" in t or "7" in t or "8" in t:
+        return "passive"
+    if "detractor" in t or any(n in t for n in list("0123456")):
+        return "detractor"
+    return "unknown"
 
-def _fmt_list(items: List[str]) -> str:
-    return "\n".join([f"- {x}" for x in items])
+# --------------------------------------------------------------
+# Main recipe builder
+# --------------------------------------------------------------
+def build_brief(recipe: str, lang_code: str, ctx: dict) -> str:
+    s = SCAFFOLDS.get(lang_code, SCAFFOLDS["en"])
 
-def _normalize_lines(text: str) -> List[str]:
-    """Best-effort cleanup to produce readable bullets from raw text."""
-    if not text:
-        return []
-    raw = [ln.strip(" \t-•\u2022") for ln in text.splitlines() if ln.strip()]
-    lines: List[str] = []
-    for ln in raw:
-        # keep headings and short bullets; split very long sentences on '; '
-        if "; " in ln and len(ln) > 140:
-            parts = [p.strip() for p in ln.split("; ") if p.strip()]
-            lines.extend(parts)
-        else:
-            lines.append(ln)
-    return lines[:20]
+    # Common fields from context
+    role = ctx.get("role", "Customer Success Manager")
+    goal = ctx.get("goal", recipe)
+    client_name = ctx.get("client_name") or "client"
+    client_type = ctx.get("client_type") or "n/a"
+    region = ctx.get("region") or "n/a"
+    practice_areas = ", ".join(ctx.get("practice_areas") or []) or "n/a"
+    products_used = ", ".join(ctx.get("products_used") or []) or "n/a"
+    relationship_stage = ctx.get("relationship_stage") or "n/a"
+    tone = ctx.get("tone") or "auto"
+    length = ctx.get("length") or "medium"
 
-def _render_nps_text_block(lang: str, text: str) -> str:
-    if not text:
-        return ""
-    lbl = SCAFFOLDS[lang]["nps_pasted_lbl"]
-    bullets = _normalize_lines(text)
-    return f"**{lbl}:**\n" + _fmt_list(bullets)
-
-# ----------------------------
-# Main brief builder
-# ----------------------------
-
-def build_brief(
-    lang: str,
-    recipe_name: str,
-    ctx: Dict
-) -> str:
-    """
-    Build the *prompt brief* used by another AI to generate the final comms.
-    """
-    sc = SCAFFOLDS[lang]
-    role = sc["role_lbl"]; goal = sc["goal_lbl"]; context = sc["ctx_lbl"]
-    req = sc["req_lbl"]; info = sc["info_lbl"]; tone_lbl = sc["tone_lbl"]
-    len_lbl = sc["len_lbl"]; extra = sc["extra_lbl"]
-
-    # Tone resolve
-    tone = ctx.get("tone", "auto")
-    if tone == "auto":
-        tone = _tone_auto(lang, ctx.get("region", "Hong Kong"), ctx.get("relationship_stage", "New"))
-
-    # Shared context tokens
-    client_name = ctx.get("client_name", "").strip() or "client"
-    ctype = ctx.get("client_type", "law firm")
-    region = ctx.get("region", "Hong Kong")
-    practice = ", ".join(ctx.get("practice_areas", []) or [])
-    products = ", ".join(ctx.get("products_used", []) or [])
-    stage = ctx.get("relationship_stage", "New")
-    usage = ctx.get("usage_metrics", "")
-    time_saved = ctx.get("time_saved", "")
-    nps_info = ctx.get("nps_info", "")
-    length = ctx.get("length", "medium")
-
-    # Product highlights auto-include (simple example)
-    highlights: List[str] = []
-    if ctx.get("include_highlights"):
-        if "Practical Guidance" in products:
-            highlights.append("Practical Guidance: curated precedents, checklists, and how-to guidance.")
-        if "Lexis+ AI" in products:
-            highlights.append("Lexis+ AI: trusted, grounded responses with citations to primary law.")
-        if "Lexis+" in products and "Lexis+ AI" not in products:
-            highlights.append("Lexis+: integrated research, analytics and drafting tools.")
-
-    # Guided extras per recipe
-    deliverable: List[str] = []
-    gather: List[str] = [
+    # Deliverables / Info gather templates
+    deliverables: List[str] = []
+    info_gather: List[str] = [
         "Client name, type, region, practice area(s)",
         "Products in use; relationship stage",
         "Usage metrics / adoption; time saved / ROI evidence",
@@ -224,296 +179,165 @@ def build_brief(
         "Contract timing (if renewal) and any pricing notes",
         "Preferred language and tone",
     ]
+    body_instruction = "Draft a concise, professional email."
 
-    # Body instruction (what we want the AI to write)
-    body = ""
+    r = recipe
 
-    # ---------- Per recipe ----------
-    r = recipe_name
-
+    # ---------- Recipe-specific rules ----------
     if r == "Renewal Email":
-        deliverable = [
-            "Open with appreciation; acknowledge any pricing concerns.",
-            "Demonstrate concrete value delivered (usage metrics, outcomes).",
-            "Highlight forward-looking value (features, PG topics, roadmap).",
-            "Propose a collaborative value review; include 2–3 meeting options.",
+        deliverables = [
+            "Open with appreciation and acknowledge pricing feedback if present.",
+            "Quantify value delivered (usage metrics, outcomes).",
+            "Highlight forward-looking value (relevant features, PG topics, upcoming releases).",
+            "Propose a value review; include 2–3 date/time options.",
         ]
-        # guided
-        if ctx.get("contract_details"):
-            deliverable.append(f"Include contract context: {ctx['contract_details']}.")
-        if ctx.get("meeting_options"):
-            deliverable.append(f"Offer meeting time(s): {ctx['meeting_options']}.")
-
-        body = (
-            "Draft a consultative renewal email (250–350 words) reframing from cost to value. "
-            "Be warm and confident, not pushy."
+        body_instruction = (
+            "Draft a warm, consultative renewal email that reframes cost to value and closes with a clear CTA."
         )
 
     elif r == "QBR Brief":
-        deliverable = [
+        deliverables = [
             "Summarize usage & engagement trends.",
-            "Show wins/metrics since last period.",
-            "Call out underused features & opportunities.",
-            "Close with clear next-step recommendations."
+            "List notable wins and measurable outcomes.",
+            "Call out underused areas and recommended actions.",
+            "Propose next steps and owners.",
         ]
-        if ctx.get("qbr_window"):
-            deliverable.insert(0, f"Review period: {ctx['qbr_window']}.")
-        if ctx.get("qbr_sections"):
-            deliverable.append("Emphasize sections: " + ", ".join(ctx["qbr_sections"]))
-        if ctx.get("qbr_include_benchmarks"):
-            deliverable.append("Include relevant industry benchmarks where helpful.")
-        body = "Create a concise QBR narrative ready for slides or email summary."
+        body_instruction = "Draft a data-driven but succinct QBR summary email."
 
     elif r == "Client Follow-up":
-        deliverable = [
-            "Recap meeting purpose and key takeaways.",
-            "List action items with owners and dates.",
-            "Confirm next meeting or check-in."
+        deliverables = [
+            "Recap the meeting date and the topics discussed.",
+            "List follow-ups and owners with dates.",
+            "Invite questions and next step scheduling.",
         ]
-        if ctx.get("last_meeting_date"):
-            deliverable.insert(0, f"Reference last meeting date: {ctx['last_meeting_date']}.")
-        if ctx.get("meeting_topics"):
-            deliverable.append("Topics covered: " + ctx["meeting_topics"])
-        body = "Write a brief, friendly follow-up email."
+        body_instruction = "Draft a crisp follow-up email that confirms actions and timelines."
 
     elif r == "Proposal / RFP Response":
-        deliverable = [
-            "Restate client needs in their language.",
-            "Map capabilities to requirements; highlight differentiators.",
-            "Include timeline and next steps.",
+        deliverables = [
+            "Acknowledge the opportunity and restate the scope.",
+            "Highlight differentiators aligned to the sector and requirements.",
+            "Confirm timeline and request clarifications if any.",
         ]
-        if ctx.get("rfp_sector"):
-            deliverable.insert(0, f"Client sector: {ctx['rfp_sector']}.")
-        if ctx.get("rfp_scope"):
-            deliverable.append("Scope/requirements: " + ctx["rfp_scope"])
-        if ctx.get("rfp_differentiators"):
-            deliverable.append("Differentiators: " + ctx["rfp_differentiators"])
-        if ctx.get("rfp_deadline"):
-            deliverable.append("Key deadline: " + ctx["rfp_deadline"])
-        body = "Draft a crisp response outline suitable for proposal text."
+        body_instruction = "Draft a concise proposal / RFP response cover email."
 
     elif r == "Upsell / Cross-sell Outreach":
-        deliverable = [
-            "Lead with a relevant insight/pain point.",
-            "Position the recommended product(s) to solve it.",
-            "Offer enablement/trial/next step with a clear CTA."
+        deliverables = [
+            "Connect client pains to specific LexisNexis products.",
+            "Reference relevant case studies or ROI points.",
+            "Offer a brief discovery/enablement session.",
         ]
-        if ctx.get("pains"):
-            deliverable.insert(0, "Pain points: " + ctx["pains"])
-        if ctx.get("proposed_products"):
-            deliverable.append("Proposed products: " + ", ".join(ctx["proposed_products"]))
-        if ctx.get("case_studies"):
-            deliverable.append("Reference case studies: " + ctx["case_studies"])
-        body = "Write a short outreach email focused on business outcomes."
+        body_instruction = "Draft an outreach email that is helpful, not pushy."
 
     elif r == "Client Risk Alert":
-        deliverable = [
-            "State the risk signal and likely impact.",
-            "List 2–3 mitigation actions with owners and dates.",
-            "Set cadence for follow-up and measurement."
+        deliverables = [
+            "State the risk signal and severity neutrally.",
+            "Propose mitigation plan (enablement, cadence, owners).",
+            "Invite a quick sync to align on next steps.",
         ]
-        if ctx.get("risk_trigger"):
-            deliverable.insert(0, f"Risk trigger: {ctx['risk_trigger']}.")
-        if ctx.get("risk_severity"):
-            deliverable.append(f"Severity (1-5): {ctx['risk_severity']}")
-        if ctx.get("risk_mitigations"):
-            deliverable.append("Mitigations to consider: " + ctx["risk_mitigations"])
-        body = "Create an internal note or client-safe summary outlining the risk plan."
+        body_instruction = "Draft a respectful email to address risk and align on a mitigation plan."
 
     elif r == "Client Snapshot & Risk Signals":
-        deliverable = [
-            "Client overview (size, practice focus, products).",
-            "Recent news or events affecting priorities.",
-            "3 likely challenges; churn or expansion signals.",
-            "Clear suggestions for next actions."
+        deliverables = [
+            "Provide quick org snapshot and recent engagement.",
+            "List likely challenges and opportunity signals.",
+            "Suggest tailored next steps.",
         ]
-        if ctx.get("prepared_by"):
-            deliverable.insert(0, f"Prepared by: {ctx['prepared_by']}.")
-        if ctx.get("last_engagement_date"):
-            deliverable.append(f"Last engagement: {ctx['last_engagement_date']}")
-        if ctx.get("risk_level"):
-            deliverable.append(f"Risk level: {ctx['risk_level']}")
-        body = "Generate a one-page snapshot to brief a CS/AE colleague."
+        body_instruction = "Draft a short research-style email giving a client snapshot and signals."
 
     elif r == "Objection Coach":
-        # dynamic objection choices
-        ot = (ctx.get("objection_type") or "").lower()
-        deliverable = [
+        deliverables = [
             "Acknowledge the concern empathetically.",
-            "Provide 2 data-backed value points.",
-            "Ask 1 strategic question to re-focus on outcomes.",
+            "Provide 1–2 data points reinforcing value.",
+            "Ask one strategic question that refocuses on outcomes.",
         ]
-        if ot:
-            deliverable.insert(0, f"Objection focus: {ot}.")
-        if ctx.get("objection_severity"):
-            deliverable.append(f"Severity (1-5): {ctx['objection_severity']}")
-        if ctx.get("competitor_name"):
-            deliverable.append("Competitor named: " + ctx["competitor_name"])
-        if ctx.get("supporting_data"):
-            deliverable.append("Use supporting data: " + ", ".join(ctx["supporting_data"]))
-        body = "Draft 3 short response options the CSM can adapt live."
+        body_instruction = "Draft email language to handle the objection constructively."
 
     elif r == "NPS Engagement":
-        # Variant line shows the single selected variant (not the triad)
-        prev = ctx.get("nps_previous_rating", "")
-        variant_txt = ""
-        if "Promoter" in prev:
-            variant_txt = "promoter"
-        elif "Passive" in prev:
-            variant_txt = "passive"
-        elif "Detractor" in prev:
-            variant_txt = "detractor"
-        else:
-            variant_txt = "unknown"
-
-        deliverable = [
-            f"Adapt tone to prior NPS ({variant_txt}).",
+        nps_variant = _variant_from_nps(ctx.get("nps_previous_rating", ""))
+        deliverables = [
+            f"Adapt tone to prior NPS ({nps_variant}).",
             "Briefly state why feedback matters now.",
-            "Provide survey link and a concise CTA."
+            "Provide survey link and a concise CTA.",
         ]
-        if ctx.get("nps_survey_link"):
-            deliverable.append("Use the provided survey link/CTA.")
-        body = (
+        body_instruction = (
             "Draft a short NPS engagement email. "
-            "Promoters: appreciative and collaborative. "
-            "Passives: humble and improvement-oriented. "
+            "Promoters: appreciative & collaborative. "
+            "Passives: humble & improvement-oriented. "
             "Detractors: sincere, non-defensive, respectful."
         )
-            elif r == "NPS Follow-up":
-        # Inputs expected from UI
-        prev = ctx.get("nps_follow_rating", "")  # Promoter/Passive/Detractor
+
+    elif r == "NPS Follow-up":
+        prev = ctx.get("nps_follow_rating", "")
         comment = (ctx.get("nps_follow_comment") or "").strip()
-        ctype = (ctx.get("nps_follow_type") or "").strip()  # How-to / Feature / Bug / Praise
-        hint_key = ctx.get("nps_follow_hint")  # kb key or "None"
+        ctype = (ctx.get("nps_follow_type") or "").strip()
+        hint_key = ctx.get("nps_follow_hint")
         escalate = bool(ctx.get("nps_follow_escalate"))
         team_note = (ctx.get("nps_follow_note") or "").strip()
 
-        # Show which variant we’re responding to
-        variant = "unknown"
-        if "Promoter" in prev:
-            variant = "promoter"
-        elif "Passive" in prev:
-            variant = "passive"
-        elif "Detractor" in prev:
-            variant = "detractor"
+        variant = _variant_from_nps(prev)
 
-        # Deliverable guidelines
-        deliverable = [
+        deliverables = [
             f"Adapt tone to prior NPS ({variant}).",
-            "Open by thanking them for the feedback and referencing their exact comment.",
-            "Address the comment based on its type (how-to, feature request, bug/issue, general praise/concern).",
-            "Offer either a quick tip, a pointer to existing functionality, or an invitation to clarify needs.",
-            "Close with a clear next step (reply or brief call) and appreciation."
+            "Open by thanking them and referencing their exact comment (quote briefly).",
+            "Address based on type: how-to, feature request, bug/issue, or general praise/concern.",
+            "Offer a helpful next step: quick tip, link/where to click, or request clarifying needs.",
+            "Close with clear CTA (reply or brief call) and appreciation.",
         ]
 
-        # Optional inserts
         if hint_key and hint_key in NPS_KB:
-            deliverable.append(f"Include this helpful pointer: {NPS_KB[hint_key]}")
+            deliverables.append(f"Include pointer: {NPS_KB[hint_key]}")
 
         if escalate:
-            deliverable.append("Inform the client that the feedback has been shared with the relevant internal team.")
+            deliverables.append("Inform them the feedback has been shared with the relevant internal team.")
             if team_note:
-                deliverable.append(f"Internal note (do not send verbatim): {team_note}")
+                deliverables.append(f"Internal note (do not send verbatim): {team_note}")
 
-        # Add specific asks by type
         if ctype:
-            deliverable.append(f"Comment type noted: {ctype}")
+            deliverables.append(f"Comment type noted: {ctype}")
 
-        # Body instruction
-        body = (
-            "Draft a concise, respectful follow-up email tailored to their NPS rating and comment. "
-            "If it’s a how-to question and a solution exists, provide the steps. "
-            "If it’s a feature request, acknowledge, relate to roadmap/alternatives if applicable, and invite specifics. "
-            "If it’s a bug/issue, acknowledge impact, set expectation that the team is reviewing, and offer an update path. "
-            "Keep tone aligned to the rating (promoter: appreciative; passive: improvement-oriented; detractor: sincere, non-defensive)."
+        if comment:
+            deliverables.append(f"Client comment to reference: “{comment}”")
+
+        body_instruction = (
+            "Draft a concise follow-up email tailored to their rating and comment; "
+            "use appreciative, improvement-oriented, or sincere tone as appropriate."
         )
 
-
-    else:
-        deliverable = ["Produce a clear, helpful response."]
-        body = "Write a concise, professional message."
-
-    # Compose main brief
-    brief_lines: List[str] = []
-
-    # System
-    brief_lines.append(f"[system]\n{sc['sys']}\n")
-
-    # User block
-    brief_lines.append("[user]")
-    brief_lines.append(f"**{role}**: Customer Success Manager")
-    brief_lines.append(f"**{goal}**: {r} — create content ready to send or adapt.")
-    brief_lines.append(
-        f"**{context}**: Client: {client_name}; Type: {ctype}; Region: {region}; "
-        f"Practice: {practice or 'n/a'}; Products: {products or 'n/a'}; Stage: {stage}."
-    )
-
-    if highlights:
-        brief_lines.append("**Product highlights to consider**:")
-        brief_lines.append(_fmt_list(highlights))
-
-    # Requirements + Info
-    brief_lines.append(f"**{req}**:")
-    brief_lines.append(_fmt_list(deliverable))
-
-    brief_lines.append(f"**{info}**:")
-    brief_lines.append(_fmt_list(gather))
-
-    # Tone/length
-    brief_lines.append(f"**{tone_lbl}**: {tone}")
-    brief_lines.append(f"**{len_lbl}**: {length}")
-
-    # Optional context notes
-    extras: List[str] = [
+    # ---------- Compose ----------
+    req_block = _join_nonempty(deliverables)
+    info_block = _join_nonempty(info_gather)
+    extras = _join_nonempty([
         "Respect confidentiality; avoid legal advice.",
         "Be precise; prefer verifiable statements.",
         "Link outcomes/ROI to metrics where possible.",
         "Suggest next steps with owners & dates.",
-    ]
-    if usage:
-        extras.append(f"Include usage insight: {usage}")
-    if time_saved:
-        extras.append(f"Include efficiency/ROI note: {time_saved}")
-    if nps_info:
-        extras.append(f"NPS theme/quote: {nps_info}")
+    ])
 
-    brief_lines.append(f"\n{sc['extra_lbl']}:")
-    brief_lines.append(_fmt_list(extras))
+    context_line = (
+        f"Client: {client_name}; Type: {client_type}; Region: {region}; "
+        f"Practice: {practice_areas}; Products: {products_used}; Stage: {relationship_stage}."
+    )
 
-    # Attach pasted NPS text (no JSON required)
-    nps_text = ctx.get("nps_text", "")
-    if nps_text:
-        brief_lines.append("\n" + _render_nps_text_block(lang, nps_text))
-
-    # Final instruction
-    brief_lines.append("\n" + body)
-
-    return "\n".join(brief_lines).strip()
-
-
-# ----------------------------
-# Public API
-# ----------------------------
-
-def fill_recipe(recipe_name: str, lang: str, ctx: Dict) -> str:
-    """Return the full prompt brief string."""
-    if lang not in SCAFFOLDS:
-        lang = "en"
-    return build_brief(lang, recipe_name, ctx)
+    brief = (
+        f"[system]\n{s['sys']}\n\n"
+        f"[user]\n"
+        f"**{s['role_lbl']}**: {role}\n"
+        f"**{s['goal_lbl']}**: {goal}\n"
+        f"**{s['ctx_lbl']}**: {context_line}\n"
+        f"**{s['req_lbl']}**:\n{req_block}\n"
+        f"**{s['info_lbl']}**:\n{info_block}\n"
+        f"**{s['tone_lbl']}**: {tone}\n"
+        f"**{s['len_lbl']}**: {length}\n\n"
+        f"{s['extra_lbl']}:\n{extras}\n\n"
+        f"{body_instruction}\n"
+    )
+    return brief
 
 
-def shape_output(prompt_text: str, output_format: str, client_name: str, recipe_name: str) -> str:
-    """
-    Light post-formatting for different output targets.
-    (No external templates to keep this self-contained.)
-    """
-    of = (output_format or "plain text").lower()
-    if of == "email":
-        # Wrap the brief as instructions for an email generator AI
-        header = f"## Email brief for {client_name or 'client'} — {recipe_name}\n\n"
-        return header + prompt_text
-    elif of == "crm note":
-        header = f"## CRM note for {client_name or 'client'} — {recipe_name}\n\n"
-        return header + prompt_text
-    # default: plain text
-    return prompt_text
+def fill_recipe(recipe: str, lang_code: str, ctx: dict) -> str:
+    return build_brief(recipe, lang_code, ctx)
+
+
+def shape_output(text: str, output_format: str, client_name: str, recipe: str) -> str:
+    # Currently we only expose "plain prompt"; passthrough for future extensibility.
+    return text
