@@ -50,6 +50,18 @@ SCAFFOLDS: Dict[str, Dict[str, str]] = {
 LN_CONTEXT: Dict[str, List[str]] = {
     "regions": ["Hong Kong", "Japan", "Korea", "Singapore"],
     "client_types": ["law firm", "in-house legal", "corporate", "government", "public sector"],
+      "stages": [
+        "New", "Renewal", "Expansion", "Low usage",
+        "Complaint", "Cancellation", "Previous positive comments",
+        "Previous negative comments"
+    ],
+    # keep the rest below
+    "practice_areas": [...],
+    "tones": [...],
+    "lengths": [...],
+    "outputs": [...],
+    "products": [...]
+}
     "practice_areas": [
         "financial services", "litigation", "compliance", "arbitration", "personal injury",
         "company", "corporate", "IP", "criminal", "contract", "tax"
