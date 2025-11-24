@@ -1,8 +1,7 @@
-import json
+import streamlit as st
 from datetime import datetime, date
 
-import streamlit as st
-
+# ---- Core data & builders
 from components.recipes import (
     SCAFFOLDS,
     LN_CONTEXT,
@@ -10,45 +9,93 @@ from components.recipes import (
     fill_recipe,
     shape_output,
 )
-# Presets are optional; wrap in try so the app still runs if the signature differs
+
+# ---- Presets import (optional)
 try:
-    from components.presets import export_preset_bytes, load_preset_into_state  # type: ignore
+    from components.presets import export_preset_bytes, load_preset_into_state
 except Exception:
     export_preset_bytes = None
     load_preset_into_state = None
 
 
-# -------------------- Page --------------------
+# -----------------------------------------------------------------------------
+# Helpers: safe getters so missing LN_CONTEXT keys never crash the UI
+# -----------------------------------------------------------------------------
+def ctx_get(key: str, default):
+    try:
+        val = LN_CONTEXT.get(key, default)
+        # Basic guard for accidental None
+        return default if val is None else val
+    except Exception:
+        return default
+
+
+CLIENT_TYPES = ctx_get(
+    "client_types", ["law firm", "corporate", "gov / public sector", "in-house legal"]
+)
+REGIONS = ctx_get("regions", ["Hong Kong", "Japan", "Korea", "Singapore"])
+PRACTICES = ctx_get(
+    "practice_areas",
+    [
+        "financial services",
+        "litigation",
+        "compliance",
+        "arbitration",
+        "tort",
+        "personal injury",
+        "company",
+        "corporate",
+        "IP",
+        "criminal",
+        "contract",
+    ],
+)
+PRODUCTS = ctx_get("products", ["Lexis+", "Practical Guidance", "Lexis Advance", "Lexis+ AI"])
+
+# 🔧 The field that was crashing:
+STAGES = ctx_get(
+    "stages",
+    ["New", "Renewal", "Expansion", "Cancellation", "Low usage", "Complaint",
+     "Previous negative comments", "Previous positive comments"],
+)
+TONES = ctx_get("tones", ["auto", "warm", "consultative", "persuasive", "formal", "polite", "apologetic"])
+LENGTHS = ctx_get("lengths", ["short", "medium", "long"])
+OUTPUTS = ctx_get("outputs", ["plain prompt"])
+
+
+# -----------------------------------------------------------------------------
+# Page
+# -----------------------------------------------------------------------------
 st.set_page_config(page_title="LexisNexis Prompt Composer (no APIs)", page_icon="🧠", layout="wide")
 st.title("🧠 LexisNexis Prompt Composer (no APIs)")
-st.caption("Generate high-quality, localized **email prompts** you can paste into any AI (ChatGPT, Copilot, Gemini). No external APIs.")
+st.caption("Generate high-quality, localized email prompts you can paste into any AI (ChatGPT, Copilot, Gemini). No external APIs.")
 
-
-# -------------------- Language & output --------------------
-c1, c2 = st.columns([1, 1])
-with c1:
+# Top controls
+col_lang, col_out = st.columns([1, 1])
+with col_lang:
     lang_code = st.selectbox(
         "Target language",
         options=list(SCAFFOLDS.keys()),
         format_func=lambda k: SCAFFOLDS[k]["name"],
         index=0,
     )
-with c2:
-    output_format = st.selectbox("Output target", LN_CONTEXT["outputs"], index=0)
+with col_out:
+    output_format = st.selectbox("Output target", OUTPUTS, index=0)
 
-
-# -------------------- Sidebar: global schema --------------------
+# -----------------------------------------------------------------------------
+# Sidebar: client profile (robust to missing context keys)
+# -----------------------------------------------------------------------------
 with st.sidebar:
     st.header("Client identity")
     client_name = st.text_input("Client name")
-    client_type = st.selectbox("Client type", LN_CONTEXT["client_types"], index=0)
-    region = st.selectbox("Region / Country", LN_CONTEXT["regions"], index=0)
-    practice_areas = st.multiselect("Industry / practice area(s)", LN_CONTEXT["practice_areas"])
+    client_type = st.selectbox("Client type", CLIENT_TYPES, index=0)
+    region = st.selectbox("Region / Country", REGIONS, index=0)
+    practice_areas = st.multiselect("Industry / practice area(s)", PRACTICES)
 
-    st.header("CS context")
+    st.header("CS / Sales context")
     account_owner = st.text_input("Account owner / RM name")
-    relationship_stage = st.selectbox("Relationship stage", LN_CONTEXT["stages"], index=1)
-    products_used = st.multiselect("Primary LexisNexis products used", LN_CONTEXT["products"])
+    relationship_stage = st.selectbox("Relationship stage", STAGES, index=min(1, len(STAGES)-1))
+    products_used = st.multiselect("Primary LexisNexis products used", PRODUCTS)
 
     st.header("Metrics (optional)")
     usage_metrics = st.text_area("Usage metrics (logins, searches, features, report)")
@@ -56,61 +103,43 @@ with st.sidebar:
     nps_info = st.text_area("NPS score / feedback theme (paste)")
 
     st.header("Communication settings")
-    tone = st.selectbox("Tone", LN_CONTEXT["tones"], index=0)
-    length = st.selectbox("Length preference", LN_CONTEXT["lengths"], index=2)
+    tone = st.selectbox("Tone", TONES, index=0)
+    length = st.selectbox("Length preference", LENGTHS, index=1)
+    include_highlights = st.checkbox("Auto-include product highlights (region-aware)", value=True)
 
     st.markdown("---")
     st.subheader("Presets")
-    preset_bytes = None
     if export_preset_bytes:
-        # Be tolerant of different function signatures users may have in presets.py
-        try:
-            preset_bytes = export_preset_bytes(
-                client_name=client_name,
-                client_type=client_type,
-                products_used=products_used,
-                primary_role=account_owner,      # mapped
-                audience_role=relationship_stage,  # mapped
-                key_metrics=[],
-            )
-        except Exception:
-            try:
-                preset_bytes = export_preset_bytes(  # type: ignore
-                    client_name, client_type, products_used, account_owner, relationship_stage, []
-                )
-            except Exception:
-                preset_bytes = None
-
-    if preset_bytes:
+        preset_bytes = export_preset_bytes(
+            client_name=client_name,
+            client_type=client_type,
+            products_used=products_used,
+            primary_role="",
+            audience_role="",
+            key_metrics=[],
+        )
         st.download_button("💾 Export client preset (.json)", preset_bytes, file_name="client_preset.json", mime="application/json")
-
     uploaded = st.file_uploader("📂 Import client preset (.json)", type="json")
-    if uploaded:
+    if uploaded and load_preset_into_state:
         try:
-            data = json.loads(uploaded.getvalue().decode("utf-8"))
-            # If presets module provides a state loader, use it; else set basics
-            if load_preset_into_state:
-                try:
-                    load_preset_into_state(data)  # type: ignore
-                    st.success("✅ Preset loaded into session.")
-                except Exception:
-                    # Fall back to minimal mapping
-                    for k, v in data.items():
-                        st.session_state[k] = v
-                    st.info("Preset loaded with best-effort mapping.")
-            else:
-                for k, v in data.items():
-                    st.session_state[k] = v
-                st.info("Preset loaded.")
+            import json, io
+            data = json.load(uploaded)
+            load_preset_into_state(data)
+            st.success("✅ Preset loaded. Update fields as needed.")
         except Exception as e:
-            st.error(f"Could not read preset: {e}")
+            st.warning(f"Could not load preset: {e}")
 
-
-# -------------------- Main: function selection --------------------
+# -----------------------------------------------------------------------------
+# Main: function selection
+# -----------------------------------------------------------------------------
 left, right = st.columns([2, 3])
 
 with left:
-    recipe = st.selectbox("Function / Use-case", PROMPT_RECIPES, index=0)
+    recipe = st.selectbox(
+        "Function / Use-case",
+        list(PROMPT_RECIPES.keys()),
+        index=0,
+    )
 
 with right:
     st.subheader("Few-shot examples (optional)")
@@ -120,11 +149,11 @@ with right:
     with ex_col2:
         ex_output = st.text_area("Example output", height=80, placeholder="Desired example output")
 
-
-# -------------------- Guided options per recipe --------------------
+# -----------------------------------------------------------------------------
+# Guided forms: options tailored by recipe
+# -----------------------------------------------------------------------------
 st.markdown("---")
 st.markdown("### 🧩 Guided options")
-
 guided = {}
 
 if recipe == "Renewal Email":
@@ -145,7 +174,7 @@ elif recipe == "QBR Brief":
         qbr_sections = st.multiselect(
             "Sections to emphasize",
             ["Usage & Engagement", "Business Impact", "Wins", "Underused Features", "Recommendations"],
-            default=["Usage & Engagement", "Business Impact", "Recommendations"],
+            default=["Usage & Engagement", "Business Impact", "Recommendations"]
         )
         guided.update({
             "qbr_window": qbr_window,
@@ -178,7 +207,7 @@ elif recipe == "Proposal / RFP Response":
 elif recipe == "Upsell / Cross-sell Outreach":
     with st.expander("Upsell options", expanded=True):
         pains = st.text_area("Client pain points")
-        proposed_products = st.multiselect("Proposed LexisNexis products", LN_CONTEXT["products"])
+        proposed_products = st.multiselect("Proposed LexisNexis products", PRODUCTS)
         case_studies = st.text_area("Relevant case studies")
         guided.update({
             "pains": pains,
@@ -189,7 +218,7 @@ elif recipe == "Upsell / Cross-sell Outreach":
 elif recipe == "Client Risk Alert":
     with st.expander("Risk options", expanded=True):
         risk_trigger = st.selectbox("Risk trigger", ["Declining usage", "Delayed renewal", "Negative feedback", "Champion turnover", "Other"], index=0)
-        risk_severity = st.select_slider("Severity", options=[1, 2, 3, 4, 5], value=3)
+        risk_severity = st.select_slider("Severity", options=[1,2,3,4,5], value=3)
         risk_mitigations = st.text_area("Mitigation options (enablement plan, cadence, etc.)")
         guided.update({
             "risk_trigger": risk_trigger,
@@ -201,7 +230,7 @@ elif recipe == "Client Snapshot & Risk Signals":
     with st.expander("Snapshot options", expanded=True):
         prepared_by = st.selectbox("Prepared by", ["Sales", "Pre-Sales", "Customer Success"], index=0)
         last_engagement_date = st.text_input("Last engagement date")
-        risk_level = st.select_slider("Risk level", options=["Low", "Medium", "High"], value="Medium")
+        risk_level = st.select_slider("Risk level", options=["Low","Medium","High"], value="Medium")
         guided.update({
             "prepared_by": prepared_by,
             "last_engagement_date": last_engagement_date,
@@ -211,7 +240,7 @@ elif recipe == "Client Snapshot & Risk Signals":
 elif recipe == "Objection Coach":
     with st.expander("Objection options", expanded=True):
         objection_type = st.selectbox("Objection type", ["Price", "Usability", "Prefer Competitor"], index=0)
-        objection_severity = st.select_slider("Severity", options=[1, 2, 3, 4, 5], value=3)
+        objection_severity = st.select_slider("Severity", options=[1,2,3,4,5], value=3)
         competitor_name = st.text_input("Competitor (optional)")
         supporting_data = st.multiselect("Supporting data available", ["Usage metrics", "ROI", "NPS quotes", "Case studies", "Benchmarks"])
         guided.update({
@@ -234,62 +263,37 @@ elif recipe == "NPS Engagement":
 
 elif recipe == "NPS Follow-up":
     with st.expander("NPS follow-up options", expanded=True):
-        nps_follow_rating = st.selectbox("Previous NPS", ["Promoter (9–10)", "Passive (7–8)", "Detractor (0–6)"], index=0)
-        nps_follow_type = st.selectbox(
-            "Comment type",
-            ["How-to / Usage", "Feature request", "Bug / Issue", "General praise or concern"],
-            index=0,
-        )
-        nps_follow_comment = st.text_area(
-            "Paste the client's verbatim comment from the survey",
-            placeholder='e.g., "Generally good platform. It would be helpful to search reported cases only."',
-            height=100,
-        )
-        hint_choice = st.selectbox(
-            "Add a helpful pointer (optional)",
-            ["None", "HK: Reported-only cases filter", "PG: Crypto coverage pointer"],
-            index=0,
-        )
-        hint_map = {
-            "None": None,
-            "HK: Reported-only cases filter": "hk_reported_cases_filter",
-            "PG: Crypto coverage pointer": "pg_crypto_pointer",
-        }
-        nps_follow_hint_key = hint_map.get(hint_choice)
-        nps_follow_escalate = st.checkbox("We escalated this internally / will update them", value=False)
-        nps_follow_note = st.text_area(
-            "Internal note (for our records; summarized to the client as appropriate)",
-            placeholder="e.g., Logged with Content Ops; investigating TOC rendering for commentaries.",
-            height=80,
-        )
+        prev_nps = st.selectbox("Previous NPS", ["Promoter (9–10)", "Passive (7–8)", "Detractor (0–6)"], index=0)
+        comment_type = st.selectbox("Comment type", ["Feature request", "Bug/issue", "General praise/concern"], index=0)
+        verbatim = st.text_area("Paste the client’s verbatim comment from the survey", placeholder='e.g., “Generally good platform. It would be helpful to search reported cases only.”')
+        helper_pointer = st.text_input("Add a helpful pointer (optional)", placeholder='e.g., "PG: Crypto coverage pointer"')
+        internal_note = st.text_input("Internal note for our records, summarized to the client as appropriate", placeholder='e.g., "Raised with Content Ops; investigating TOC rendering"')
         guided.update({
-            "nps_follow_rating": nps_follow_rating,
-            "nps_follow_type": nps_follow_type,
-            "nps_follow_comment": nps_follow_comment,
-            "nps_follow_hint": nps_follow_hint_key,
-            "nps_follow_escalate": nps_follow_escalate,
-            "nps_follow_note": nps_follow_note,
+            "nps_previous_rating": prev_nps,
+            "nps_comment_type": comment_type,
+            "nps_verbatim": verbatim,
+            "nps_helper_pointer": helper_pointer,
+            "nps_internal_note": internal_note,
         })
 
-
-# -------------------- Quality checklist --------------------
+# -----------------------------------------------------------------------------
+# Quality checklist
+# -----------------------------------------------------------------------------
 st.markdown("---")
 st.markdown("### ✅ Quality Checklist")
 for item in [
     "No confidential client data present",
     "Claims are accurate/verifiable (no legal advice)",
-    "Outcome/ROI linked to client metrics",
+    "Outcome/ROI linked to metrics",
     "Clear CTA / next steps included",
 ]:
     st.checkbox(item)
 
-
-# -------------------- Generate --------------------
+# -----------------------------------------------------------------------------
+# Generate
+# -----------------------------------------------------------------------------
 if st.button("✨ Generate Prompt"):
     ctx = dict(
-        # Global
-        role="Customer Success Manager",
-        goal=recipe,
         client_name=client_name,
         client_type=client_type,
         region=region,
@@ -302,18 +306,17 @@ if st.button("✨ Generate Prompt"):
         nps_info=nps_info,
         tone=tone,
         length=length,
-
-        # Few-shot
+        include_highlights=include_highlights,
+        output_target=output_format,
         ex_input=ex_input or "",
         ex_output=ex_output or "",
     )
-    # Merge guided recipe options
     ctx.update(guided)
 
     final_prompt = fill_recipe(recipe, lang_code, ctx)
     shaped = shape_output(final_prompt, output_format, client_name, recipe)
 
-    st.subheader("📝 Copy-ready prompt for your AI")
+    st.subheader("📝 Copy-ready Prompt")
     st.code(shaped, language="markdown")
 
     fname = f"ln_prompt_{recipe.replace('/','_')}_{lang_code}_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}.txt"
@@ -321,7 +324,7 @@ if st.button("✨ Generate Prompt"):
         "📥 Download (.txt)",
         shaped.replace("{today}", str(date.today())),
         file_name=fname,
-        mime="text/plain",
+        mime="text/plain"
     )
 
-st.caption("Tip: set Tone to ‘auto’ to localize by region/stage (e.g., Japan → more formal; Complaint → apologetic).")
+st.caption("Tip: set Tone to ‘auto’ to localize by Region + Stage (e.g., Japan=polite; Complaint=apologetic).")
