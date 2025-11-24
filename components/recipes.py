@@ -47,29 +47,22 @@ SCAFFOLDS: Dict[str, Dict[str, str]] = {
 # ----------------------------
 # App-wide selectable context
 # ----------------------------
-LN_CONTEXT: Dict[str, List[str]] = {
+LN_CONTEXT = {
     "regions": ["Hong Kong", "Japan", "Korea", "Singapore"],
     "client_types": ["law firm", "in-house legal", "corporate", "government", "public sector"],
-      "stages": [
+    "stages": [
         "New", "Renewal", "Expansion", "Low usage",
         "Complaint", "Cancellation", "Previous positive comments",
         "Previous negative comments"
     ],
-    # keep the rest below
-    "practice_areas": [...],
-    "tones": [...],
-    "lengths": [...],
-    "outputs": [...],
-    "products": [...]
-}
     "practice_areas": [
-        "financial services", "litigation", "compliance", "arbitration", "personal injury",
-        "company", "corporate", "IP", "criminal", "contract", "tax"
+        "financial services", "litigation", "compliance", "arbitration",
+        "personal injury", "company", "corporate", "IP", "criminal",
+        "contract", "tax"
     ],
     "tones": ["auto", "warm", "consultative", "neutral", "apologetic", "formal", "polite"],
     "lengths": ["short", "medium", "long"],
     "outputs": ["plain prompt", "email"],
-    # These labels map to our PRODUCT_ALIAS below
     "products": [
         "Lexis Analytics (HK)",
         "Lexis+ (HK) — Legal Research",
@@ -79,9 +72,10 @@ LN_CONTEXT: Dict[str, List[str]] = {
         "PG — Commercial (HK)",
         "PG — Corporate (HK)",
         "PG — Data Protection (HK)",
-        "PG — Dispute Resolution (HK)",
+        "PG — Dispute Resolution (HK)"
     ],
 }
+
 
 # ===============================================================
 # Product knowledge base (HK) — auto-inserted pointers
