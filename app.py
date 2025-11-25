@@ -111,13 +111,14 @@ with st.sidebar:
     st.subheader("Presets")
     if export_preset_bytes:
         preset_bytes = export_preset_bytes(
-            client_name=client_name,
-            client_type=client_type,
-            products_used=products_used,
-            primary_role="",
-            audience_role="",
-            key_metrics=[],
-        )
+    client_name=client_name,
+    client_type=client_type,
+    products_used=products_used,
+    account_owner=account_owner,
+    practice_areas=practice_areas,
+    region=region,
+)
+
         st.download_button("💾 Export client preset (.json)", preset_bytes, file_name="client_preset.json", mime="application/json")
     uploaded = st.file_uploader("📂 Import client preset (.json)", type="json")
     if uploaded and load_preset_into_state:
