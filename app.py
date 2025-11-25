@@ -1,215 +1,240 @@
-# ------------------------------------------------------------
-# Core prompt scaffolds, recipes, and builders (no external APIs)
-# Safe to use on Python 3.9+
-# ------------------------------------------------------------
-from __future__ import annotations
-from typing import Dict
+import json
+from datetime import datetime, date
 
-# ----------------------------
-# Language scaffolds (email drafting focus)
-# ----------------------------
-SCAFFOLDS: Dict[str, Dict[str, str]] = {
-    "en": {
-        "name": "English",
-        "sys": (
-            "You are an assistant for Client-Facing Communications at LexisNexis "
-            "(Sales & Customer Success) in the legal-tech domain. "
-            "Respond with a professional, concise email to be sent to a client. "
-            "Use the structure and headings provided by the user section."
-        ),
-        "role_lbl": "ROLE",
-        "goal_lbl": "GOAL",
-        "ctx_lbl": "CONTEXT",
-        "req_lbl": "DELIVERABLE REQUIREMENTS",
-        "info_lbl": "INFORMATION TO GATHER",
-        "tone_lbl": "TONE",
-        "len_lbl": "LENGTH",
-        "extra_lbl": "Additional notes & constraints",
-    }
-}
+import streamlit as st
 
-# ------------------------------------------------------------
-# Light global context used by UI pickers (keep keys stable)
-# ------------------------------------------------------------
-LN_CONTEXT = {
-    "outputs": ["plain prompt", "email (markdown)"],
-    "tones": ["auto", "warm", "consultative", "neutral", "apologetic", "confident"],
-    "lengths": ["short", "medium", "long"],
-    "products": [
-        "Lexis+",
-        "Lexis Advance",
-        "Practical Guidance",
-        "Lexis+ AI",
-    ],
-    "stages": ["Prospect", "Onboarding", "Adoption", "Renewal", "Expansion", "At Risk"],
-    "regions": ["Hong Kong", "Singapore", "Japan", "South Korea", "Other"],
-    "practice_areas": [
-        "financial services", "corporate", "litigation", "IP", "tax", "employment", "other"
-    ],
-}
+from components.recipes import (
+    SCAFFOLDS,
+    LN_CONTEXT,
+    PRODUCT_BLURBS,
+    PROMPT_RECIPES,
+    fill_recipe,
+    shape_output,
+)
+from components.presets import export_preset_bytes, load_preset_into_state
 
-# ----------------------------
-# Helpers
-# ----------------------------
-def _field(label: str, value: str | list | None) -> str:
-    if value is None or value == "" or value == []:
-        return ""
-    if isinstance(value, list):
-        val = ", ".join(value)
-    else:
-        val = str(value)
-    return f"{label}: {val}\n"
 
-def _header(txt: str) -> str:
-    return f"**{txt}**:"
+# -------------------- Page --------------------
+st.set_page_config(page_title="LexisNexis Prompt Composer (no APIs)", page_icon="🧠", layout="wide")
+st.title("🧠 LexisNexis Prompt Composer (no APIs)")
+st.caption("Generate high-quality, localized **email prompts** you can paste into any AI (ChatGPT, Copilot, Gemini). No external APIs.")
 
-# ----------------------------
-# Renewal Email builder (your two variants)
-# ----------------------------
-def build_renewal_email(ctx: dict, lang: str) -> str:
-    """
-    Builds a drafting prompt for a renewal email with two scenarios:
-    1) Low usage + pricing concerns (empathetic, value-protecting, okay to downsize)
-    2) Healthy usage (highlight value & usage naturally, relationship-focused)
-    """
-    sys = SCAFFOLDS[lang]["sys"]
+# -------------------- Language & output --------------------
+col_lang, col_out = st.columns([1, 1])
+with col_lang:
+    lang_code = st.selectbox(
+        "Target language",
+        options=list(SCAFFOLDS.keys()),
+        format_func=lambda k: SCAFFOLDS[k]["name"],
+        index=0,
+    )
+with col_out:
+    output_format = st.selectbox("Output target", LN_CONTEXT["outputs"], index=0)
 
-    role = "Account Manager"
-    goal = "Renewal outreach — draft email tailored to usage pattern."
-    client_ctx = (
-        f"Client: {ctx.get('client_name') or 'client'}; "
-        f"Type: {ctx.get('client_type') or 'n/a'}; "
-        f"Region: {ctx.get('region') or 'n/a'}; "
-        f"Practice: {', '.join(ctx.get('practice_areas') or []) or 'n/a'}; "
-        f"Products: {', '.join(ctx.get('products_used') or []) or 'n/a'}; "
-        f"Stage: {ctx.get('relationship_stage') or 'n/a'}."
+# -------------------- Sidebar: global schema --------------------
+with st.sidebar:
+    st.header("Client identity")
+    client_name = st.text_input("Client name")
+    client_type = st.selectbox("Client type", LN_CONTEXT["client_types"], index=1)
+    region = st.selectbox("Region / Country", LN_CONTEXT["regions"], index=0)
+    practice_areas = st.multiselect("Industry / practice area(s)", LN_CONTEXT["practice_areas"])
+
+    st.header("CS context")
+    account_owner = st.text_input("Account owner / RM name")
+    relationship_stage = st.selectbox("Relationship stage", LN_CONTEXT["stages"], index=2)
+    products_used = st.multiselect("Primary LexisNexis products used", LN_CONTEXT["products"])
+
+    st.header("Metrics (optional)")
+    usage_metrics = st.text_area("Usage metrics (logins, searches, features, report)")
+    time_saved = st.text_input("Time saved / efficiency data (e.g., 'avg. 4 hours/week')")
+    nps_info = st.text_area("NPS score / feedback theme (paste)")
+
+    st.header("Communication settings")
+    tone = st.selectbox("Tone", LN_CONTEXT["tones"], index=0)
+    length = st.selectbox("Length preference", LN_CONTEXT["lengths"], index=1)
+
+    st.markdown("---")
+    st.subheader("Product facts (optional)")
+    chosen_blurbs = st.multiselect(
+        "Add product blurbs",
+        options=list(PRODUCT_BLURBS.keys()),
+        default=[]
+    )
+    product_facts_free = st.text_area("Additional product facts or notes (optional)")
+
+    # Combine product facts now so it's available for any recipe
+    combined_product_facts = ""
+    if chosen_blurbs:
+        combined_product_facts += "\n".join([f"- {k}: {PRODUCT_BLURBS[k]}" for k in chosen_blurbs])
+    if product_facts_free.strip():
+        combined_product_facts += ("\n" if combined_product_facts else "") + product_facts_free.strip()
+
+    st.markdown("---")
+    st.subheader("Presets")
+    # match your presets.py signature exactly
+    preset_bytes = export_preset_bytes(
+        client_name=client_name,
+        client_type=client_type,
+        products_used=products_used,
+        primary_role=account_owner,         # mapped to 'primary_role'
+        audience_role=relationship_stage,   # mapped to 'audience_role'
+        key_metrics=[],                     # optional list; keep empty if not used
+    )
+    st.download_button(
+        "💾 Export client preset (.json)",
+        preset_bytes,
+        file_name="client_preset.json",
+        mime="application/json"
+    )
+    uploaded = st.file_uploader("📂 Import client preset (.json)", type="json")
+    if uploaded:
+        try:
+            data = json.loads(uploaded.getvalue().decode("utf-8"))
+            load_preset_into_state(data)
+            st.success("✅ Preset loaded. Update fields as needed.")
+        except Exception as e:
+            st.error(f"Could not load preset: {e}")
+
+# -------------------- Main: function selection --------------------
+left, right = st.columns([2, 3])
+
+with left:
+    recipe = st.selectbox("Function / Use-case", PROMPT_RECIPES, index=0)
+
+with right:
+    st.subheader("Few-shot examples (optional)")
+    ex_col1, ex_col2 = st.columns(2)
+    with ex_col1:
+        ex_input = st.text_area("Example input", height=80, placeholder="Short example input")
+    with ex_col2:
+        ex_output = st.text_area("Example output", height=80, placeholder="Desired example output")
+
+# -------------------- Guided forms by function --------------------
+st.markdown("---")
+st.markdown("### 🧩 Guided options")
+
+guided = {}
+
+if recipe == "Renewal Email":
+    with st.expander("Renewal options", expanded=True):
+        renewal_angle = st.selectbox(
+            "Angle",
+            ["Pricing concern + low usage", "Pricing concern but healthy usage"],
+            index=0
+        )
+        renewal_date = st.text_input("Renewal date (e.g., 2026-03-31)")
+        usage_summary = st.text_area(
+            "Usage summary (free-text)",
+            placeholder="e.g., only 2–3 logins in past 3 months; sporadic usage; declining activity"
+        )
+        modules_used = st.text_input(
+            "Most-used modules/databases (if healthy-usage)",
+            placeholder="e.g., Financial Services Practical Guidance; Case Law; Legislation"
+        )
+        engagement_indicators = st.text_input(
+            "Engagement indicators",
+            placeholder="e.g., downloads, saved searches, alerts"
+        )
+        guided.update({
+            "renewal_angle": renewal_angle,
+            "renewal_date": renewal_date,
+            "usage_summary": usage_summary,
+            "modules_used": modules_used,
+            "engagement_indicators": engagement_indicators,
+        })
+
+elif recipe == "NPS Engagement":
+    with st.expander("NPS options (auto-variants)", expanded=True):
+        nps_previous_rating = st.selectbox("Previous NPS", ["Promoter (9–10)", "Passive (7–8)", "Detractor (0–6)"], index=1)
+        nps_feedback_theme = st.text_input("Feedback theme (summary)")
+        nps_survey_link = st.text_input("Survey link / CTA")
+        guided.update({
+            "nps_previous_rating": nps_previous_rating,
+            "nps_feedback_theme": nps_feedback_theme,
+            "nps_survey_link": nps_survey_link,
+        })
+
+elif recipe == "NPS Follow-up":
+    with st.expander("NPS follow-up options", expanded=True):
+        nps_previous_rating = st.selectbox("Previous NPS", ["Promoter (9–10)", "Passive (7–8)", "Detractor (0–6)"], index=0)
+        npsf_comment_type = st.selectbox(
+            "Comment type",
+            ["Feature request", "How-to / navigation", "Bug / issue", "General feedback / praise", "Pricing"],
+            index=0
+        )
+        npsf_verbatim = st.text_area(
+            "Paste the client's verbatim comment from the survey",
+            placeholder='e.g., “Generally good platform. It would be helpful to search reported cases only.”'
+        )
+        npsf_pointer = st.text_input(
+            "Add a helpful pointer (optional)",
+            placeholder='e.g., “PG: Crypto coverage pointer” or “To filter to reported cases… > Publication > Hong Kong Cases”'
+        )
+        npsf_escalated_note = st.text_area(
+            "We escalated this internally / will update them (optional)",
+            placeholder="e.g., Logged with Content Ops; investigating TOC rendering for commentaries."
+        )
+        guided.update({
+            "nps_previous_rating": nps_previous_rating,
+            "npsf_comment_type": npsf_comment_type,
+            "npsf_verbatim": npsf_verbatim,
+            "npsf_pointer": npsf_pointer,
+            "npsf_escalated_note": npsf_escalated_note,
+        })
+
+# -------------------- Quality checklist --------------------
+st.markdown("---")
+st.markdown("### ✅ Quality Checklist")
+for item in [
+    "No confidential client data present",
+    "Claims are accurate/verifiable (no legal advice)",
+    "Outcome/ROI linked to metrics where possible",
+    "Clear CTA / next steps included",
+]:
+    st.checkbox(item)
+
+# -------------------- Generate --------------------
+if st.button("✨ Generate Prompt"):
+    ctx = dict(
+        # Global schema
+        client_name=client_name,
+        client_type=client_type,
+        region=region,
+        practice_areas=practice_areas,
+        account_owner=account_owner,
+        relationship_stage=relationship_stage,
+        products_used=products_used,
+        usage_metrics=usage_metrics,
+        time_saved=time_saved,
+        nps_info=nps_info,
+        tone=tone,
+        length=length,
+        output_target=output_format,
+
+        # Few-shot (optional)
+        ex_input=ex_input or "",
+        ex_output=ex_output or "",
+
+        # Product facts for email body (optional)
+        product_facts=combined_product_facts.strip(),
     )
 
-    tone = ctx.get("tone") or "consultative"
-    length = ctx.get("length") or "medium"
+    # Guided, function-specific
+    ctx.update(guided)
 
-    renewal_date = ctx.get("renewal_date") or ctx.get("contract_details") or ""
-    usage_freq = ctx.get("usage_frequency") or ""
-    usage_modules = ctx.get("module_utilization") or ""
-    usage_engagement = ctx.get("engagement_indicators") or ""
-    meeting_options = ctx.get("meeting_options") or ""
-    has_pricing_concern = (ctx.get("renewal_variant") == "Low usage & pricing concern")
+    final_prompt = fill_recipe(recipe, lang_code, ctx)
+    shaped = shape_output(final_prompt, output_format, client_name, recipe)
 
-    if has_pricing_concern:
-        # Variant 1: Low usage + pricing concerns
-        requirements = (
-            "- Open with a polite greeting.\n"
-            f"- Mention the upcoming renewal date ({renewal_date}).\n"
-            "- Acknowledge the low usage pattern in a non-accusatory, curious way.\n"
-            "- Express concern they may not be getting full value.\n"
-            "- Offer help to identify whether it's training, wrong content fit, or changing needs.\n"
-            "- Suggest a call to align the subscription with actual needs (downsize to save cost if appropriate).\n"
-            "- Position as a partner who wants them to only pay for what's useful.\n"
-            "- Keep the tone helpful, understanding, and focused on the right solution."
-        )
-        usage_block = (
-            "Their recent usage indicators include:\n"
-            f"• Frequency: {usage_freq or 'n/a'}\n"
-            f"• Modules used: {usage_modules or 'n/a'}\n"
-            f"• Engagement signals: {usage_engagement or 'n/a'}\n"
-        )
-        closing = (
-            "Please propose a short call to discuss options. "
-            f"If helpful, offer times ({meeting_options}) or invite them to suggest a convenient time."
-        )
-        final_instruction = (
-            "Write a professional, empathetic, consultative **email**. "
-            "Acknowledge that low usage might mean the current setup isn't working and you want to fix that "
-            "rather than push an unchanged renewal. Be explicit that you're open to adjusting or reducing the "
-            "subscription if that’s what makes sense."
-        )
+    st.subheader("📝 Copy-ready prompt for your AI tool")
+    st.code(shaped, language="markdown")
 
-    else:
-        # Variant 2: Healthy usage — demonstrate value without mentioning pricing concerns
-        requirements = (
-            "- Open with a polite greeting.\n"
-            f"- Mention the upcoming renewal date ({renewal_date}).\n"
-            "- Highlight specific usage patterns as evidence of value and workflow integration.\n"
-            "- Show genuine interest in how they use the platform for their matters.\n"
-            "- Request a call to discuss needs before finalizing renewal (collaborative tone).\n"
-            "- Keep tone polite, convincing, and relationship-focused.\n"
-            "- Do not explicitly mention pricing concerns."
-        )
-        usage_block = (
-            "Observed usage highlights:\n"
-            f"• Frequency: {usage_freq or 'n/a'}\n"
-            f"• Most-used modules/databases: {usage_modules or 'n/a'}\n"
-            f"• Other engagement indicators: {usage_engagement or 'n/a'}\n"
-        )
-        closing = (
-            "Please suggest a short call to confirm the renewal scope and ensure it fits their upcoming matters. "
-            f"Offer suggested times ({meeting_options}) or invite them to propose alternatives."
-        )
-        final_instruction = (
-            "Write a professional, warm, consultative **email** that makes the client feel heard and valued."
-        )
-
-    # Prompt skeleton
-    prompt = []
-    prompt.append("[system]")
-    prompt.append(sys)
-    prompt.append("\n[user]")
-    prompt.append(f"**{SCAFFOLDS[lang]['role_lbl']}**: {role}")
-    prompt.append(f"**{SCAFFOLDS[lang]['goal_lbl']}**: {goal}")
-    prompt.append(f"**{SCAFFOLDS[lang]['ctx_lbl']}**: {client_ctx}")
-    if usage_block:
-        prompt.append(usage_block)
-
-    prompt.append(f"**{SCAFFOLDS[lang]['req_lbl']}**:\n{requirements}")
-    prompt.append("**" + SCAFFOLDS[lang]['info_lbl'] + "**:")
-    prompt.append(
-        "- Client name, type, region, practice area(s)\n"
-        "- Products in use; relationship stage; renewal timing\n"
-        "- Usage frequency / modules used / engagement signals\n"
-        "- Preferred tone and length"
+    # download
+    fname = f"ln_prompt_{recipe.replace('/','_')}_{lang_code}_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}.txt"
+    st.download_button(
+        "📥 Download (.txt)",
+        shaped.replace("{today}", str(date.today())),
+        file_name=fname,
+        mime="text/plain"
     )
-    prompt.append(f"**{SCAFFOLDS[lang]['tone_lbl']}**: {tone}")
-    prompt.append(f"**{SCAFFOLDS[lang]['len_lbl']}**: {length}")
 
-    prompt.append("\n" + _header(SCAFFOLDS[lang]["extra_lbl"]))
-    extra = (
-        "- Respect confidentiality; avoid legal advice.\n"
-        "- Be precise; prefer verifiable statements.\n"
-        "- Suggest clear next steps (owner & time window).\n"
-        "- Keep formatting simple (paragraphs + short bullets if needed)."
-    )
-    prompt.append(extra)
-
-    prompt.append("\nDraft the email now.\n")
-    prompt.append(final_instruction)
-
-    return "\n".join(prompt)
-
-
-# ----------------------------
-# Other functions/recipes registry
-# ----------------------------
-PROMPT_RECIPES: Dict[str, Dict[str, str]] = {
-    # key names are used by app.py selectbox
-    "Renewal Email": {
-        "builder": "build_renewal_email",
-    },
-    # (You can keep other recipes here if you already had them)
-}
-
-# ----------------------------
-# Public builders
-# ----------------------------
-def fill_recipe(recipe: str, lang_code: str, ctx: dict) -> str:
-    """Dispatch to the appropriate builder based on recipe key."""
-    if recipe == "Renewal Email":
-        return build_renewal_email(ctx, lang_code)
-    # Fallback
-    return "Unknown recipe."
-
-def shape_output(text: str, output_format: str, client_name: str | None, recipe: str) -> str:
-    """Optionally wrap/shape the final output."""
-    if output_format == "email (markdown)":
-        title = f"# {recipe} – {client_name or 'Client'}"
-        return f"{title}\n\n{text}"
-    return text
+st.caption("Tip: set Tone to ‘auto’ to localize by Region + Stage (e.g., Japan = more formal; Detractor = sincere & apologetic).")
