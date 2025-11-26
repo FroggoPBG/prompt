@@ -1,6 +1,3 @@
-import io, json
-import streamlit as st
-
 # components/presets.py
 import json
 from typing import List, Dict, Any
@@ -33,10 +30,3 @@ def export_preset_bytes(
     }
 
     return json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
-
-
-def load_preset_into_state(data: dict):
-    """Load preset JSON back into Streamlit session_state."""
-    for k, v in data.items():
-        st.session_state[k] = v
-    st.success("Preset imported successfully.")
