@@ -453,52 +453,122 @@ for item in [
 
 # -------------------- Generate --------------------
 if st.button("✨ Generate Prompt"):
-    ctx = dict(
-        # Global schema
-        client_name=client_name,
-        client_type=client_type,
-        region=region,
-        practice_areas=practice_areas,
-        account_owner=account_owner,
-        relationship_stage=relationship_stage,
-        products_used=products_used,
-        usage_metrics=usage_metrics,
-        time_saved=time_saved,
-        nps_info=nps_info,
-        tone=tone,
-        length=length,
-        include_highlights=include_highlights,
-        output_target=output_format,
-        primary_role=primary_role,
-        primary_use_case=primary_use_case,
-        key_metrics=key_metrics,
-        # Few-shot
-        ex_input=ex_input or "",
-        ex_output=ex_output or "",
-    )
+    # Enhanced: Basic validation before generation
+    if not client_name:
+        st.warning("Please enter a client name to generate a prompt.")
+    elif not recipe:
+        st.warning("Please select a function/use-case.")
+    else:
+        ctx = dict(
+            # Global schema
+            client_name=client_name,
+            client_type=client_type,
+            region=region,
+            practice_areas=practice_areas,
+            account_owner=account_owner,
+            relationship_stage=relationship_stage,
+            products_used=products_used,
+            usage_metrics=usage_metrics,
+            time_saved=time_saved,
+            nps_info=nps_info,
+            tone=tone,
+            length=length,
+            include_highlights=include_highlights,
+            output_target=output_format,
+            primary_role=primary_role,
+            primary_use_case=primary_use_case,
+            key_metrics=key_metrics,
+            # Few-shot
+            ex_input=ex_input or "",
+            ex_output=ex_output or "",
+        )
 
-    # Guided, function-specific
-    ctx.update(guided)
+        # Guided, function-specific
+        ctx.update(guided)
 
-    final_prompt = fill_recipe(recipe, lang_code, ctx)
-    shaped = shape_output(final_prompt, output_format, client_name, recipe)
+        final_prompt = fill_recipe(recipe, lang_code, ctx)
+        shaped = shape_output(final_prompt, output_format, client_name, recipe)
 
-    st.subheader("📝 Copy-ready Prompt for AI tool")
-    st.code(shaped, language="markdown")
+        st.subheader("📝 Copy-ready Prompt for AI tool")
+        st.code(shaped, language="markdown")
 
-    fname = (
-        f"ln_prompt_{recipe.replace('/','_').replace(' ','_')}_"
-        f"{lang_code}_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}.txt"
-    )
-    st.download_button(
-        "📥 Download (.txt)",
-        shaped.replace("{today}", str(date.today())),
-        file_name=fname,
-        mime="text/plain",
-    )
+        fname = (
+            f"ln_prompt_{recipe.replace('/','_').replace(' ','_')}_"
+            f"{lang_code}_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}.txt"
+        )
+        st.download_button(
+            "📥 Download (.txt)",
+            shaped.replace("{today}", str(date.today())),
+            file_name=fname,
+            mime="text/plain",
+        )
+
+        # Enhanced: Quick feedback loop (simple thumbs up/down)
+        st.markdown("---")
+        st.subheader("Rate this prompt")
+        col_thumb1, col_thumb2 = st.columns(2)
+        with col_thumb1:
+            if st.button("👍 Good"):
+                st.success("Thanks for the feedback! Marked as good.")
+                # Here you could log to session_state or a file, but keeping no API/no downloads
+        with col_thumb2:
+            if st.button("👎 Needs improvement"):
+                st.warning("Thanks! What could be better? (Note for future iterations)")
+                # Optional: Add a text area for comments, but keep simple
 
 st.caption(
     "Tip: You can use different functions (Renewal, QBR, NPS Follow-up, etc.) "
     "and compare AI outputs generated from these prompts vs. generic prompts "
     "to demonstrate quality and ROI."
 )
+
+# Enhanced: Simple analytics dashboard (using session_state for persistence, no external storage)
+if "usage_stats" not in st.session_state:
+    st.session_state.usage_stats = {
+        "generations": 0,
+        "recipes_used": {},
+    }
+
+if st.button("View Usage Stats"):
+    st.session_state.usage_stats["generations"] += 1  # Increment on generate, but for demo
+    if recipe in st.session_state.usage_stats["recipes_used"]:
+        st.session_state.usage_stats["recipes_used"][recipe] += 1
+    else:
+        st.session_state.usage_stats["recipes_used"][recipe] = 1
+
+    st.markdown("### 📊 Usage Analytics")
+    st.write(f"Total prompt generations: {st.session_state.usage_stats['generations']}")
+    st.bar_chart(st.session_state.usage_stats["recipes_used"])
+
+# Enhanced: Template library (static dropdown for quick presets)
+st.sidebar.markdown("---")
+st.sidebar.subheader("Quick Templates")
+template = st.sidebar.selectbox(
+    "Load a template",
+    ["None", "Standard Renewal", "Quick NPS Follow-up"],
+)
+if template == "Standard Renewal":
+    st.session_state.client_name = "Sample Client"
+    st.session_state.recipe = "Renewal Email"
+    st.success("Template loaded: Standard Renewal")
+elif template == "Quick NPS Follow-up":
+    st.session_state.recipe = "NPS Follow-up"
+    st.success("Template loaded: Quick NPS Follow-up")
+
+# Enhanced: Dark mode toggle (simple CSS injection)
+theme = st.sidebar.selectbox("Theme", ["Light", "Dark"])
+if theme == "Dark":
+    st.markdown(
+        """
+        <style>
+            section[data-testid="stSidebar"] {
+                background-color: #1E1E1E;
+            }
+            .stApp {
+                background-color: #121212;
+                color: white;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
