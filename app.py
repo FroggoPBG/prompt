@@ -75,7 +75,7 @@ with st.sidebar:
             "nps_internal_note": st.session_state.get("nps_internal_note"),
         },
 
-"preset_bytes" = export_preset_bytes(
+"preset_bytes": = export_preset_bytes(
     client_name=client_name,
     client_type=client_type,
     products_used=products_used,
