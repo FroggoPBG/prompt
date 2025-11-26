@@ -96,7 +96,27 @@ def _renewal_email(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     scenario = ctx.get("renewal_scenario", "value")
     task = f"Write a renewal email for upcoming contract. Scenario: {scenario}. " \
            f"Acknowledge usage, propose call to discuss. Include provided contract details if any."
-    return _base_email_prompt(scaffold, ctx, task)
+    
+    lines: List[str] = []
+    lines.append(_base_email_prompt(scaffold, ctx, task))
+    lines.append("")
+    
+    lines.append("USAGE METRICS HANDLING:")
+    lines.append("When metrics are provided in CLIENT DATA, use them to inform your tone and approach, but DO NOT include the actual numbers in the email.")
+    lines.append("Instead of citing figures, describe usage patterns:")
+    lines.append("- High usage → 'strong engagement,' 'actively using the platform,' 'well-integrated into your workflow'")
+    lines.append("- Feature-specific usage → 'I notice your team is making good use of [feature],' 'particularly the alerts functionality'")
+    lines.append("- Alerts/monitoring → 'your proactive approach to monitoring legal developments'")
+    lines.append("")
+    lines.append("Examples:")
+    lines.append("❌ DON'T write: 'Your team made 2,839 document accesses and 1,331 searches'")
+    lines.append("✅ DO write: 'Your team has been actively engaged with the platform'")
+    lines.append("❌ DON'T write: 'You've set up 222 alerts'")
+    lines.append("✅ DO write: 'I'm pleased to see your firm is making good use of the alerts feature to stay ahead of legal developments'")
+    lines.append("")
+    lines.append("Remember: Metrics are for your context only. The client knows their own usage. Keep acknowledgments natural and non-intrusive.")
+    
+    return "\n".join(lines)
 
 def _qbr_brief(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     task = "Write a QBR summary email. Include provided metrics if any. Highlight wins and recommendations."
