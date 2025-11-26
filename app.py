@@ -74,9 +74,8 @@ with st.sidebar:
             "nps_helpful_pointer": st.session_state.get("nps_helpful_pointer"),
             "nps_internal_note": st.session_state.get("nps_internal_note"),
         },
-    }
 
-preset_bytes = export_preset_bytes(
+"preset_bytes" = export_preset_bytes(
     client_name=client_name,
     client_type=client_type,
     products_used=products_used,
@@ -87,6 +86,7 @@ preset_bytes = export_preset_bytes(
     primary_use_case=primary_use_case,
     key_metrics=extra_defaults,
 )
+
 
     st.download_button("💾 Export client preset (.json)", preset_bytes, file_name="client_preset.json", mime="application/json")
 
