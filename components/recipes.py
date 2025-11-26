@@ -131,7 +131,6 @@ LN_CONTEXT: Dict[str, Any] = {
 # Helper: base email prompt builder - Enhanced with more dynamic elements
 # -----------------------------
 
-
 def _base_email_prompt(scaffold: Dict[str, str], ctx: Dict[str, Any], body_instruction: str) -> str:
     s = scaffold
     # For convenience
@@ -249,7 +248,6 @@ Additional scenario guidance for the model:
 
     return main_prompt + "\n\n[ADDITIONAL_GUIDANCE]\n" + additional_guidance
 
-
 def _qbr_brief(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     body = """
 - Summarise the review period (e.g., last quarter, FY).
@@ -261,7 +259,6 @@ def _qbr_brief(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     ctx = dict(ctx)
     ctx["goal_text"] = "QBR Brief"
     return _base_email_prompt(scaffold, ctx, body)
-
 
 def _client_followup(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     body = """
@@ -275,7 +272,6 @@ def _client_followup(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     ctx["goal_text"] = "Client Follow-up"
     return _base_email_prompt(scaffold, ctx, body)
 
-
 def _proposal_rfp(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     body = """
 - Acknowledge receipt of the RFP / proposal request.
@@ -287,7 +283,6 @@ def _proposal_rfp(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     ctx = dict(ctx)
     ctx["goal_text"] = "Proposal / RFP Response"
     return _base_email_prompt(scaffold, ctx, body)
-
 
 def _upsell_cross_sell(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     body = """
@@ -301,7 +296,6 @@ def _upsell_cross_sell(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     ctx["goal_text"] = "Upsell / Cross-sell Outreach"
     return _base_email_prompt(scaffold, ctx, body)
 
-
 def _client_risk_alert(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     body = """
 - Summarise the risk trigger (declining usage, delayed renewal, negative feedback, etc.).
@@ -312,7 +306,6 @@ def _client_risk_alert(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     ctx = dict(ctx)
     ctx["goal_text"] = "Client Risk Alert"
     return _base_email_prompt(scaffold, ctx, body)
-
 
 def _client_snapshot(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     body = """
@@ -325,7 +318,6 @@ def _client_snapshot(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     ctx["goal_text"] = "Client Snapshot & Risk Signals"
     return _base_email_prompt(scaffold, ctx, body)
 
-
 def _objection_coach(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     body = """
 - Draft an email reply to a specific objection (price, usability, competitor, etc.).
@@ -336,7 +328,6 @@ def _objection_coach(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     ctx = dict(ctx)
     ctx["goal_text"] = "Objection Coach"
     return _base_email_prompt(scaffold, ctx, body)
-
 
 def _nps_engagement(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     prior = ctx.get("nps_previous_rating", "Passive (7–8)")
@@ -353,7 +344,6 @@ def _nps_engagement(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     ctx = dict(ctx)
     ctx["goal_text"] = "NPS Engagement"
     return _base_email_prompt(scaffold, ctx, body)
-
 
 def _nps_follow_up(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     rating = ctx.get("nps_previous_rating", "Promoter (9–10)")
