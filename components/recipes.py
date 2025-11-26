@@ -116,11 +116,6 @@ def _renewal_email(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     lines.append("")
     lines.append("Remember: Metrics are for your context only. The client knows their own usage. Keep acknowledgments natural and non-intrusive.")
     
-    # Quick win: Add empathy cue for low-usage scenarios
-    if "low_usage" in scenario:
-        lines.append("")
-        lines.append("EMPATHY NOTE: Acknowledge concerns empathetically without defensiveness, e.g., 'I want to ensure you're getting full value'.")
-    
     return "\n".join(lines)
 
 def _qbr_brief(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
