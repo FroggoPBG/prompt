@@ -236,15 +236,18 @@ def _renewal_email(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     ctx = dict(ctx)
     ctx["goal_text"] = "Renewal Email"
 
-    # Also embed your two “meta prompts” as guidance for the model
-    body += """
+    main_prompt = _base_email_prompt(scaffold, ctx, body)
+
+    # Separate the additional scenario guidance with a marker
+    additional_guidance = """
 Additional scenario guidance for the model:
 - If usage is low and pricing concerns exist, follow this style:
   "I'm an account manager at LexisNexis in Hong Kong reaching out to a law firm client about their upcoming subscription renewal. The client has previously expressed pricing concerns, and their usage data shows concerning patterns. Their usage data indicates low frequency, limited module utilisation, and low engagement. Write a professional, empathetic, consultative email that acknowledges this, explores root causes, offers to resize the package if needed, and positions LexisNexis as a partner who wants them to only pay for what is useful."
 - If usage is healthy but pricing is still sensitive, follow this style:
   "I'm an account manager at LexisNexis in Hong Kong reaching out to a law firm client about their upcoming subscription renewal. The client has previously expressed pricing concerns, so I need to be sensitive to cost while demonstrating value. Their usage shows healthy frequency, strong use of specific modules, and meaningful engagement. Write a professional, warm email that highlights concrete value from usage, invites a collaborative renewal discussion, and makes the client feel heard and valued."
 """
-    return _base_email_prompt(scaffold, ctx, body)
+
+    return main_prompt + "\n\n[ADDITIONAL_GUIDANCE]\n" + additional_guidance
 
 
 def _qbr_brief(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
