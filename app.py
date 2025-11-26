@@ -47,42 +47,37 @@ with col_out:
 # -------------------- Sidebar: global schema --------------------
 with st.sidebar:
     st.header("Client identity")
-    client_name = st.text_input("Client name", key="client_name", help="e.g., ABC Law Firm - Required for personalization")
+    client_name = st.text_input("Client name", key="client_name")
     client_type = st.selectbox(
         "Client type",
         LN_CONTEXT["client_types"],
         index=0,
         key="client_type",
-        help="Select the client's organization type"
     )
     region = st.selectbox(
         "Region / Country",
         LN_CONTEXT["regions"],
         index=0,
         key="region",
-        help="Impacts tone and localization"
     )
     practice_areas = st.multiselect(
         "Industry / practice area(s)",
         LN_CONTEXT["practice_areas"],
         key="practice_areas",
-        help="Select all that apply for tailored content"
     )
 
     st.header("CS / Sales context")
-    account_owner = st.text_input("Account owner / RM name", key="account_owner", help="Your name or the relationship manager's")
+    account_owner = st.text_input("Account owner / RM name", key="account_owner")
     relationship_stage = st.selectbox(
         "Relationship stage",
         LN_CONTEXT["stages"],
         index=1,
         key="relationship_stage",
-        help="Affects prompt strategy (e.g., renewal vs. onboarding)"
     )
     products_used = st.multiselect(
         "Primary LexisNexis products used",
         LN_CONTEXT["products"],
         key="products_used",
-        help="Select products for context-specific references"
     )
 
     primary_role = st.text_input(
@@ -100,7 +95,6 @@ with st.sidebar:
     usage_metrics = st.text_area(
         "Usage metrics (logins, searches, features, report)",
         key="usage_metrics",
-        help="e.g., 'high engagement, 222 alerts' - Used qualitatively in prompts"
     )
     time_saved = st.text_input(
         "Time saved / efficiency data (e.g., 'avg. 4 hours/week')",
@@ -109,7 +103,6 @@ with st.sidebar:
     nps_info = st.text_area(
         "NPS score / feedback theme (paste)",
         key="nps_info",
-        help="e.g., '6/10, usability issues' - Adapts tone"
     )
 
     key_metrics = []
@@ -121,8 +114,8 @@ with st.sidebar:
         key_metrics.append("NPS feedback pasted")
 
     st.header("Communication settings")
-    tone = st.selectbox("Tone", LN_CONTEXT["tones"], index=0, key="tone", help="Auto adapts to context if not set")
-    length = st.selectbox("Length preference", LN_CONTEXT["lengths"], index=2, key="length", help="Controls email verbosity")
+    tone = st.selectbox("Tone", LN_CONTEXT["tones"], index=0, key="tone")
+    length = st.selectbox("Length preference", LN_CONTEXT["lengths"], index=2, key="length")
     include_highlights = st.checkbox(
         "Auto-include product highlights (region-aware)",
         value=True,
@@ -159,13 +152,9 @@ with st.sidebar:
 left, right = st.columns([2, 3])
 
 with left:
-    # Quick win: Add search filter for recipes
-    recipe_search = st.text_input("Search recipes", help="Filter by name")
-    all_recipes = list(PROMPT_RECIPES.keys())
-    filtered_recipes = [r for r in all_recipes if recipe_search.lower() in r.lower()]
     recipe = st.selectbox(
         "Function / Use-case",
-        filtered_recipes,
+        list(PROMPT_RECIPES.keys()),
         index=0,
         key="recipe",
     )
@@ -464,17 +453,11 @@ for item in [
 
 # -------------------- Generate --------------------
 if st.button("✨ Generate Prompt"):
-    # Quick win: Enhanced validation
-    errors = []
+    # Enhanced: Basic validation before generation
     if not client_name:
-        errors.append("Client name is required.")
-    if not recipe:
-        errors.append("Select a function/use-case.")
-    if not region:
-        errors.append("Region is recommended for localization.")
-    if errors:
-        for err in errors:
-            st.warning(err)
+        st.warning("Please enter a client name to generate a prompt.")
+    elif not recipe:
+        st.warning("Please select a function/use-case.")
     else:
         ctx = dict(
             # Global schema
@@ -515,7 +498,7 @@ if st.button("✨ Generate Prompt"):
             main_prompt = final_prompt
             additional_guidance = ""
 
-        shaped = shape_output(main_prompt, output_format, client_name, recipe)
+        shaped = shape_output(final_prompt, output_format, client_name, recipe)
 
         st.subheader("📝 Copy-ready Prompt for AI tool")
         st.code(shaped, language="markdown")
