@@ -86,7 +86,7 @@ with st.sidebar:
     primary_use_case=primary_use_case,
     key_metrics=extra_defaults,
 )
-
+}
 
     st.download_button("💾 Export client preset (.json)", preset_bytes, file_name="client_preset.json", mime="application/json")
 
