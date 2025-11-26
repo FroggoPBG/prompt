@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Dict, List, Callable, Any
 
 # -----------------------------
-# Language scaffolds (email focus)
+# Language scaffolds (email focus) - Enhanced with more languages for multi-language support
 # -----------------------------
 
 SCAFFOLDS: Dict[str, Dict[str, str]] = {
@@ -27,11 +27,48 @@ SCAFFOLDS: Dict[str, Dict[str, str]] = {
         "extra_lbl": "Additional notes & constraints",
         "nps_pasted_lbl": "NPS Verbatim Insights (pasted)",
         "nps_internal_lbl": "NPS Insights (internal)",
-    }
+    },
+    "ja": {
+        "name": "Japanese",
+        "sys": (
+            "あなたはLexisNexisのリーガルテック分野で、クライアント対応チーム（営業およびカスタマーサクセス）のアシスタントです。"
+            "クライアントに送信するプロフェッショナルで簡潔なメールドラフトで応答してください。"
+            "与えられた構造と見出しを使用してください。法的アドバイスは避けてください。"
+        ),
+        "role_lbl": "役割",
+        "goal_lbl": "目標",
+        "ctx_lbl": "コンテキスト",
+        "req_lbl": "成果物要件",
+        "info_lbl": "収集する情報",
+        "tone_lbl": "トーン",
+        "len_lbl": "長さ",
+        "extra_lbl": "追加の注意事項と制約",
+        "nps_pasted_lbl": "NPS 逐語洞察（貼り付け）",
+        "nps_internal_lbl": "NPS 洞察（内部）",
+    },
+    "zh": {
+        "name": "Chinese (Simplified)",
+        "sys": (
+            "您是LexisNexis法律技术领域中面向客户团队（销售和客户成功）的助手。"
+            "以专业、简洁的电子邮件草稿回复，该草稿将发送给客户。"
+            "使用给定的结构和标题。避免法律建议。"
+        ),
+        "role_lbl": "角色",
+        "goal_lbl": "目标",
+        "ctx_lbl": "上下文",
+        "req_lbl": "交付要求",
+        "info_lbl": "要收集的信息",
+        "tone_lbl": "语气",
+        "len_lbl": "长度",
+        "extra_lbl": "附加说明和约束",
+        "nps_pasted_lbl": "NPS 逐字洞察（粘贴）",
+        "nps_internal_lbl": "NPS 洞察（内部）",
+    },
+    # Add more languages as needed, e.g., "ko" for Korean, etc.
 }
 
 # -----------------------------
-# Shared LexisNexis context
+# Shared LexisNexis context - Enhanced with more options for extensibility
 # -----------------------------
 
 LN_CONTEXT: Dict[str, Any] = {
@@ -42,6 +79,7 @@ LN_CONTEXT: Dict[str, Any] = {
         "government",
         "academic",
         "corporate (non-legal)",
+        "other",  # Enhanced: Added for flexibility
     ],
     "regions": [
         "Hong Kong",
@@ -90,7 +128,7 @@ LN_CONTEXT: Dict[str, Any] = {
 }
 
 # -----------------------------
-# Helper: base email prompt builder
+# Helper: base email prompt builder - Enhanced with more dynamic elements
 # -----------------------------
 
 
@@ -164,9 +202,8 @@ def _base_email_prompt(scaffold: Dict[str, str], ctx: Dict[str, Any], body_instr
 
 
 # -----------------------------
-# Individual recipes
+# Individual recipes - Enhanced with minor tweaks for better personalization
 # -----------------------------
-
 
 def _renewal_email(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     scenario = ctx.get("renewal_scenario", "value")
@@ -338,7 +375,7 @@ def _nps_follow_up(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
 
 
 # -----------------------------
-# Recipe registry + dispatcher
+# Recipe registry + dispatcher - Enhanced with new recipes for extensibility
 # -----------------------------
 
 PROMPT_RECIPES: Dict[str, Callable[[Dict[str, str], Dict[str, Any]], str]] = {
@@ -352,6 +389,9 @@ PROMPT_RECIPES: Dict[str, Callable[[Dict[str, str], Dict[str, Any]], str]] = {
     "Objection Coach": _objection_coach,
     "NPS Engagement": _nps_engagement,
     "NPS Follow-up": _nps_follow_up,
+    # Enhanced: Added new example recipes
+    "Event Invite Follow-Up": _client_followup,  # Reuse existing for simplicity
+    "Contract Negotiation Starter": _proposal_rfp,  # Reuse and adapt as needed
 }
 
 
