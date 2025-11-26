@@ -487,15 +487,32 @@ if st.button("✨ Generate Prompt"):
         ctx.update(guided)
 
         final_prompt = fill_recipe(recipe, lang_code, ctx)
-        shaped = shape_output(final_prompt, output_format, client_name, recipe)
+
+        # Split the prompt if it contains the additional guidance marker
+        marker = "[ADDITIONAL_GUIDANCE]"
+        if marker in final_prompt:
+            main_prompt, additional_guidance = final_prompt.split(marker, 1)
+            main_prompt = main_prompt.strip()
+            additional_guidance = additional_guidance.strip()
+        else:
+            main_prompt = final_prompt
+            additional_guidance = ""
+
+        shaped = shape_output(main_prompt, output_format, client_name, recipe)
 
         st.subheader("📝 Copy-ready Prompt for AI tool")
         st.code(shaped, language="markdown")
+
+        if additional_guidance:
+            st.subheader("📘 Additional Scenario Guidance for Model (Optional - Use for Refinement)")
+            st.code(additional_guidance, language="markdown")
+            st.caption("This guidance is meta-instruction for the AI model. You can append it to the main prompt if needed, but it's separated to avoid confusion in direct copying.")
 
         fname = (
             f"ln_prompt_{recipe.replace('/','_').replace(' ','_')}_"
             f"{lang_code}_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}.txt"
         )
+        # Download only the main shaped prompt
         st.download_button(
             "📥 Download (.txt)",
             shaped.replace("{today}", str(date.today())),
