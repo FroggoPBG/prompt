@@ -127,7 +127,13 @@ def _objection_coach(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
     return _base_email_prompt(scaffold, ctx, task)
 
 def _nps_engagement(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
-    task = "Write an NPS engagement email. Include survey link if provided. Adapt to previous rating."
+    nps_previous_rating = ctx.get("nps_previous_rating", "n/a")
+    nps_survey_link = ctx.get("nps_survey_link", "n/a")
+    task = f"Write an NPS engagement email that will be sent BEFORE an upcoming NPS survey. The purpose is to: " \
+           f"Prepare the client that they'll receive a new NPS survey soon (this week if timing specified). " \
+           f"Encourage them to complete it. Request detailed/specific feedback to help us improve. " \
+           f"Acknowledge their previous NPS rating and show we value their input. " \
+           f"Include survey link only if provided. Adapt tone based on previous NPS rating: {nps_previous_rating}."
     return _base_email_prompt(scaffold, ctx, task)
 
 def _nps_follow_up(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
