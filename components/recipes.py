@@ -5,6 +5,74 @@ from __future__ import annotations
 from typing import Dict, List, Callable, Any
 
 # -----------------------------
+# Anti-Hallucination Mechanisms
+# -----------------------------
+
+ANTI_HALLUCINATION_PREAMBLE = """
+CRITICAL INSTRUCTION - READ FIRST:
+You will be given a structured template with many requirements.
+Some requirements will be IMPOSSIBLE to fulfill with the provided data.
+
+Your priority hierarchy is:
+1. ACCURACY: Never fabricate data, names, timelines, or details
+2. HONESTY: Acknowledge when you don't have information
+3. HELPFULNESS: Commit to finding information you don't have
+4. COMPLETENESS: Fill template sections only when data exists
+
+When a template requirement cannot be met with provided data:
+- Do NOT generate plausible-sounding fabrications
+- DO use general language or acknowledge the gap
+- DO offer to follow up with specifics
+
+FABRICATION EXAMPLES (NEVER DO THIS):
+❌ "I've escalated this to Sarah Chen in Technical Support"
+❌ "We'll have this resolved within 24-48 hours"
+❌ "Our Q1 2026 roadmap includes UI improvements"
+❌ "Contact michelle.wong@company.com for immediate help"
+
+ACCEPTABLE ALTERNATIVES (DO THIS):
+✓ "I'm escalating this to our technical team"
+✓ "I'll get back to you with a timeline once I hear from the team"
+✓ "I'll find out what our plans are for UI improvements"
+✓ "I'll connect you with the right support contact"
+
+NEVER FABRICATE (even if template suggests it):
+- Employee names or contact details
+- Specific dates or timelines not provided
+- Product roadmap items or release dates
+- Usage statistics or metrics
+- Prior conversations or meeting references
+- Technical details about fixes or implementations
+
+If template asks for these and they're not provided, substitute with:
+- Role descriptions instead of names ("our technical team" not "John Smith")
+- Commitment to follow-up instead of dates ("I'll get back to you" not "within 48 hours")
+- General acknowledgment instead of specifics ("we're working on improvements" not "Q1 release")
+"""
+
+def build_conditional_instruction(requirement: str, data_field: str) -> str:
+    """
+    Converts implicit conditionals to explicit ones with anti-hallucination guards.
+    """
+    return f"""
+IF {data_field} is explicitly provided in the CLIENT CONTEXT or USAGE DATA sections:
+    {requirement}
+    Use ONLY the exact provided information - do not embellish or expand.
+
+ELSE:
+    Do NOT fabricate or imply any {data_field}.
+    Instead:
+    - Acknowledge the gap honestly
+    - Commit to obtaining the information
+    - Use general language that maintains professionalism
+
+Examples of correct handling when data missing:
+✓ "I'm investigating this and will follow up with a specific timeline soon."
+✓ "I'll connect you with the appropriate team member for this."
+✗ Do NOT: Invent timelines, names, or details to fill the gap.
+"""
+
+# -----------------------------
 # Language scaffolds (email focus) - Enhanced with strategic prompt engineering
 # -----------------------------
 
@@ -169,7 +237,7 @@ LN_CONTEXT: Dict[str, Any] = {
 }
 
 # -----------------------------
-# Helper: base email prompt builder - Enhanced with structured data sections
+# Helper: base email prompt builder - Enhanced with structured data sections and anti-hallucination
 # -----------------------------
 
 
@@ -205,6 +273,10 @@ def _base_email_prompt(scaffold: Dict[str, str], ctx: Dict[str, Any], body_instr
     pricing_notes = ctx.get("pricing_notes") or ""
 
     lines: List[str] = []
+
+    # Anti-hallucination preamble first
+    lines.append(ANTI_HALLUCINATION_PREAMBLE)
+    lines.append("")
 
     # System prompt
     lines.append("=== SYSTEM INSTRUCTIONS ===")
