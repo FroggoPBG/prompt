@@ -1,21 +1,21 @@
-# ------------------------------------------------------------
-# Core prompt scaffolds, recipes, and builders used by the UI.
-# Safe to use without any external APIs. Python 3.9+ compatible.
-# ------------------------------------------------------------
-
+# components/recipes.py
+# Core language scaffolds, context, and prompt recipes.
 from __future__ import annotations
-from typing import Dict, List
 
-# ------------------------------
+from typing import Dict, List, Callable, Any
+
+# -----------------------------
 # Language scaffolds (email focus)
-# ------------------------------
+# -----------------------------
+
 SCAFFOLDS: Dict[str, Dict[str, str]] = {
     "en": {
         "name": "English",
         "sys": (
-            "You are an assistant for client-facing communications at LexisNexis. "
-            "Respond with a professional, concise email to be sent to a client. "
-            "Use the structure and headings (if any) the user asks for, but keep it short, clear, and actionable."
+            "You are an assistant for client-facing teams (Sales and Customer Success) "
+            "in the legal-tech domain at LexisNexis. "
+            "Respond with a professional, concise email draft to be sent to a client. "
+            "Use the structure and headings given. Avoid legal advice."
         ),
         "role_lbl": "ROLE",
         "goal_lbl": "GOAL",
@@ -30,229 +30,353 @@ SCAFFOLDS: Dict[str, Dict[str, str]] = {
     }
 }
 
-# ------------------------------
-# Global, reusable context values
-# ------------------------------
-LN_CONTEXT = {
-    "outputs": ["plain prompt", "email draft", "bulleted outline"],
-    "client_types": ["in-house legal", "law firm", "gov/academic", "corporate"],
+# -----------------------------
+# Shared LexisNexis context
+# -----------------------------
+
+LN_CONTEXT: Dict[str, Any] = {
+    "outputs": ["plain prompt", "email-only output"],
+    "client_types": [
+        "in-house legal",
+        "law firm",
+        "government",
+        "academic",
+        "corporate (non-legal)",
+    ],
     "regions": [
-        "Hong Kong", "Singapore", "Japan", "Korea",
-        "Australia", "New Zealand", "India", "Other"
+        "Hong Kong",
+        "Singapore",
+        "Japan",
+        "South Korea",
+        "Australia / NZ",
+        "Other APAC",
+        "Global",
     ],
     "practice_areas": [
-        "financial services", "commercial", "employment", "IP",
-        "dispute resolution", "personal injury / tort", "regulatory", "tax", "other"
+        "Financial services",
+        "Litigation / disputes",
+        "Corporate / commercial",
+        "Regulatory / compliance",
+        "Intellectual property",
+        "Employment",
+        "Tax",
+        "Other",
     ],
-    "products": ["Lexis+", "Practical Guidance", "Lexis Advance", "News / Dossiers"],
-    "stages": ["Prospect", "Onboarding", "Adoption", "Renewal", "At-risk"],
-    "tones": ["warm", "neutral", "consultative", "apologetic", "formal"],
-    "lengths": ["short", "medium", "long"],
+    "products": [
+        "Lexis+",
+        "Lexis Advance",
+        "Practical Guidance",
+        "Lexis Draft / drafting tools",
+        "News / Company information",
+        "NPS / analytics dashboards",
+    ],
+    "stages": [
+        "Prospect / discovery",
+        "Onboarding",
+        "Adoption",
+        "Renewal",
+        "Expansion / upsell",
+        "At-risk / renewal rescue",
+    ],
+    "tones": [
+        "auto (based on context)",
+        "warm",
+        "formal",
+        "consultative",
+        "apologetic",
+        "direct",
+    ],
+    "lengths": ["very short", "short", "medium", "long"],
 }
 
-# ------------------------------
-# Helper: render a short header line (kept minimal)
-# ------------------------------
-def _header_line(title: str) -> str:
-    return f"{title}\n" + "-" * len(title)
+# -----------------------------
+# Helper: base email prompt builder
+# -----------------------------
 
-# ------------------------------
-# Email body builders per recipe
-# ------------------------------
-def _build_renewal_low_usage(ctx: dict) -> str:
-    """Renewal email acknowledging low usage; offers right-sizing/help."""
-    client = ctx.get("client_name") or "your team"
-    renewal = ctx.get("renewal_date") or "the upcoming term"
-    usage_bullets = []
-    if ctx.get("usage_low_freq"):
-        usage_bullets.append(ctx["usage_low_freq"])
-    if ctx.get("usage_limited_modules"):
-        usage_bullets.append(ctx["usage_limited_modules"])
-    if ctx.get("usage_low_engagement"):
-        usage_bullets.append(ctx["usage_low_engagement"])
 
-    usage_txt = ""
-    if usage_bullets:
-        usage_txt = "\n".join([f"• {b}" for b in usage_bullets])
+def _base_email_prompt(scaffold: Dict[str, str], ctx: Dict[str, Any], body_instruction: str) -> str:
+    s = scaffold
+    # For convenience
+    client_name = ctx.get("client_name") or "client"
+    client_type = ctx.get("client_type") or "n/a"
+    region = ctx.get("region") or "n/a"
+    practice = ", ".join(ctx.get("practice_areas") or []) or "n/a"
+    products = ", ".join(ctx.get("products_used") or []) or "n/a"
+    stage = ctx.get("relationship_stage") or "n/a"
+    tone = ctx.get("tone") or "auto"
+    length = ctx.get("length") or "medium"
 
-    body = f"""Dear {client},
+    ex_input = ctx.get("ex_input") or ""
+    ex_output = ctx.get("ex_output") or ""
 
-I’m reaching out ahead of {renewal} to make sure the subscription still fits your day-to-day needs.
+    nps_verbatim = ctx.get("nps_info") or ""
+    internal_nps = ctx.get("nps_internal") or ""
 
-Looking at recent activity, I noticed lower usage than expected and want to be sure you’re getting full value. Here’s a quick view of the pattern we’re seeing:
-{usage_txt or "• Lower than typical sign-ins and limited feature use."}
+    lines: List[str] = []
 
-Rather than push a like-for-like renewal, I’d love to:
-• Understand whether this is a training issue, a content fit issue, or simply changing team needs
-• Walk through how different users are working today, and
-• If it’s the right call, right-size the subscription so you’re only paying for what’s useful
+    lines.append("[system]")
+    lines.append(s["sys"])
+    lines.append("")
+    lines.append("[user]")
+    lines.append(f"**{s['role_lbl']}**: Client-facing professional (Sales / Customer Success)")
+    lines.append(f"**{s['goal_lbl']}**: {ctx.get('goal_text','Client communication')}.")
+    lines.append(
+        f"**{s['ctx_lbl']}**: Client: {client_name}; Type: {client_type}; "
+        f"Region: {region}; Practice: {practice}; Products: {products}; Stage: {stage}."
+    )
+    lines.append(f"**{s['req_lbl']}**:")
+    lines.extend(body_instruction.strip().splitlines())
+    lines.append(f"**{s['info_lbl']}**:")
+    lines.append("- Client name, type, region, practice area(s)")
+    lines.append("- Products in use; relationship stage")
+    lines.append("- Usage metrics / adoption; time saved / ROI evidence")
+    lines.append("- NPS score / theme (if relevant)")
+    lines.append("- Contract timing (if renewal) and any pricing notes")
+    lines.append("- Preferred language and tone")
+    lines.append(f"**{s['tone_lbl']}**: {tone}")
+    lines.append(f"**{s['len_lbl']}**: {length}")
+    lines.append("")
+    lines.append(f"{s['extra_lbl']}:")
+    lines.append("- Respect confidentiality; avoid legal advice.")
+    lines.append("- Be precise; prefer verifiable statements.")
+    lines.append("- Link outcomes/ROI to metrics where possible.")
+    lines.append("- Suggest next steps with owners & dates.")
+    if nps_verbatim:
+        lines.append("")
+        lines.append(f"**{s['nps_pasted_lbl']}**:")
+        lines.append(nps_verbatim.strip())
+    if internal_nps or ctx.get("nps_internal_summary"):
+        lines.append("")
+        lines.append(f"**{s['nps_internal_lbl']}**:")
+        lines.append((internal_nps or ctx.get("nps_internal_summary", "")).strip())
 
-Would you be open to a short call to review options? If it makes sense to reduce scope and save costs, I’ll recommend that path. My goal is to keep the setup aligned to your actual work and budget.
+    if ex_input or ex_output:
+        lines.append("")
+        lines.append("Few-shot examples (optional):")
+        if ex_input:
+            lines.append(f"- Example input: {ex_input}")
+        if ex_output:
+            lines.append(f"- Example output: {ex_output}")
 
-Best regards,
-{ctx.get("account_owner") or "Account Manager"}
-LexisNexis
+    lines.append("")
+    lines.append("Draft the email now.")
+    return "\n".join(lines)
+
+
+# -----------------------------
+# Individual recipes
+# -----------------------------
+
+
+def _renewal_email(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
+    scenario = ctx.get("renewal_scenario", "value")
+    if scenario == "low_usage_pricing":
+        body = """
+- Mention upcoming renewal date and contract basics.
+- Gently acknowledge low or declining usage patterns in a non-accusatory tone.
+- Express concern that the client may not be getting full value from the current subscription.
+- Offer to explore whether the issue is training, content fit, or changing firm needs.
+- Propose a consultative call to:
+  - review usage together,
+  - identify gaps, and
+  - consider resizing / simplifying the package so they only pay for what they truly use.
+- Emphasise partnership: your goal is to fix the setup, not to push an unchanged renewal.
+- Keep tone empathetic, calm, and focused on solutions.
 """
-    return body
-
-
-def _build_renewal_value_evidence(ctx: dict) -> str:
-    """Renewal email highlighting concrete usage value; collaborative tone."""
-    client = ctx.get("client_name") or "your team"
-    renewal = ctx.get("renewal_date") or "the upcoming term"
-
-    usage_points = []
-    if ctx.get("usage_freq"):
-        usage_points.append(f"• Access frequency: {ctx['usage_freq']}")
-    if ctx.get("usage_modules"):
-        usage_points.append(f"• Most-used modules: {ctx['usage_modules']}")
-    if ctx.get("usage_other"):
-        usage_points.append(f"• Engagement: {ctx['usage_other']}")
-
-    usage_txt = "\n".join(usage_points) if usage_points else "• Regular use across key modules."
-
-    body = f"""Dear {client},
-
-Ahead of {renewal}, I wanted to check in on how the team is using LexisNexis and ensure we align the renewal to your current matters.
-
-Here are a few highlights from your recent activity:
-{usage_txt}
-
-I’d value a brief conversation to confirm what’s working well and where we can tune things for the next term—whether that’s optimizing seats, surfacing the right content, or enabling features your team would benefit from.
-
-Would you have 15 minutes this week or next to walk through priorities? I’ll come prepared with options so we keep this collaborative and outcome-focused.
-
-Warm regards,
-{ctx.get("account_owner") or "Account Manager"}
-LexisNexis
-"""
-    return body
-
-
-def _build_nps_engagement(ctx: dict) -> str:
-    """General NPS engagement (pre-survey) — tone varies by prior score."""
-    prior = (ctx.get("nps_previous_rating") or "").lower()
-    client = ctx.get("client_name") or "there"
-
-    if "promoter" in prior:
-        opening = ("Thank you again for your previous high rating—your support helps us keep the bar high. "
-                   "We’d value your perspective once more.")
-        subject = "Appreciate your insights — quick 2-min survey"
-        tone_hint = "warm, appreciative, collaborative"
-    elif "passive" in prior:
-        opening = ("We’re glad things are going well, and we’re committed to moving from “good” to “great.” "
-                   "Your candid input helps us focus on what matters.")
-        subject = "Help us go from good to great — 2-min check-in"
-        tone_hint = "humble, improvement-oriented"
     else:
-        opening = ("We’ve been working to improve and would genuinely value your honest perspective. "
-                   "If things haven’t changed, we want to know; if they have, we’d love to learn where.")
-        subject = "We’re listening — quick 2-min check-in"
-        tone_hint = "sincere, non-defensive, respectful"
-
-    link = ctx.get("nps_survey_link") or "[insert survey link]"
-
-    body = f"""Subject: {subject}
-
-Hi {client},
-
-{opening}
-The survey takes under 2 minutes, and we read every response personally:
-
-{link}
-
-Thanks in advance for helping us serve you better.
-({tone_hint} tone)
-
-Best,
-{ctx.get("account_owner") or "Customer Success"}
-LexisNexis
+        body = """
+- Mention upcoming renewal date and thank them for their partnership.
+- Highlight specific usage patterns (frequency, key modules, engagement indicators) that show value.
+- Connect usage back to their practice area or matter types where possible.
+- Acknowledge they will be reviewing budget and priorities.
+- Invite a call to:
+  - confirm what is working well,
+  - identify new needs, and
+  - ensure the package is aligned with their 2025–2026 goals.
+- Maintain a warm, relationship-focused tone.
 """
-    return body
 
+    ctx = dict(ctx)
+    ctx["goal_text"] = "Renewal Email"
 
-def _build_nps_follow_up(ctx: dict) -> str:
-    """Follow-up email tailored to the client’s NPS rating and verbatim comment."""
-    client = ctx.get("client_name") or "there"
-    rating = ctx.get("nps_previous_rating") or "recent feedback"
-    comment_type = ctx.get("nps_comment_type") or "comment"
-    verbatim = ctx.get("nps_verbatim") or ""
-    pointer = ctx.get("nps_helpful_pointer") or ""
-    internal = ctx.get("nps_internal_note") or ""
-    closing_cta = ctx.get("cta") or "Would you be open to a brief 10–15 minute call to discuss?"
-
-    pre = ""
-    if "promoter" in rating.lower():
-        pre = "Thank you for the positive rating—your feedback is incredibly helpful."
-    elif "passive" in rating.lower():
-        pre = "Thanks for sharing your perspective. We’re focused on moving from good to great."
-    else:
-        pre = "Thanks for your candid feedback—we take it seriously and want to address it."
-
-    pointer_line = f"\nHelpful note: {pointer}\n" if pointer else ""
-    internal_line = f"\n(Internal status: {internal})\n" if internal else ""
-
-    body = f"""Hi {client},
-
-{pre}
-I noted your {comment_type.lower()}:
-“{verbatim}”
-
-{pointer_line}We’d love to make sure you’re fully covered and supported. {closing_cta}
-
-Please share a couple of times that work, or reply here with details—we’ll take it from there.{internal_line}
-
-Best regards,
-{ctx.get("account_owner") or "Customer Success"}
-LexisNexis
+    # Also embed your two “meta prompts” as guidance for the model
+    body += """
+Additional scenario guidance for the model:
+- If usage is low and pricing concerns exist, follow this style:
+  "I'm an account manager at LexisNexis in Hong Kong reaching out to a law firm client about their upcoming subscription renewal. The client has previously expressed pricing concerns, and their usage data shows concerning patterns. Their usage data indicates low frequency, limited module utilisation, and low engagement. Write a professional, empathetic, consultative email that acknowledges this, explores root causes, offers to resize the package if needed, and positions LexisNexis as a partner who wants them to only pay for what is useful."
+- If usage is healthy but pricing is still sensitive, follow this style:
+  "I'm an account manager at LexisNexis in Hong Kong reaching out to a law firm client about their upcoming subscription renewal. The client has previously expressed pricing concerns, so I need to be sensitive to cost while demonstrating value. Their usage shows healthy frequency, strong use of specific modules, and meaningful engagement. Write a professional, warm email that highlights concrete value from usage, invites a collaborative renewal discussion, and makes the client feel heard and valued."
 """
-    return body
+    return _base_email_prompt(scaffold, ctx, body)
 
 
-# ------------------------------
-# Registry of recipes
-# ------------------------------
-PROMPT_RECIPES: Dict[str, Dict[str, str]] = {
-    "Renewal: Low Usage / Right-size": {
-        "desc": "Acknowledges low usage; offers training/right-sizing with cost sensitivity.",
-        "builder": "renewal_low_usage",
-    },
-    "Renewal: Value Evidence": {
-        "desc": "Uses concrete usage patterns as value proof; collaborative tone.",
-        "builder": "renewal_value_evidence",
-    },
-    "NPS Engagement": {
-        "desc": "Survey engagement note; tone adapts to prior score.",
-        "builder": "nps_engagement",
-    },
-    "NPS Follow-up": {
-        "desc": "Follow-up on specific NPS verbatim (promoter, passive, detractor).",
-        "builder": "nps_follow_up",
-    },
+def _qbr_brief(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
+    body = """
+- Summarise the review period (e.g., last quarter, FY).
+- Provide a brief client snapshot: products in use, main users/teams, key goals.
+- Highlight 3–5 usage / outcome headlines (e.g., time saved, matters supported).
+- Call out any underused features or modules with potential impact.
+- Suggest 2–3 recommendations and next steps with owners and timelines.
+"""
+    ctx = dict(ctx)
+    ctx["goal_text"] = "QBR Brief"
+    return _base_email_prompt(scaffold, ctx, body)
+
+
+def _client_followup(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
+    body = """
+- Reference the last meeting date and 1–2 key topics discussed.
+- Recap any actions you committed to and their status.
+- Provide links or resources promised (e.g., training, content, case studies).
+- Ask 1–2 specific follow-up questions.
+- Close with a clear, polite CTA (scheduling next call, confirming decisions, etc.).
+"""
+    ctx = dict(ctx)
+    ctx["goal_text"] = "Client Follow-up"
+    return _base_email_prompt(scaffold, ctx, body)
+
+
+def _proposal_rfp(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
+    body = """
+- Acknowledge receipt of the RFP / proposal request.
+- Briefly restate the client's objectives in your own words.
+- Map LexisNexis capabilities to 3–5 key requirements.
+- Highlight differentiators and relevant regional / product fit.
+- Offer a clear next step (e.g., workshop, Q&A session, timeline confirmation).
+"""
+    ctx = dict(ctx)
+    ctx["goal_text"] = "Proposal / RFP Response"
+    return _base_email_prompt(scaffold, ctx, body)
+
+
+def _upsell_cross_sell(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
+    body = """
+- Start from existing value: how current products support their work.
+- Introduce 1–2 additional modules or products with clear linkage to their practice.
+- Reference any NPS / feedback themes or usage gaps that support the upsell story.
+- Suggest specific use cases, not generic benefits.
+- Offer a low-friction next step (short demo, pilot, or trial).
+"""
+    ctx = dict(ctx)
+    ctx["goal_text"] = "Upsell / Cross-sell Outreach"
+    return _base_email_prompt(scaffold, ctx, body)
+
+
+def _client_risk_alert(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
+    body = """
+- Summarise the risk trigger (declining usage, delayed renewal, negative feedback, etc.).
+- Draft an email that calmly acknowledges the situation without sounding defensive.
+- Offer a concrete plan: training, check-in cadence, or configuration review.
+- Emphasise partnership and willingness to adapt.
+"""
+    ctx = dict(ctx)
+    ctx["goal_text"] = "Client Risk Alert"
+    return _base_email_prompt(scaffold, ctx, body)
+
+
+def _client_snapshot(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
+    body = """
+- Draft an internal-facing summary email that could be reused with the client.
+- Include client profile, key contacts, segments, products in use, and regions.
+- Summarise usage trends, NPS signals, and key risks/opportunities.
+- Keep the tone factual and concise.
+"""
+    ctx = dict(ctx)
+    ctx["goal_text"] = "Client Snapshot & Risk Signals"
+    return _base_email_prompt(scaffold, ctx, body)
+
+
+def _objection_coach(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
+    body = """
+- Draft an email reply to a specific objection (price, usability, competitor, etc.).
+- Acknowledge the concern sincerely.
+- Provide 2–3 tailored points addressing the objection with evidence where possible.
+- Offer a next step (e.g., targeted demo, training session, or alternative configuration).
+"""
+    ctx = dict(ctx)
+    ctx["goal_text"] = "Objection Coach"
+    return _base_email_prompt(scaffold, ctx, body)
+
+
+def _nps_engagement(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
+    prior = ctx.get("nps_previous_rating", "Passive (7–8)")
+    prior_label = prior.split()[0]
+
+    body = f"""
+- Draft a short NPS engagement email that adapts tone based on previous rating: {prior_label}.
+- Promoters (9–10): warm, appreciative, collaborative; emphasise partnership and invite ideas.
+- Passives (7–8): humble, improvement-oriented; ask what would make the experience 'great'.
+- Detractors (0–6): sincere, non-defensive, respectful; acknowledge issues and invite candid feedback.
+- Briefly state why feedback matters now and how it will be used.
+- Include the survey link / CTA from the context.
+"""
+    ctx = dict(ctx)
+    ctx["goal_text"] = "NPS Engagement"
+    return _base_email_prompt(scaffold, ctx, body)
+
+
+def _nps_follow_up(scaffold: Dict[str, str], ctx: Dict[str, Any]) -> str:
+    rating = ctx.get("nps_previous_rating", "Promoter (9–10)")
+    comment_type = ctx.get("nps_comment_type", "Feature request")
+    verbatim = ctx.get("nps_followup_comment", "")
+
+    body = f"""
+- Draft a concise NPS follow-up email tailored to:
+  - Previous NPS rating: {rating}
+  - Comment type: {comment_type}
+- Open by thanking them and referencing their exact comment (quote or brief paraphrase).
+- For promoters: appreciative, partnership-focused, offer next best step (tip, link, or quick call).
+- For passives: curious, improvement-oriented, ask 1–2 focused questions.
+- For detractors: apologetic but not defensive, reference actions taken or escalation to the right team.
+- If relevant, include a helpful pointer (e.g., where to find a feature or resource).
+- Invite them to reply with more detail or to jump on a short call.
+- Use the pasted comment verbatim as input: \"{verbatim[:120]}...\"
+"""
+    ctx = dict(ctx)
+    ctx["goal_text"] = "NPS Follow-up"
+    return _base_email_prompt(scaffold, ctx, body)
+
+
+# -----------------------------
+# Recipe registry + dispatcher
+# -----------------------------
+
+PROMPT_RECIPES: Dict[str, Callable[[Dict[str, str], Dict[str, Any]], str]] = {
+    "Renewal Email": _renewal_email,
+    "QBR Brief": _qbr_brief,
+    "Client Follow-up": _client_followup,
+    "Proposal / RFP Response": _proposal_rfp,
+    "Upsell / Cross-sell Outreach": _upsell_cross_sell,
+    "Client Risk Alert": _client_risk_alert,
+    "Client Snapshot & Risk Signals": _client_snapshot,
+    "Objection Coach": _objection_coach,
+    "NPS Engagement": _nps_engagement,
+    "NPS Follow-up": _nps_follow_up,
 }
 
 
-# ------------------------------
-# Public API: fill recipe & shape output
-# ------------------------------
-def fill_recipe(recipe_name: str, lang_code: str, ctx: dict) -> str:
-    builder_key = PROMPT_RECIPES.get(recipe_name, {}).get("builder", "")
-    if builder_key == "renewal_low_usage":
-        return _build_renewal_low_usage(ctx)
-    if builder_key == "renewal_value_evidence":
-        return _build_renewal_value_evidence(ctx)
-    if builder_key == "nps_engagement":
-        return _build_nps_engagement(ctx)
-    if builder_key == "nps_follow_up":
-        return _build_nps_follow_up(ctx)
-    # Fallback
-    return "No builder found for the selected function."
+def fill_recipe(recipe_name: str, lang_code: str, ctx: Dict[str, Any]) -> str:
+    scaffold = SCAFFOLDS.get(lang_code, SCAFFOLDS["en"])
+    recipe_fn = PROMPT_RECIPES.get(recipe_name)
+    if not recipe_fn:
+        raise ValueError(f"Unknown recipe: {recipe_name}")
+    return recipe_fn(scaffold, ctx)
 
 
-def shape_output(text: str, output_target: str, client_name: str, recipe_name: str) -> str:
-    if output_target == "bulleted outline":
-        lines = [l.strip() for l in text.splitlines() if l.strip()]
-        bullets = "\n".join([f"- {l}" for l in lines])
-        return bullets
-    # For "email draft" or "plain prompt" we just return the text
-    return text
+def shape_output(
+    prompt_text: str,
+    output_target: str,
+    client_name: str,
+    recipe_name: str,
+) -> str:
+    """
+    For now we keep it simple:
+    - 'plain prompt' → unchanged
+    - 'email-only output' → hint to the model to output only the email body
+    """
+    if output_target == "email-only output":
+        return (
+            prompt_text
+            + "\n\n[assistant]\nPlease output only the final email body, without repeating the instructions."
+        )
+    return prompt_text
