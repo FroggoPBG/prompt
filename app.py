@@ -76,14 +76,18 @@ with st.sidebar:
         },
     }
 
-    preset_bytes = export_preset_bytes(
-        client_name=client_name,
-        client_type=client_type,
-        products_used=products_used,
-        primary_role="Account",
-        audience_role="Client",
-        key_metrics=extra_defaults,  # <— store extended defaults here
-    )
+preset_bytes = export_preset_bytes(
+    client_name=client_name,
+    client_type=client_type,
+    products_used=products_used,
+    account_owner=account_owner,
+    practice_areas=practice_areas,
+    region=region,
+    primary_role=primary_role,
+    primary_use_case=primary_use_case,
+    key_metrics=extra_defaults,
+)
+
     st.download_button("💾 Export client preset (.json)", preset_bytes, file_name="client_preset.json", mime="application/json")
 
     uploaded = st.file_uploader("📂 Import client preset (.json)", type="json")
