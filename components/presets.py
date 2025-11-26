@@ -1,4 +1,5 @@
 # components/presets.py
+# (Unchanged - same as previous)
 from __future__ import annotations
 
 import json
