@@ -1,65 +1,48 @@
-# components/presets.py
-from __future__ import annotations
+# presets.py
 
-import json
-from typing import Any, Dict, List
+"""
+STRATEGY DEFINITIONS
+Each key represents a specific client situation.
+'name': What shows up in the dropdown.
+'description': Helps the user pick the right tool.
+'fields': The specific data points we need to make the email feel real (Anti-Phishing).
+"""
 
-import streamlit as st
-
-
-def export_preset_bytes(
-    *,
-    client_name: str,
-    client_type: str,
-    products_used: List[str],
-    account_owner: str,
-    practice_areas: List[str],
-    region: str,
-    primary_role: str = "",
-    primary_use_case: str = "",
-    key_metrics: List[str] | None = None,
-) -> bytes:
-    """
-    Build a JSON preset for export. Keep this in sync with how app.py calls it.
-    """
-    payload: Dict[str, Any] = {
-        "client_name": client_name,
-        "client_type": client_type,
-        "products_used": products_used,
-        "account_owner": account_owner,
-        "practice_areas": practice_areas,
-        "region": region,
-        "primary_role": primary_role,
-        "primary_use_case": primary_use_case,
-        "key_metrics": key_metrics or [],
+STRATEGIES = {
+    "ghosting_breaker": {
+        "name": "The 'Ghosting' Breaker",
+        "description": "Use this when a client has stopped replying. It uses the 'Negative Reverse' psychology to trigger a correction instinct.",
+        "fields": [
+            {"key": "client_name", "label": "Client First Name"},
+            {"key": "last_topic", "label": "Topic of Last Discussion (e.g., 'the litigation module')"},
+            {"key": "days_silent", "label": "Days since last contact (approx)"}
+        ]
+    },
+    "value_first_renewal": {
+        "name": "Value-First Renewal Intro",
+        "description": "Don't just ask for a contract. Lead with a specific 'Win' or usage stat to trigger the Endowment Effect before mentioning the renewal date.",
+        "fields": [
+            {"key": "client_name", "label": "Client First Name"},
+            {"key": "specific_win", "label": "A specific win/usage stat (e.g., 'your team ran 400 searches last month')"},
+            {"key": "renewal_date", "label": "Renewal Date"}
+        ]
+    },
+    "executive_brief": {
+        "name": "The Executive Brief (TL;DR)",
+        "description": "For high-level decision makers who don't read long emails. summarizing a new feature or risk in 3 bullet points.",
+        "fields": [
+            {"key": "client_name", "label": "Client First Name"},
+            {"key": "feature_name", "label": "New Feature / Update Name"},
+            {"key": "benefit_1", "label": "Key Benefit 1 (Save time?)"},
+            {"key": "benefit_2", "label": "Key Benefit 2 (Reduce risk?)"}
+        ]
+    },
+    "nps_feedback": {
+        "name": "The 'Advice' Request (NPS)",
+        "description": "People hate surveys, but they love giving advice. This asks for help improving the service rather than just a score.",
+        "fields": [
+            {"key": "client_name", "label": "Client First Name"},
+            {"key": "recent_interaction", "label": "A recent interaction (e.g., 'our training session on Tuesday')"}
+        ]
     }
-    return json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
-
-
-def load_preset_into_state(uploaded_file) -> None:
-    """
-    Read a .json preset and push values into st.session_state so UI fields update.
-    Safe / defensive: ignore missing keys.
-    """
-    try:
-        raw = uploaded_file.read()
-        data = json.loads(raw.decode("utf-8"))
-    except Exception:
-        st.error("Could not read preset file. Please check the format.")
-        return
-
-    def _maybe_set(key: str, default: Any = ""):
-        if key in data:
-            st.session_state[key] = data.get(key, default)
-
-    _maybe_set("client_name", "")
-    _maybe_set("client_type", "")
-    _maybe_set("products_used", [])
-    _maybe_set("account_owner", "")
-    _maybe_set("practice_areas", [])
-    _maybe_set("region", "")
-    _maybe_set("primary_role", "")
-    _maybe_set("primary_use_case", "")
-    _maybe_set("key_metrics", [])
-
-    st.success("✅ Preset loaded. Fields updated from file.")
+}
