@@ -1,591 +1,409 @@
-# app.py
-from __future__ import annotations
-
-from datetime import datetime, date
-
 import streamlit as st
+import anthropic
+import os
 
-from components.recipes import (
-    SCAFFOLDS,
-    LN_CONTEXT,
-    PROMPT_RECIPES,
-    fill_recipe,
-    shape_output,
-)
-from components.presets import export_preset_bytes, load_preset_into_state
-
-# -------------------- Page --------------------
+# Page config
 st.set_page_config(
-    page_title="LexisNexis Prompt Composer (no APIs)",
-    page_icon="🧠",
-    layout="wide",
-)
-st.title("🧠 LexisNexis Prompt Composer (no APIs)")
-st.caption(
-    "Generate high-quality, localized email prompts you can paste into any AI "
-    "(ChatGPT, Copilot, Gemini). No external APIs."
+    page_title="OUS Discovery Tool",
+    page_icon="🔍",
+    layout="wide"
 )
 
-# -------------------- Language & output --------------------
-col_lang, col_out = st.columns([1, 1])
-with col_lang:
-    lang_code = st.selectbox(
-        "Target language",
-        options=list(SCAFFOLDS.keys()),
-        format_func=lambda k: SCAFFOLDS[k]["name"],
-        index=0,
-        key="lang_code",
-    )
-with col_out:
-    output_format = st.selectbox(
-        "Output target",
-        LN_CONTEXT["outputs"],
-        index=0,
-        key="output_format",
-    )
+# Initialize Anthropic client
+client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
 
-# -------------------- Sidebar: global schema --------------------
-with st.sidebar:
-    st.header("Client identity")
-    client_name = st.text_input("Client name", key="client_name")
-    client_type = st.selectbox(
-        "Client type",
-        LN_CONTEXT["client_types"],
-        index=0,
-        key="client_type",
-    )
-    region = st.selectbox(
-        "Region / Country",
-        LN_CONTEXT["regions"],
-        index=0,
-        key="region",
-    )
-    practice_areas = st.multiselect(
-        "Industry / practice area(s)",
-        LN_CONTEXT["practice_areas"],
-        key="practice_areas",
-    )
+# Title and introduction
+st.title("🔍 OUS Discovery Tool")
+st.markdown("### Uncover client Outcomes, Understand their pains, and identify their Standards")
 
-    st.header("CS / Sales context")
-    account_owner = st.text_input("Account owner / RM name", key="account_owner")
-    relationship_stage = st.selectbox(
-        "Relationship stage",
-        LN_CONTEXT["stages"],
-        index=1,
-        key="relationship_stage",
-    )
-    products_used = st.multiselect(
-        "Primary LexisNexis products used",
-        LN_CONTEXT["products"],
-        key="products_used",
-    )
+# Explanation section with expander
+with st.expander("ℹ️ What is the OUS Framework?", expanded=False):
+    st.markdown("""
+    The **OUS Framework** helps you systematically research and understand potential clients:
+    
+    **O - Outcome**: The strategic business objectives and long-term goals the customer seeks to achieve
+    - What does the customer want to accomplish?
+    - What's their vision of success?
+    - What are their growth targets and transformation goals?
+    
+    **U - Understanding Pain**: The identification and in-depth understanding of the customer's primary challenges
+    - What problems keep them up at night?
+    - What operational, financial, or regulatory challenges do they face?
+    - What gaps exist in their current capabilities?
+    
+    **S - Standard**: The standards and requirements the customer uses to evaluate and compare potential solutions
+    - What criteria drive their buying decisions?
+    - What technical, compliance, or budget requirements must be met?
+    - How do they measure success?
+    
+    ---
+    
+    **How to use this tool:**
+    1. Enter the company website URL (required)
+    2. Optionally paste any additional information you have
+    3. Select our product that you're positioning
+    4. Choose which OUS element to analyze (or run all three)
+    5. Click "Analyze" to get structured insights
+    """)
 
-    primary_role = st.text_input(
-        "Primary role / audience (optional)",
-        key="primary_role",
-        help="e.g., litigation partners, in-house counsel, associates",
+st.divider()
+
+# Main input section
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    st.subheader("📊 Client Information")
+    
+    # Company website input
+    company_url = st.text_input(
+        "Company Website URL *",
+        placeholder="https://www.example.com",
+        help="The primary source for OUS analysis"
     )
-    primary_use_case = st.text_input(
-        "Primary use case (optional)",
-        key="primary_use_case",
-        help="e.g., case research, regulatory monitoring, drafting",
+    
+    # Additional information textarea
+    additional_info = st.text_area(
+        "Additional Information (Optional)",
+        placeholder="Paste any additional context: news articles, financial reports, LinkedIn insights, industry analysis, etc.",
+        height=200,
+        help="Any extra information you have about the client that's not on their website"
     )
 
-    st.header("Metrics (optional)")
-    usage_metrics = st.text_area(
-        "Usage metrics (logins, searches, features, report)",
-        key="usage_metrics",
-    )
-    time_saved = st.text_input(
-        "Time saved / efficiency data (e.g., 'avg. 4 hours/week')",
-        key="time_saved",
-    )
-    nps_info = st.text_area(
-        "NPS score / feedback theme (paste)",
-        key="nps_info",
-    )
-
-    key_metrics = []
-    if usage_metrics:
-        key_metrics.append("Usage metrics provided")
-    if time_saved:
-        key_metrics.append("Time-saved evidence provided")
-    if nps_info:
-        key_metrics.append("NPS feedback pasted")
-
-    st.header("Communication settings")
-    tone = st.selectbox("Tone", LN_CONTEXT["tones"], index=0, key="tone")
-    length = st.selectbox("Length preference", LN_CONTEXT["lengths"], index=2, key="length")
-    include_highlights = st.checkbox(
-        "Auto-include product highlights (region-aware)",
-        value=True,
-        key="include_highlights",
-    )
-
-    st.markdown("---")
-    st.subheader("Presets")
-
-    preset_bytes = export_preset_bytes(
-        client_name=client_name,
-        client_type=client_type,
-        products_used=products_used,
-        account_owner=account_owner,
-        practice_areas=practice_areas,
-        region=region,
-        primary_role=primary_role,
-        primary_use_case=primary_use_case,
-        key_metrics=key_metrics,
-    )
-
-    st.download_button(
-        "💾 Export client preset (.json)",
-        preset_bytes,
-        file_name="client_preset.json",
-        mime="application/json",
-    )
-
-    uploaded = st.file_uploader("📂 Import client preset (.json)", type="json")
-    if uploaded:
-        load_preset_into_state(uploaded)
-
-# -------------------- Main: function selection --------------------
-left, right = st.columns([2, 3])
-
-with left:
-    recipe = st.selectbox(
-        "Function / Use-case",
-        list(PROMPT_RECIPES.keys()),
-        index=0,
-        key="recipe",
-    )
-
-with right:
-    st.subheader("Few-shot examples (optional)")
-    ex_col1, ex_col2 = st.columns(2)
-    with ex_col1:
-        ex_input = st.text_area(
-            "Example input",
-            height=80,
-            placeholder="Short example input",
-            key="ex_input",
-        )
-    with ex_col2:
-        ex_output = st.text_area(
-            "Example output",
-            height=80,
-            placeholder="Desired example output",
-            key="ex_output",
-        )
-
-# -------------------- Guided forms by function --------------------
-st.markdown("---")
-st.markdown("### 🧩 Guided options")
-
-guided: dict = {}
-
-if recipe == "Renewal Email":
-    with st.expander("Renewal options", expanded=True):
-        renewal_scenario = st.selectbox(
-            "Scenario focus",
-            [
-                "Healthy usage, value reinforcement",
-                "Low usage & pricing concerns",
-            ],
-            index=0,
-        )
-        contract_details = st.text_input(
-            "Contract details (renewal date / price change)",
-            key="renewal_contract_details",
-        )
-        meeting_options = st.text_input(
-            "2–3 date/time options (comma-separated)",
-            placeholder="e.g., Tue 10am, Wed 2pm, Thu 4pm",
-            key="renewal_meeting_options",
-        )
-        guided.update(
-            {
-                "renewal_scenario": "low_usage_pricing"
-                if "Low usage" in renewal_scenario
-                else "value",
-                "contract_details": contract_details,
-                "meeting_options": meeting_options,
-            }
-        )
-
-elif recipe == "QBR Brief":
-    with st.expander("QBR options", expanded=True):
-        qbr_window = st.selectbox(
-            "Review period",
-            ["Last Month", "Last Quarter", "H1", "FY"],
-            index=1,
-        )
-        qbr_include_benchmarks = st.checkbox(
-            "Include industry benchmarks", value=False
-        )
-        qbr_sections = st.multiselect(
-            "Sections to emphasize",
-            [
-                "Usage & Engagement",
-                "Business Impact",
-                "Wins",
-                "Underused Features",
-                "Recommendations",
-            ],
-            default=["Usage & Engagement", "Business Impact", "Recommendations"],
-        )
-        guided.update(
-            {
-                "qbr_window": qbr_window,
-                "qbr_include_benchmarks": qbr_include_benchmarks,
-                "qbr_sections": qbr_sections,
-            }
-        )
-
-elif recipe == "Client Follow-up":
-    with st.expander("Follow-up options", expanded=True):
-        last_meeting_date = st.text_input(
-            "Date of last meeting", key="fu_last_meeting_date"
-        )
-        meeting_topics = st.text_input(
-            "Topics covered", key="fu_meeting_topics"
-        )
-        guided.update(
-            {
-                "last_meeting_date": last_meeting_date,
-                "meeting_topics": meeting_topics,
-            }
-        )
-
-elif recipe == "Proposal / RFP Response":
-    with st.expander("RFP options", expanded=True):
-        rfp_sector = st.text_input("Client sector", key="rfp_sector")
-        rfp_scope = st.text_area(
-            "RFP scope / key requirements", key="rfp_scope"
-        )
-        rfp_differentiators = st.text_area(
-            "Differentiators to emphasize", key="rfp_diff"
-        )
-        rfp_deadline = st.text_input("Key deadline", key="rfp_deadline")
-        guided.update(
-            {
-                "rfp_sector": rfp_sector,
-                "rfp_scope": rfp_scope,
-                "rfp_differentiators": rfp_differentiators,
-                "rfp_deadline": rfp_deadline,
-            }
-        )
-
-elif recipe == "Upsell / Cross-sell Outreach":
-    with st.expander("Upsell options", expanded=True):
-        pains = st.text_area("Client pain points", key="upsell_pains")
-        proposed_products = st.multiselect(
-            "Proposed LexisNexis products",
-            LN_CONTEXT["products"],
-            key="upsell_products",
-        )
-        case_studies = st.text_area(
-            "Relevant case studies", key="upsell_case_studies"
-        )
-        guided.update(
-            {
-                "pains": pains,
-                "proposed_products": proposed_products,
-                "case_studies": case_studies,
-            }
-        )
-
-elif recipe == "Client Risk Alert":
-    with st.expander("Risk options", expanded=True):
-        risk_trigger = st.selectbox(
-            "Risk trigger",
-            [
-                "Declining usage",
-                "Delayed renewal",
-                "Negative feedback",
-                "Champion turnover",
-                "Other",
-            ],
-            index=0,
-        )
-        risk_severity = st.select_slider(
-            "Severity", options=[1, 2, 3, 4, 5], value=3
-        )
-        risk_mitigations = st.text_area(
-            "Mitigation options (enablement plan, cadence, etc.)",
-            key="risk_mitigations",
-        )
-        guided.update(
-            {
-                "risk_trigger": risk_trigger,
-                "risk_severity": risk_severity,
-                "risk_mitigations": risk_mitigations,
-            }
-        )
-
-elif recipe == "Client Snapshot & Risk Signals":
-    with st.expander("Snapshot options", expanded=True):
-        prepared_by = st.selectbox(
-            "Prepared by",
-            ["Sales", "Pre-Sales", "Customer Success"],
-            index=0,
-        )
-        last_engagement_date = st.text_input(
-            "Last engagement date", key="snap_last_eng"
-        )
-        risk_level = st.select_slider(
-            "Risk level", options=["Low", "Medium", "High"], value="Medium"
-        )
-        guided.update(
-            {
-                "prepared_by": prepared_by,
-                "last_engagement_date": last_engagement_date,
-                "risk_level": risk_level,
-            }
-        )
-
-elif recipe == "Objection Coach":
-    with st.expander("Objection options", expanded=True):
-        objection_type = st.selectbox(
-            "Objection type",
-            ["Price", "Usability", "Prefer Competitor"],
-            index=0,
-        )
-        objection_severity = st.select_slider(
-            "Severity", options=[1, 2, 3, 4, 5], value=3
-        )
-        competitor_name = st.text_input(
-            "Competitor (optional)", key="obj_competitor"
-        )
-        supporting_data = st.multiselect(
-            "Supporting data available",
-            [
-                "Usage metrics",
-                "ROI",
-                "NPS quotes",
-                "Case studies",
-                "Benchmarks",
-            ],
-            key="obj_support",
-        )
-        guided.update(
-            {
-                "objection_type": objection_type,
-                "objection_severity": objection_severity,
-                "competitor_name": competitor_name,
-                "supporting_data": supporting_data,
-            }
-        )
-
-elif recipe == "NPS Engagement":
-    with st.expander("NPS options (auto-variants)", expanded=True):
-        nps_previous_rating = st.selectbox(
-            "Previous NPS",
-            [
-                "Promoter (9–10)",
-                "Passive (7–8)",
-                "Detractor (0–6)",
-            ],
-            index=1,
-        )
-        nps_feedback_theme = st.text_input(
-            "Feedback theme (summary)", key="nps_theme"
-        )
-        nps_survey_link = st.text_input(
-            "Survey link / CTA", key="nps_link"
-        )
-        guided.update(
-            {
-                "nps_previous_rating": nps_previous_rating,
-                "nps_feedback_theme": nps_feedback_theme,
-                "nps_survey_link": nps_survey_link,
-            }
-        )
-
-elif recipe == "NPS Follow-up":
-    with st.expander("NPS follow-up options", expanded=True):
-        nps_previous_rating = st.selectbox(
-            "Previous NPS",
-            [
-                "Promoter (9–10)",
-                "Passive (7–8)",
-                "Detractor (0–6)",
-            ],
-            index=0,
-        )
-        comment_type = st.selectbox(
-            "Comment type",
-            ["Feature request", "Bug / issue", "Pricing concern", "Usability", "Other"],
-            index=0,
-        )
-        verbatim_comment = st.text_area(
-            "Paste the client's verbatim comment from the survey",
-            key="nps_follow_comment",
-        )
-        helpful_pointer = st.text_input(
-            "Add a helpful pointer (optional)",
-            placeholder="e.g., PG: Crypto coverage pointer",
-            key="nps_help_pointer",
-        )
-        escalation_note = st.text_input(
-            "Internal note (for our records, summarised to client as appropriate)",
-            key="nps_internal_note",
-        )
-        guided.update(
-            {
-                "nps_previous_rating": nps_previous_rating,
-                "nps_comment_type": comment_type,
-                "nps_followup_comment": verbatim_comment,
-                "nps_helpful_pointer": helpful_pointer,
-                "nps_internal": escalation_note,
-            }
-        )
-
-# -------------------- Quality checklist --------------------
-st.markdown("---")
-st.markdown("### ✅ Quality Checklist")
-for item in [
-    "No confidential client data present",
-    "Claims are accurate/verifiable (no legal advice)",
-    "Outcome/ROI linked to metrics",
-    "Clear CTA / next steps included",
-]:
-    st.checkbox(item, value=True)
-
-# -------------------- Generate --------------------
-if st.button("✨ Generate Prompt"):
-    # Enhanced: Basic validation before generation
-    if not client_name:
-        st.warning("Please enter a client name to generate a prompt.")
-    elif not recipe:
-        st.warning("Please select a function/use-case.")
-    else:
-        ctx = dict(
-            # Global schema
-            client_name=client_name,
-            client_type=client_type,
-            region=region,
-            practice_areas=practice_areas,
-            account_owner=account_owner,
-            relationship_stage=relationship_stage,
-            products_used=products_used,
-            usage_metrics=usage_metrics,
-            time_saved=time_saved,
-            nps_info=nps_info,
-            tone=tone,
-            length=length,
-            include_highlights=include_highlights,
-            output_target=output_format,
-            primary_role=primary_role,
-            primary_use_case=primary_use_case,
-            key_metrics=key_metrics,
-            # Few-shot
-            ex_input=ex_input or "",
-            ex_output=ex_output or "",
-        )
-
-        # Guided, function-specific
-        ctx.update(guided)
-
-        final_prompt = fill_recipe(recipe, lang_code, ctx)
-
-        # Split the prompt if it contains the additional guidance marker
-        marker = "[ADDITIONAL_GUIDANCE]"
-        if marker in final_prompt:
-            main_prompt, additional_guidance = final_prompt.split(marker, 1)
-            main_prompt = main_prompt.strip()
-            additional_guidance = additional_guidance.strip()
-        else:
-            main_prompt = final_prompt
-            additional_guidance = ""
-
-        shaped = shape_output(final_prompt, output_format, client_name, recipe)
-
-        st.subheader("📝 Copy-ready Prompt for AI tool")
-        st.code(shaped, language="markdown")
-
-        if additional_guidance:
-            st.subheader("📘 Additional Scenario Guidance for Model (Optional - Use for Refinement)")
-            st.code(additional_guidance, language="markdown")
-            st.caption("This guidance is meta-instruction for the AI model. You can append it to the main prompt if needed, but it's separated to avoid confusion in direct copying.")
-
-        fname = (
-            f"ln_prompt_{recipe.replace('/','_').replace(' ','_')}_"
-            f"{lang_code}_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}.txt"
-        )
-        # Download only the main shaped prompt
-        st.download_button(
-            "📥 Download (.txt)",
-            shaped.replace("{today}", str(date.today())),
-            file_name=fname,
-            mime="text/plain",
-        )
-
-        # Enhanced: Quick feedback loop (simple thumbs up/down)
-        st.markdown("---")
-        st.subheader("Rate this prompt")
-        col_thumb1, col_thumb2 = st.columns(2)
-        with col_thumb1:
-            if st.button("👍 Good"):
-                st.success("Thanks for the feedback! Marked as good.")
-                # Here you could log to session_state or a file, but keeping no API/no downloads
-        with col_thumb2:
-            if st.button("👎 Needs improvement"):
-                st.warning("Thanks! What could be better? (Note for future iterations)")
-                # Optional: Add a text area for comments, but keep simple
-
-st.caption(
-    "Tip: You can use different functions (Renewal, QBR, NPS Follow-up, etc.) "
-    "and compare AI outputs generated from these prompts vs. generic prompts "
-    "to demonstrate quality and ROI."
-)
-
-# Enhanced: Simple analytics dashboard (using session_state for persistence, no external storage)
-if "usage_stats" not in st.session_state:
-    st.session_state.usage_stats = {
-        "generations": 0,
-        "recipes_used": {},
+with col2:
+    st.subheader("🎯 Our Solution")
+    
+    # Product selection
+    products = {
+        "Lexis+": "https://www.lexisnexis.com/en-us/products/lexis-plus.page",
+        "Practical Guidance": "https://www.lexisnexis.com/en-us/products/practical-guidance.page",
+        "Lexis+ AI": "https://www.lexisnexis.com/en-us/products/lexisplus-ai.page",
+        "CounselLink": "https://www.lexisnexis.com/en-us/products/enterprise-legal-management.page",
+        "Lexis Smart Forms": "https://www.lexisnexis.com/en-us/products/lexis-smart-forms.page",
     }
-
-if st.button("View Usage Stats"):
-    st.session_state.usage_stats["generations"] += 1  # Increment on generate, but for demo
-    if recipe in st.session_state.usage_stats["recipes_used"]:
-        st.session_state.usage_stats["recipes_used"][recipe] += 1
-    else:
-        st.session_state.usage_stats["recipes_used"][recipe] = 1
-
-    st.markdown("### 📊 Usage Analytics")
-    st.write(f"Total prompt generations: {st.session_state.usage_stats['generations']}")
-    st.bar_chart(st.session_state.usage_stats["recipes_used"])
-
-# Enhanced: Template library (static dropdown for quick presets)
-st.sidebar.markdown("---")
-st.sidebar.subheader("Quick Templates")
-template = st.sidebar.selectbox(
-    "Load a template",
-    ["None", "Standard Renewal", "Quick NPS Follow-up"],
-)
-if template == "Standard Renewal":
-    st.session_state.client_name = "Sample Client"
-    st.session_state.recipe = "Renewal Email"
-    st.success("Template loaded: Standard Renewal")
-elif template == "Quick NPS Follow-up":
-    st.session_state.recipe = "NPS Follow-up"
-    st.success("Template loaded: Quick NPS Follow-up")
-
-# Enhanced: Dark mode toggle (simple CSS injection)
-theme = st.sidebar.selectbox("Theme", ["Light", "Dark"])
-if theme == "Dark":
-    st.markdown(
-        """
-        <style>
-            section[data-testid="stSidebar"] {
-                background-color: #1E1E1E;
-            }
-            .stApp {
-                background-color: #121212;
-                color: white;
-            }
-        </style>
-        """,
-        unsafe_allow_html=True,
+    
+    selected_product = st.selectbox(
+        "Select Product *",
+        options=list(products.keys()),
+        help="Which LexisNexis product are you positioning?"
     )
+    
+    # Show product link
+    if selected_product:
+        st.markdown(f"[📎 {selected_product} Details]({products[selected_product]})")
+    
+    st.divider()
+    
+    # Analysis type selection
+    st.subheader("🔬 Analysis Type")
+    analysis_type = st.radio(
+        "What to analyze:",
+        options=[
+            "Complete OUS Analysis",
+            "Outcomes Only",
+            "Understanding (Pains) Only",
+            "Standards Only"
+        ],
+        help="Choose comprehensive analysis or focus on one element"
+    )
+
+st.divider()
+
+# Analyze button
+if st.button("🚀 Analyze Client", type="primary", use_container_width=True):
+    
+    # Validation
+    if not company_url:
+        st.error("⚠️ Please enter a company website URL")
+    elif not selected_product:
+        st.error("⚠️ Please select a product")
+    else:
+        # Build the prompt based on analysis type
+        prompts = {
+            "Outcomes Only": f"""You are a business analyst helping identify strategic objectives for a potential client.
+
+TASK:
+Visit and analyze the following company website, then identify their likely strategic business outcomes and long-term goals.
+
+COMPANY WEBSITE:
+{company_url}
+
+ADDITIONAL INFORMATION PROVIDED:
+{additional_info if additional_info else "None provided"}
+
+WHAT TO LOOK FOR:
+- About Us / Company Overview pages
+- Investor Relations / Annual Reports
+- Press Releases / News section
+- Leadership messages / CEO letters
+- Strategic initiatives / Future plans pages
+- Product roadmap or service expansion announcements
+
+ANALYSIS FRAMEWORK:
+1. **Strategic Objectives**: What are their stated or implied top-level business goals for the next 1-3 years?
+2. **Growth Targets**: What markets, products, or capabilities are they trying to expand?
+3. **Transformation Goals**: Are they undergoing digital transformation, restructuring, market repositioning, or operational change?
+4. **Competitive Positioning**: How are they trying to differentiate or defend their market position?
+5. **Financial Outcomes**: What financial metrics or targets are they likely focused on?
+6. **Risk Mitigation Goals**: What strategic risks are they trying to reduce or hedge against?
+
+OUTPUT FORMAT:
+
+**PRIMARY OUTCOMES** (top 2-3 strategic goals)
+- [Outcome 1 with supporting evidence from website]
+- [Outcome 2 with supporting evidence from website]
+
+**SECONDARY OUTCOMES** (supporting goals)
+- [List additional objectives]
+
+**EVIDENCE SOURCES**
+- List specific pages/sections where you found this information
+
+**IMPLICATIONS FOR {selected_product}**
+- How {selected_product} could support these outcomes
+- Which outcomes align best with our value proposition
+
+**INFORMATION GAPS**
+- What key information wasn't available
+- Additional sources we should check
+
+CONSTRAINTS:
+- Base analysis on provided website and information
+- Quote or cite specific sections when possible
+- Flag assumptions clearly
+- If insufficient information, state what's missing""",
+
+            "Understanding (Pains) Only": f"""You are a business analyst specializing in identifying organizational pain points and challenges.
+
+TASK:
+Visit and analyze the following company website, then identify their primary pain points, challenges, and operational friction.
+
+COMPANY WEBSITE:
+{company_url}
+
+ADDITIONAL INFORMATION PROVIDED:
+{additional_info if additional_info else "None provided"}
+
+WHAT TO LOOK FOR:
+- Challenges mentioned in About Us or Leadership messages
+- Problems their products/services solve (implies they face these too)
+- Investor Relations / Risk Factors sections
+- News about restructuring, layoffs, market challenges
+- Job postings (gaps in their team = pain points)
+- Customer testimonials
+
+ANALYSIS FRAMEWORK:
+1. **Operational Pain Points**: What inefficiencies, bottlenecks, or process issues are they likely facing?
+2. **Financial Pressure**: What financial challenges are evident?
+3. **Regulatory/Compliance Risks**: What legal, compliance, or regulatory burdens are they managing?
+4. **Market/Competitive Threats**: What external pressures threaten their business?
+5. **Technology/Capability Gaps**: Where do they lack tools, systems, or expertise?
+6. **Organizational/People Challenges**: Are there talent, culture, or structural issues?
+7. **Reputational/Stakeholder Risks**: What threatens their reputation?
+
+PRIORITIZATION:
+Rank pain points by:
+- **Severity**: How much does this impact their business?
+- **Urgency**: How immediate is the threat?
+- **Solvability**: Could {selected_product} address this pain?
+
+OUTPUT FORMAT:
+
+**CRITICAL PAINS** (most severe/urgent)
+- [Pain point 1]: [Evidence + Impact + Urgency]
+- [Pain point 2]: [Evidence + Impact + Urgency]
+
+**MODERATE PAINS** (important but less urgent)
+- [List with context]
+
+**INFERRED PAINS** (reading between the lines)
+- [What they don't say directly but is implied]
+
+**EVIDENCE SOURCES**
+- List specific pages/sections
+
+**{selected_product} SOLUTION FIT**
+- Which pains we can directly address
+- Which pains are outside our scope
+- Questions to validate these pains
+
+**INFORMATION GAPS**
+- What we couldn't determine
+- Recommended additional research
+
+CONSTRAINTS:
+- Base analysis on provided information
+- Distinguish explicit statements from inferences
+- Cite specific sources
+- Flag where additional discovery is needed""",
+
+            "Standards Only": f"""You are a procurement and decision-analysis specialist helping understand how a client evaluates solutions.
+
+TASK:
+Visit and analyze the following company website, then identify the standards, criteria, and requirements they likely use to evaluate and compare potential solutions.
+
+COMPANY WEBSITE:
+{company_url}
+
+ADDITIONAL INFORMATION PROVIDED:
+{additional_info if additional_info else "None provided"}
+
+WHAT TO LOOK FOR:
+- Procurement/Vendor pages or policies
+- Technology/Partner ecosystem pages
+- Compliance/Certifications they hold
+- Quality standards or industry memberships
+- Case studies or vendor announcements
+- Job postings (reveals their tech stack, requirements)
+- Annual reports
+
+ANALYSIS FRAMEWORK:
+1. **Decision-Making Criteria**: What factors drive their buying decisions?
+2. **Evaluation Process**: How do they evaluate vendors?
+3. **Budget/Financial Standards**: What are their budget constraints, ROI expectations?
+4. **Technical Requirements**: What technical standards, integrations must solutions meet?
+5. **Compliance/Regulatory Standards**: What certifications are mandatory?
+6. **Vendor Standards**: What do they expect from vendors?
+7. **Internal Stakeholders**: Who influences or approves decisions?
+8. **Success Metrics**: How will they measure if a solution is working?
+
+OUTPUT FORMAT:
+
+**MUST-HAVE STANDARDS** (non-negotiable requirements)
+- [Standard 1]: [Evidence/Page where found]
+- [Standard 2]: [Evidence/Page where found]
+
+**IMPORTANT CRITERIA** (strong preferences)
+- [List with context and source]
+
+**INFERRED STANDARDS** (reading between the lines)
+- What their industry, size, or values suggest
+
+**EVALUATION PROCESS CLUES**
+- Decision makers mentioned
+- Procurement process hints
+- Partner/vendor relationship approach
+
+**EVIDENCE SOURCES**
+- List specific pages analyzed
+
+**{selected_product} ALIGNMENT**
+- How we meet their standards
+- Potential gaps or concerns
+- Competitive positioning
+
+**VALIDATION QUESTIONS**
+- Questions to confirm these standards
+- Information gaps to fill
+
+**INFORMATION GAPS**
+- What the website doesn't reveal
+- Additional research needed
+
+CONSTRAINTS:
+- Base analysis on provided information
+- Mark assumptions vs. facts
+- Reference specific evidence
+- Identify unknowns""",
+
+            "Complete OUS Analysis": f"""You are a strategic account researcher conducting comprehensive client discovery.
+
+TASK:
+Visit and analyze the following company website, then provide a complete OUS assessment: their Outcomes, Understanding (pains), and Standards.
+
+COMPANY WEBSITE:
+{company_url}
+
+ADDITIONAL INFORMATION PROVIDED:
+{additional_info if additional_info else "None provided"}
+
+RESEARCH CHECKLIST:
+☐ Homepage / About Us
+☐ Leadership team / CEO messages
+☐ Investor Relations / Annual Reports / Press Releases
+☐ Products/Services pages
+☐ News / Blog
+☐ Careers / Job Postings
+☐ Partners / Technology ecosystem
+☐ Case Studies / Customer Success
+☐ Compliance / Certifications
+
+PROVIDE:
+
+## 1. OUTCOMES (Strategic Objectives)
+**Primary Goals** (top 2-3 strategic outcomes based on website)
+**Supporting Goals**
+**Evidence** (cite specific pages/quotes)
+
+## 2. UNDERSTANDING (Pain Points)
+**Critical Pains** (most severe/urgent challenges)
+**Moderate Pains**
+**Inferred Pains** (reading between the lines)
+**Evidence** (cite specific pages/quotes)
+
+## 3. STANDARDS (Evaluation Criteria)
+**Must-Have Requirements**
+**Key Decision Criteria**
+**Evaluation Process Clues**
+**Evidence** (cite specific pages/quotes)
+
+## 4. {selected_product} STRATEGIC POSITIONING
+**Best Entry Point** (where to start the conversation)
+**Value Proposition Alignment** (how we fit their OUS)
+**Competitive Advantages** (why we're a good fit)
+**Potential Objections** (concerns they might raise)
+
+## 5. DISCOVERY & NEXT STEPS
+**Discovery Questions** (what to ask to validate this analysis)
+**Information Gaps** (what we don't know yet)
+**Additional Research Needed** (LinkedIn, news, industry reports, etc.)
+
+CONSTRAINTS:
+- Start with the provided website as primary source
+- Distinguish facts from inferences
+- Cite specific pages for all claims
+- Flag information gaps clearly
+- Be specific, not generic"""
+        }
+        
+        # Select the appropriate prompt
+        selected_prompt = prompts[analysis_type]
+        
+        # Show spinner while processing
+        with st.spinner(f"🔍 Analyzing {company_url}..."):
+            try:
+                # Call Claude API
+                message = client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=4096,
+                    messages=[
+                        {"role": "user", "content": selected_prompt}
+                    ]
+                )
+                
+                # Display results
+                st.success("✅ Analysis Complete!")
+                
+                # Show the analysis in an expandable container
+                with st.container():
+                    st.markdown("### 📋 Analysis Results")
+                    st.markdown(message.content[0].text)
+                
+                # Download button
+                st.download_button(
+                    label="💾 Download Analysis",
+                    data=message.content[0].text,
+                    file_name=f"OUS_Analysis_{company_url.replace('https://', '').replace('http://', '').replace('/', '_')}.txt",
+                    mime="text/plain"
+                )
+                
+            except Exception as e:
+                st.error(f"❌ Error during analysis: {str(e)}")
+                st.info("Please check your API key and try again.")
+
+# Footer
+st.divider()
+st.markdown("""
+<div style='text-align: center; color: #666; font-size: 0.9em;'>
+    <p>OUS Discovery Tool | Powered by Claude AI</p>
+</div>
+""", unsafe_allow_html=True)
