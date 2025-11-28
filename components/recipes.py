@@ -1,8 +1,75 @@
 # components/recipes.py
-# Legal Tech Sales Prospecting - OUS Framework Recipes
+# Legal Tech Sales Prospecting - OUS Framework with Zinsser's Principles
 from __future__ import annotations
 
 from typing import Dict, List, Callable, Any
+
+# -----------------------------
+# ZINSSER'S PRINCIPLES FILTER
+# -----------------------------
+
+ZINSSER_WRITING_RULES = """
+═══════════════════════════════════════════════════
+WRITING STYLE ENFORCEMENT: ZINSSER'S PRINCIPLES
+═══════════════════════════════════════════════════
+
+You are NOT writing a formal report. You are briefing a busy sales colleague who has 2 minutes to read this.
+
+MANDATORY RULES:
+
+1. HUMANITY
+   - Write like you're talking to a friend over coffee
+   - Use "I", "you", "we" freely
+   - Show empathy: "This sounds stressful" NOT "This presents challenges"
+
+2. CLARITY
+   - One idea per sentence
+   - Use specific details: "3 regulatory filings in Q2" NOT "multiple compliance requirements"
+   - Replace abstract nouns with verbs: "They need to reduce costs" NOT "Cost reduction is a priority"
+
+3. BREVITY
+   - Maximum sentence length: 20 words
+   - Cut every unnecessary word
+   - If you can say it in 5 words instead of 10, do it
+
+4. SIMPLICITY
+   - Use everyday language
+   - Avoid industry jargon unless it's essential
+   - Test: Would a non-lawyer understand this?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BANNED WORDS (Replace with plain English):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ utilization → ✅ use
+❌ implementation → ✅ start using / set up
+❌ facilitate → ✅ help / make easier
+❌ optimization → ✅ improve / make better
+❌ leverage → ✅ use
+❌ synergy → ✅ teamwork / working together
+❌ functionality → ✅ features / what it does
+❌ operationalize → ✅ do / make happen
+❌ utilize → ✅ use
+❌ commence → ✅ start
+❌ endeavor → ✅ try
+❌ ascertain → ✅ find out
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BANNED PHRASES (Use active voice):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ "has been identified" → ✅ "we found" / "they discovered"
+❌ "is being considered" → ✅ "they're thinking about"
+❌ "was implemented" → ✅ "they started using"
+❌ "will be facilitated by" → ✅ "X will help with"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FORMAT REQUIREMENTS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ Use short bullets (1-2 sentences max per bullet)
+✓ Add specific numbers, dates, names whenever possible
+✓ Write in present tense when possible
+✓ Start bullets with verbs when listing actions
+✓ Use contractions (they're, you've, we'll) to sound human
+"""
 
 # -----------------------------
 # Anti-Hallucination Preamble
@@ -51,10 +118,12 @@ Legal Buyer Personas:
 """
 
 # -----------------------------
-# 3-Phase Legal Scout Strategy
+# 3-Phase Legal Scout Strategy (WITH ZINSSER FILTER)
 # -----------------------------
 
-PHASE_1_DISCOVERY = """
+PHASE_1_DISCOVERY = f"""
+{ZINSSER_WRITING_RULES}
+
 ═══════════════════════════════════════════════════
 PHASE 1: DISCOVERY & COMPLIANCE (Automated Research)
 ═══════════════════════════════════════════════════
@@ -85,27 +154,29 @@ RESEARCH PROTOCOL:
    Based on triggers found, which practice areas are under pressure?
    (e.g., if M&A deal announced → Corporate/M&A team stressed; if data breach → Privacy/Cybersecurity risk)
 
-OUTPUT FORMAT:
+OUTPUT FORMAT (Use conversational bullets):
 **Company:** [Name]
 **Industry:** [Sector]
 **Legal Entity Type:** [e.g., HK Public Company, Mainland Subsidiary]
 
-**TRIGGER EVENTS IDENTIFIED:**
-1. [Specific event with date/source]
-2. [Second event if found]
+**WHAT WE FOUND (Trigger Events):**
+- [Specific event with date/source - be concrete, not vague]
+- [Second event if found]
 
 **PRACTICE AREAS UNDER PRESSURE:**
-- [Primary area] - [Why it's relevant]
-- [Secondary area] - [Why it's relevant]
+- [Primary area] - Here's why it matters: [explanation in 1 sentence]
+- [Secondary area] - Here's why it matters: [explanation in 1 sentence]
 
-**DISQUALIFICATION CHECK:**
-[ ] No legal complexity detected - prospect not viable
-[ ] Legal triggers found - proceed to Phase 2
+**BOTTOM LINE:**
+[ ] No legal complexity found - skip this prospect
+[ ] Found triggers - worth pursuing
 
-**CONFIDENCE LEVEL:** [High/Medium/Low based on data availability]
+**CONFIDENCE:** [High/Medium/Low based on available data]
 """
 
-PHASE_2_PROFILING = """
+PHASE_2_PROFILING = f"""
+{ZINSSER_WRITING_RULES}
+
 ═══════════════════════════════════════════════════
 PHASE 2: GENERAL COUNSEL SIMULATION (Psychological Profiling)
 ═══════════════════════════════════════════════════
@@ -153,35 +224,36 @@ C. Risk Currency (Liability Reduction)
    - "Can we catch compliance gaps before they become problems?"
    - "Does this reduce our litigation exposure?"
 
-OUTPUT FORMAT:
+OUTPUT FORMAT (Write like you're briefing a colleague):
 **Buyer Persona:** [e.g., General Counsel of HK-listed property developer]
 
-**PRIMARY PAIN FLAVOR:** [Fear/Frustration/Fatigue] - [Specific manifestation]
+**WHAT'S KEEPING THEM UP AT NIGHT:**
+Primary emotion: [Fear/Frustration/Fatigue]
 
-**EMOTIONAL HYPOTHESIS:**
-"Based on [trigger from Phase 1], this legal buyer is likely experiencing [specific emotion] because [logical reasoning]. 
+Here's what's probably going through their head right now:
+"[Write 2-3 sentences in first-person as if YOU are this GC. Make it personal and specific to their trigger event from Phase 1.]"
 
-The internal dialogue in their head sounds like:
-'[First-person narrative of their worry/stress/insecurity]'
+Example: 
+"We just bought a Shenzhen company and I have no clue if their IP contracts are legal in both HK and PRC. If we get audited and there's a gap, the Board will fire me. I'm losing sleep over this."
 
-Example: 'We just acquired a Shenzhen subsidiary, and I have NO idea if their IP licensing agreements are compliant with both PRC and HK law. If we get audited and there's a gap, the Board will have my head.'"
+**WHAT THEY CARE ABOUT MOST:**
+1st priority: [Budget/Efficiency/Risk] - Why: [One sentence explanation]
+2nd priority: [Another currency] - Why: [One sentence explanation]
 
-**BUYER CURRENCY PRIORITY:**
-Primary: [Budget/Efficiency/Risk] - [Why this matters most to them now]
-Secondary: [Second currency] - [Supporting reason]
-
-**VALIDATION QUESTIONS (to confirm hypothesis in conversation):**
-1. [Diagnostic question that demonstrates you understand their context]
-2. [Question that reveals the severity of the pain]
-3. [Question that uncovers whether they've tried to solve this before]
+**QUESTIONS TO ASK THEM (to validate this hypothesis):**
+1. [Question that shows you understand their world]
+2. [Question that reveals how bad the pain is]
+3. [Question about what they've already tried]
 """
 
-PHASE_3_DRAFTING = """
+PHASE_3_DRAFTING = f"""
+{ZINSSER_WRITING_RULES}
+
 ═══════════════════════════════════════════════════
-PHASE 3: PRIVILEGED COMMUNICATION (Credibility-Based Drafting)
+PHASE 3: CREDIBILITY-BASED EMAIL DRAFTING
 ═══════════════════════════════════════════════════
 
-YOUR ROLE: Draft a cold outreach email that sounds like it comes from a trusted legal advisor, not a salesperson.
+YOUR ROLE: Draft a cold outreach email that sounds like it's from a trusted legal advisor, not a salesperson.
 
 OBJECTIVE: Generate a "Credibility Token" - an email that passes the "Associate Test" (would a junior lawyer forward this to their boss as relevant, not delete as spam?).
 
@@ -199,12 +271,12 @@ Bad Example:
 (Generic, salesy, immediately deleted)
 
 Good Example:
-"[Name], I noticed [Company] recently [specific trigger event from Phase 1]. In our work with similar HK-based [industry] companies navigating [specific legal challenge], we've seen that the biggest hidden risk isn't [obvious problem], but rather [nuanced second-order risk that demonstrates deep understanding]."
+"[Name], I saw [Company] just [specific trigger event from Phase 1]. From what we've seen with other HK [industry] companies dealing with [specific challenge], the biggest hidden risk isn't [obvious problem] - it's [nuanced second-order risk]."
 
 HOOK FORMULA:
 - Reference the specific trigger (proves you did homework)
-- Acknowledge the complexity (shows respect for their expertise)
-- Hint at a non-obvious consequence (creates curiosity)
+- Acknowledge the complexity (shows respect)
+- Hint at a non-obvious risk (creates curiosity)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 2. PIVOT (Position as Strategic Insurance)
@@ -216,11 +288,11 @@ Bad Example:
 (Feature dump, no emotional resonance)
 
 Good Example:
-"The General Counsels we work with in [practice area] describe our legal intelligence platform as 'the insurance policy against what we might have missed.' Specifically, [one concrete example of how it catches gaps that manual research doesn't]."
+"The GCs we work with describe our platform as 'insurance against what we might've missed.' For example, [one concrete micro-story of how it caught a gap]."
 
 PIVOT FORMULA:
-- Use social proof from similar buyers (peer validation)
-- Frame as "insurance" or "assurance" (speaks to risk aversion)
+- Use social proof from similar buyers
+- Frame as "insurance" or "safety net"
 - Give ONE concrete micro-example (not a feature list)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -230,62 +302,98 @@ Invite discussion, not a demo.
 
 Bad Example:
 "Can I get 30 minutes on your calendar this week for a demo?"
-(Asks for their time without giving value first)
 
 Good Example:
-"I'd welcome a brief conversation to share how [similar HK law firm/company] approached [specific challenge]. Even if our solution isn't the right fit, I can point you to [specific resource/insight] that might be helpful. Would [specific day/time] work for a 15-minute call?"
+"I'd love to share how [similar HK firm] tackled [specific challenge]. Even if our tool isn't the right fit, I can point you to [specific resource]. Would next Tuesday at 3pm work for a quick 15-min call?"
 
 ASK FORMULA:
-- Offer value FIRST (insight, benchmark, resource)
+- Offer value FIRST
 - Give optionality ("even if not a fit")
-- Be specific with time (15 min, not "sometime")
-- Propose exact slot (reduces friction)
+- Be specific with time (15 min, exact slot)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 TONE REQUIREMENTS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✓ Authoritative but humble (advisor, not vendor)
-✓ Specific but concise (every word earns its place)
-✓ Empathetic but professional (acknowledge stress without being patronizing)
-✓ Hong Kong appropriate (respect local business culture - direct but courteous)
-
-FORBIDDEN PHRASES:
-❌ "I hope this email finds you well" (cliché)
-❌ "We're the leading/award-winning" (unverifiable claims)
-❌ "Our AI-powered solution" (buzzword soup)
-❌ "Just following up" (signals desperation)
-❌ "I'd love to show you" (salesy language)
-
-APPROVED LANGUAGE PATTERNS:
-✓ "I noticed [specific fact]"
-✓ "In our work with [peer group]"
-✓ "The biggest hidden risk we see is"
-✓ "Would it be helpful to share"
-✓ "Even if our solution isn't the right fit"
+✓ Sound like a peer advisor, not a vendor
+✓ Use contractions (I've, we're, you'll)
+✓ Keep it conversational
+✓ Be specific (dates, names, numbers)
 
 OUTPUT FORMAT:
-**Subject Line:** [Specific, trigger-based, non-salesy]
-Example: "Re: [Company]'s [specific trigger event] - compliance gap consideration"
+**Subject Line:** [Specific, trigger-based, non-salesy - max 6 words]
 
 **Email Body:**
-[Hook - 2-3 sentences max]
+[Hook - 2-3 sentences]
 
-[Pivot - 2-3 sentences max]
+[Pivot - 2-3 sentences]
 
-[Ask - 2 sentences max]
+[Ask - 2 sentences]
 
-[Signature]
+Best,
+[Your Name]
 
-**EMAIL LENGTH TARGET:** 100-150 words maximum (legal professionals have zero time for long emails)
+**WORD COUNT:** 100-150 words MAX
 
-**ASSOCIATE TEST:** Would a junior lawyer read this and think "My boss should see this" or "Spam"?
+**ASSOCIATE TEST:** Would a junior lawyer think "My boss should see this" or "Spam"?
+"""
+
+# NEW: SALES EXECUTIVE SUMMARY
+SALES_EXEC_SUMMARY = f"""
+{ZINSSER_WRITING_RULES}
+
+═══════════════════════════════════════════════════
+SALES EXECUTIVE SUMMARY (For Time-Strapped Reps)
+═══════════════════════════════════════════════════
+
+YOUR ROLE: You're briefing a busy sales rep who has 90 seconds to understand this prospect before a call.
+
+OBJECTIVE: Distill ALL the research from Phases 1-3 into a "cheat sheet" that fits on one page.
+
+OUTPUT FORMAT:
+
+**🎯 THE 30-SECOND PITCH:**
+[In 2-3 sentences, explain: Who is this company? What legal problem did we find? Why should they care about our solution RIGHT NOW?]
+
+Example:
+"They're a HK-listed property developer who just bought a Shenzhen subsidiary in Q2. Their GC is probably freaking out about cross-border IP compliance because PRC and HK have different rules. We can help them audit those contracts before their next Board meeting."
+
+**🔥 TRIGGER EVENT (Why Now?):**
+- [The specific recent event that creates urgency - with date]
+- Why it matters: [One sentence on the consequence]
+
+**😰 THEIR BIGGEST PAIN:**
+[The ONE thing keeping the buyer awake at night - write it like you're them]
+
+Example: "If we get audited and our contracts don't comply with both HK and PRC law, I'm getting fired."
+
+**💰 WHAT THEY CARE ABOUT:**
+1. [Their #1 priority: Budget/Speed/Risk] - [Why in 5 words]
+2. [Their #2 priority] - [Why in 5 words]
+
+**❓ QUESTIONS TO ASK ON THE CALL:**
+1. [Diagnostic question]
+2. [Severity question]
+3. [Past attempts question]
+
+**📧 EMAIL HOOK TO USE:**
+"I saw you [specific trigger]. We've helped other HK [industry] companies with [their exact pain]. Want to chat?"
+
+**⏱️ TIME SENSITIVITY:**
+[ ] HIGH - They need to act in next 30-60 days
+[ ] MEDIUM - They're aware but not urgent yet
+[ ] LOW - Nice to have, no deadline pressure
+
+**BOTTOM LINE (Go/No-Go):**
+[One sentence: Is this prospect worth pursuing? Why or why not?]
 """
 
 # -----------------------------
 # OUS Framework Integration
 # -----------------------------
 
-OUS_DISCOVERY_PROMPT = """
+OUS_DISCOVERY_PROMPT = f"""
+{ZINSSER_WRITING_RULES}
+
 ═══════════════════════════════════════════════════
 OUS FRAMEWORK: OUTCOME → UNDERSTANDING → STANDARD
 ═══════════════════════════════════════════════════
@@ -301,84 +409,67 @@ Act as a strategic consultant. Based on the prospect's:
 - Company stage: [startup/growth/enterprise]
 - Recent trigger events: [from Phase 1]
 
-**Hypothesize the top 3 strategic Outcomes they are likely under pressure to achieve:**
+**What are the top 3 strategic Outcomes they need to achieve?**
+(Write in business language, not tech jargon)
 
-1. [Outcome in business language, not feature language]
-   Example: "Reduce outside counsel spend by 25% without sacrificing quality" NOT "Implement AI tools"
+1. [Outcome - be specific]
+   - Why this matters NOW: [One sentence]
+   - How we'll know they achieved it: [Measurable metric]
+   - What happens if they fail: [Consequence]
 
-2. [Second outcome tied to their specific context]
-   Example: "Achieve compliance with new PDPO amendments before Q2 audit" NOT "Buy compliance software"
+2. [Second outcome]
+   - Why this matters NOW: [One sentence]
+   - How we'll know they achieved it: [Measurable metric]
+   - What happens if they fail: [Consequence]
 
-3. [Third outcome - career/reputation level]
-   Example: "Position the legal department as a strategic partner, not a cost center" NOT "Increase efficiency"
-
-**For each outcome, answer:**
-- Why is this outcome critical NOW (urgency)?
-- What is the measurable success criteria (how will they know they achieved it)?
-- What happens if they FAIL to achieve this outcome (downside risk)?
+3. [Third outcome]
+   - Why this matters NOW: [One sentence]
+   - How we'll know they achieved it: [Measurable metric]
+   - What happens if they fail: [Consequence]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 U - UNDERSTANDING PAIN (Deep Diagnosis)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-For each Outcome identified above, perform "Symptoms → Root Cause" analysis:
+For each Outcome above, do "Symptoms → Root Cause" analysis:
 
 **Outcome:** [From above]
 
-**Visible Symptoms (what you can observe):**
-- [e.g., "High turnover in junior associates"]
-- [e.g., "Frequent regulatory filing deadline extensions"]
-- [e.g., "Increasing reliance on expensive outside counsel"]
+**What you can see (symptoms):**
+- [Observable problem 1]
+- [Observable problem 2]
 
-**Root Cause Hypothesis (what's really broken):**
-[The underlying operational/structural/cultural problem]
-Example: "The firm's legal research tools are 10+ years old, forcing associates to spend 60% of their time on manual cite-checking instead of strategic analysis. This creates burnout (symptom 1) and forces partners to outsource work they should handle internally (symptom 3)."
+**What's really broken (root cause):**
+[The underlying structural/process/cultural problem in one paragraph]
 
-**Discovery Questions (to validate this in conversation):**
-Write 3 diagnostic questions that:
-1. Prove you understand the complexity (not obvious questions)
-2. Reveal severity (quantify the pain)
-3. Uncover failed solutions (what have they already tried?)
-
-Example:
-❌ Bad: "Do you struggle with legal research?" (too generic)
-✓ Good: "When your M&A team needs to verify cross-border regulatory compliance between HK and PRC, how long does that research typically take, and how confident are you in the comprehensiveness?"
+**Questions to ask them:**
+1. [Question that proves you understand the complexity]
+2. [Question that reveals how severe the pain is]
+3. [Question about what they've already tried]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 S - STANDARD (Evaluation Criteria & Positioning)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Simulate the "Buying Committee" for this prospect.
+When they evaluate solutions, what will be their non-negotiable requirements?
 
-**When evaluating a solution for [the specific pain/outcome], what will be their non-negotiable Standards?**
+**Technical Must-Haves:**
+- [ ] [Specific integration need]
+- [ ] [Deployment requirement]
+- [ ] [Geographic/content coverage]
 
-Technical Standards:
-- [ ] Must integrate with existing systems (specify: e.g., iManage, NetDocuments)
-- [ ] Requires zero/minimal IT involvement to deploy
-- [ ] Must cover Hong Kong AND cross-border (PRC/Singapore) jurisdictions
-- [ ] Must include [specific content type]: case law, legislation, practice notes
+**Business Must-Haves:**
+- [ ] [ROI timeline requirement]
+- [ ] [Pricing model preference]
+- [ ] [Reference/proof point needed]
 
-Business Standards:
-- [ ] ROI payback period < [X months]
-- [ ] Pricing model: per-user vs. enterprise vs. usage-based
-- [ ] Vendor must have legal industry references in Hong Kong
+**Security/Compliance Must-Haves:**
+- [ ] [Data location requirement]
+- [ ] [Certification needed]
+- [ ] [Audit trail requirement]
 
-Security/Compliance Standards:
-- [ ] Data sovereignty (where is data stored? HK? Offshore?)
-- [ ] ISO 27001 / SOC 2 certification
-- [ ] Audit trail for regulatory compliance
+**How We Win:**
+"The Standard: [The ONE criterion they care about most]
 
-**Competitive Positioning:**
-Based on these Standards, how do we position our solution to be the ONLY one that meets the most critical standard?
-
-Example:
-"The Standard: They require a solution that covers both Hong Kong case law AND PRC regulations in a single search (because their M&A deals are always cross-border).
-
-Our Positioning: Unlike competitors who only cover HK or require separate subscriptions for PRC content, we are the only platform with unified HK-PRC legal intelligence, saving them from toggling between 3 different research tools."
-
-**OUTPUT:**
-For each Standard identified, state:
-1. Why this Standard exists (the fear/need driving it)
-2. How our solution meets it (be specific, not generic)
-3. What competitors CANNOT do (create contrast)
+Our Edge: [How we're the ONLY solution that meets this - be specific about what competitors can't do]"
 """
 
 # -----------------------------
@@ -389,6 +480,7 @@ PROMPT_RECIPES: Dict[str, str] = {
     "Phase 1: Discovery & Compliance Research": PHASE_1_DISCOVERY,
     "Phase 2: General Counsel Psychological Profiling": PHASE_2_PROFILING,
     "Phase 3: Credibility-Based Email Drafting": PHASE_3_DRAFTING,
+    "Sales Executive Summary (Quick Brief)": SALES_EXEC_SUMMARY,
     "OUS Framework Analysis": OUS_DISCOVERY_PROMPT,
 }
 
@@ -430,8 +522,8 @@ def generate_full_workflow(
     buyer_persona: str,
 ) -> Dict[str, str]:
     """
-    Generate all 4 prompts in sequence for a complete workflow.
-    Returns a dict with keys: phase1, phase2, phase3, ous
+    Generate all prompts in sequence for a complete workflow.
+    Returns a dict with keys: phase1, phase2, phase3, summary, ous
     """
     return {
         "phase1": fill_recipe(
@@ -444,6 +536,10 @@ def generate_full_workflow(
         ),
         "phase3": fill_recipe(
             "Phase 3: Credibility-Based Email Drafting",
+            company_name, company_url, practice_area, buyer_persona
+        ),
+        "summary": fill_recipe(
+            "Sales Executive Summary (Quick Brief)",
             company_name, company_url, practice_area, buyer_persona
         ),
         "ous": fill_recipe(
