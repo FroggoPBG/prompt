@@ -5,7 +5,6 @@ from datetime import datetime
 
 import streamlit as st
 
-from components.email_templates import EmailTemplateGenerator
 from components.presets import export_preset_bytes, load_preset_into_state
 from components.recipes import PromptRecipeManager, ProspectContext
 from components.writing_checker import check_plain_english, get_writing_tips
@@ -18,623 +17,526 @@ st.set_page_config(
     layout="wide",
 )
 
+# ==================== CUSTOM CSS ====================
 
-
-# ==================== CONSTANTS ====================
-
-PRACTICE_AREAS = [
-    "General/Multiple",
-    "M&A and Corporate Finance",
-    "Banking & Finance",
-    "Litigation & Dispute Resolution",
-    "Intellectual Property",
-    "Employment Law",
-    "Regulatory & Compliance",
-    "Real Estate & Property",
-    "Tax & Revenue",
-]
-
-BUYER_PERSONAS = [
-    "General Counsel (In-House)",
-    "Managing Partner (Law Firm)",
-    "Senior Partner (Law Firm)",
-    "Legal Operations Director",
-    "Compliance Head",
-    "Barrister (Chambers)",
-    "Corporate Secretary",
-]
+st.markdown("""
+<style>
+    .main-header {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+    .sub-header {
+        font-size: 1.1rem;
+        color: #6b7280;
+        margin-bottom: 2rem;
+    }
+    .stAlert {
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+    .insight-box {
+        background-color: #f0f9ff;
+        border-left: 4px solid #3b82f6;
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 0.375rem;
+    }
+    .warning-box {
+        background-color: #fef3c7;
+        border-left: 4px solid #f59e0b;
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 0.375rem;
+    }
+    .success-box {
+        background-color: #d1fae5;
+        border-left: 4px solid #10b981;
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 0.375rem;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 # ==================== HELPER FUNCTIONS ====================
 
-def initialize_session_state() -> None:
-    """Initialize session state with default values if not present."""
-    defaults = {
-        "company_name": "",
-        "company_url": "",
-        "practice_area": "General/Multiple",
-        "buyer_persona": "General Counsel (In-House)",
-        "industry": "",
-        "notes": "",
+def generate_insight_driven_emails(context: ProspectContext) -> dict[str, str]:
+    """
+    Generate three styles of insight-driven emails.
+    
+    Args:
+        context: The prospect research context
+        
+    Returns:
+        Dictionary with three email templates
+    """
+    trigger = context.trigger_event
+    outcome = context.outcome
+    unspoken = context.unspoken_concern
+    
+    # Extract company name if available
+    company_hint = ""
+    if "IPO" in trigger or "filing" in trigger.lower():
+        company_hint = "firm going public"
+    elif "expansion" in trigger.lower():
+        company_hint = "firm expanding regionally"
+    elif "hire" in trigger.lower() or "hired" in trigger.lower():
+        company_hint = "growing firm"
+    else:
+        company_hint = "firm in your situation"
+    
+    # TEMPLATE 1: Contrarian Insight Opener
+    email_contrarian = f"""Subject: The hidden risk in {trigger[:50]}...
+
+Hi [Name],
+
+I saw {trigger}. Congrats - most firms underestimate how complex that actually is.
+
+Here's what we've learned from helping similar firms through this: {unspoken} is the part that surprises everyone. Most people focus on {outcome}, but the real bottleneck is usually something else entirely.
+
+Quick example: One HK firm we worked with thought they needed better contract review. Turns out they needed better handoff protocols between associates and partners - which cut their M&A close time by 30%.
+
+Worth a 15-minute call to see if you're facing something similar?
+
+I'm free Tues/Wed this week at 10am HKT or 3pm HKT.
+
+Best,
+[Your name]
+
+P.S. - If timing's off, I wrote a quick guide on "{unspoken[:40]}..." that might be useful. Happy to send it your way.
+"""
+
+    # TEMPLATE 2: Peer Advisor Approach
+    email_peer = f"""Subject: Question about {trigger[:50]}...
+
+Hi [Name],
+
+Quick question (not a pitch, promise):
+
+When you're dealing with {trigger}, how are you currently handling {unspoken}?
+
+The reason I ask: We work with {company_hint} going through similar situations, and that's the part that tends to create the most headaches. Most firms think {outcome} is the priority, but in practice, {unspoken} is what actually slows things down.
+
+Does that resonate with your situation?
+
+If it's useful, I can share what we've seen work (and what doesn't). 15 minutes, your call.
+
+Free this week: Tues 10am or Wed 3pm HKT.
+
+Best,
+[Your name]
+"""
+
+    # TEMPLATE 3: Specific Timeline Hook
+    email_timeline = f"""Subject: Quick thought on your timeline
+
+Hi [Name],
+
+I saw {trigger} - based on the typical timeline for this, that means {outcome} needs to happen relatively soon.
+
+Here's the part that usually gets overlooked: {unspoken}.
+
+We've worked with {company_hint}, and this is where things tend to go sideways. Not because teams aren't capable, but because this specific issue often isn't on the radar until it's already creating delays.
+
+One example: A similar firm thought they had plenty of time for their regulatory process, but the back-and-forth on compliance controls ate up 3 weeks they didn't plan for.
+
+Worth a quick conversation to see if you're set up differently?
+
+I have 15 minutes open this week: Tuesday at 10am HKT or Wednesday at 3pm HKT.
+
+Best,
+[Your name]
+
+P.S. - Even if this isn't the right time, I'd be happy to intro you to a peer contact who just went through this exact process.
+"""
+
+    return {
+        "contrarian": email_contrarian,
+        "peer_advisor": email_peer,
+        "timeline_hook": email_timeline
     }
-    for key, value in defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = value
-
-
-def get_prospect_context() -> ProspectContext:
-    """Build ProspectContext from current session state."""
-    return ProspectContext(
-        company_name=st.session_state.get("company_name", ""),
-        company_url=st.session_state.get("company_url", ""),
-        practice_area=st.session_state.get("practice_area", "General/Multiple"),
-        buyer_persona=st.session_state.get("buyer_persona", "General Counsel (In-House)"),
-        industry=st.session_state.get("industry", ""),
-        notes=st.session_state.get("notes", ""),
-    )
-
-
-def render_prompt_expander(
-    title: str,
-    prompt: str,
-    filename: str,
-    key_suffix: str,
-    expanded: bool = False,
-    usage_note: str = "",
-) -> None:
-    """Render a consistent prompt expander with download button."""
-    with st.expander(title, expanded=expanded):
-        if usage_note:
-            st.markdown(f"**Usage:** {usage_note}")
-        st.code(prompt, language="markdown")
-        st.download_button(
-            "📥 Download Prompt",
-            prompt,
-            file_name=filename,
-            mime="text/plain",
-            key=f"download_{key_suffix}",
-        )
 
 
 # ==================== MAIN APP ====================
 
 def main():
-    """Main application entry point."""
-    initialize_session_state()
+    """Main application logic."""
     
-    # ==================== HEADER ====================
-    st.title("⚖️ Legal Tech Sales Prospecting Tool")
-    st.caption(
-        "3-Phase 'Legal Scout & Empathizer' Strategy for Hong Kong Legal Market | "
-        "Generate research prompts using the OUS Framework (Outcome → Understanding → Standard) | "
-        "**Now with Zinsser's Writing Principles built in**"
-    )
+    # Header
+    st.markdown('<div class="main-header">⚖️ Legal Tech Sales Prospecting Tool</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-header">OUS Framework: Turn Research into Insight-Driven Outreach</div>', unsafe_allow_html=True)
     
     # ==================== SIDEBAR ====================
-    render_sidebar()
     
-    # ==================== MAIN CONTENT ====================
-    st.markdown("---")
-    
-    tab1, tab2, tab3 = st.tabs([
-        "🚀 Generate Prompts",
-        "✍️ Plain English Checker",
-        "📧 Email Templates"
-    ])
-    
-    with tab1:
-        render_prompts_tab()
-    
-    with tab2:
-        render_writing_checker_tab()
-    
-    with tab3:
-        render_email_templates_tab()
-    
-    # ==================== USAGE GUIDE ====================
-    render_usage_guide()
-    
-    # ==================== FOOTER ====================
-    render_footer()
-
-
-def render_sidebar() -> None:
-    """Render the sidebar with prospect input form."""
     with st.sidebar:
-        st.header("🎯 Prospect Information")
+        st.header("🎯 Quick Actions")
         
-        # Company basics
-        st.text_input(
-            "Company/Law Firm Name*",
-            key="company_name",
-            placeholder="e.g., Liu Chong Hing Investment, Mayer Brown JSM",
-            help="Enter the full legal name of the prospect"
+        # Initialize recipe manager
+        recipe_manager = PromptRecipeManager()
+        
+        # Recipe selection
+        st.subheader("Select Prospect Type")
+        selected_recipe = st.selectbox(
+            "Choose a recipe:",
+            options=list(recipe_manager.recipes.keys()),
+            format_func=lambda x: recipe_manager.recipes[x].display_name,
+            help="Select the type of prospect you're researching"
         )
         
-        st.text_input(
-            "Company Website or Source Link",
-            key="company_url",
-            placeholder="https://www.example.com or LinkedIn URL",
-            help="Paste company website, LinkedIn, or any relevant URL for research"
-        )
+        recipe = recipe_manager.recipes[selected_recipe]
         
         st.markdown("---")
-        st.subheader("🔍 Target Context")
         
-        # Practice area and persona
-        st.selectbox(
-            "Primary Practice Area / Legal Focus",
-            PRACTICE_AREAS,
-            key="practice_area",
-            help="What legal practice area is under most pressure for this prospect?"
+        # Preset management
+        st.subheader("💾 Presets")
+        
+        # Save preset
+        preset_name = st.text_input(
+            "Save current analysis as:",
+            placeholder="e.g., Acme Corp - IPO Research"
         )
         
-        st.selectbox(
-            "Buyer Persona",
-            BUYER_PERSONAS,
-            key="buyer_persona",
-            help="Who is the primary decision-maker you're targeting?"
-        )
+        if st.button("💾 Save Preset", use_container_width=True):
+            if preset_name and st.session_state.get('trigger_event'):
+                preset_data = {
+                    'recipe_id': selected_recipe,
+                    'trigger_event': st.session_state.trigger_event,
+                    'outcome': st.session_state.outcome,
+                    'unspoken_concern': st.session_state.unspoken_concern,
+                    'solution_angle': st.session_state.solution_angle,
+                    'saved_at': datetime.now().isoformat()
+                }
+                
+                # Initialize presets in session state if needed
+                if 'saved_presets' not in st.session_state:
+                    st.session_state.saved_presets = {}
+                
+                st.session_state.saved_presets[preset_name] = preset_data
+                st.success(f"✅ Saved: {preset_name}")
+            else:
+                st.warning("⚠️ Please complete the OUS Framework first")
         
-        # Optional fields
-        st.text_input(
-            "Industry Vertical (Optional)",
-            key="industry",
-            placeholder="e.g., Financial Services, Real Estate, Technology",
-            help="If in-house counsel, what industry is the company in?"
-        )
-        
-        st.text_area(
-            "Additional Context/Notes (Optional)",
-            key="notes",
-            placeholder="Any specific triggers, recent news, or context...",
-            height=100,
-        )
-        
-        # Presets
-        render_preset_section()
-
-
-def render_preset_section() -> None:
-    """Render the preset save/load section in sidebar."""
-    st.markdown("---")
-    st.subheader("💾 Presets")
-    
-    company_name = st.session_state.get("company_name", "")
-    
-    # Export preset
-    preset_bytes = export_preset_bytes(
-        company_name=company_name,
-        company_url=st.session_state.get("company_url", ""),
-        practice_area=st.session_state.get("practice_area", ""),
-        buyer_persona=st.session_state.get("buyer_persona", ""),
-        industry=st.session_state.get("industry", ""),
-        notes=st.session_state.get("notes", ""),
-    )
-    
-    filename = f"prospect_{company_name.replace(' ', '_')}.json" if company_name else "prospect.json"
-    
-    st.download_button(
-        "💾 Save Prospect as Preset",
-        preset_bytes,
-        file_name=filename,
-        mime="application/json",
-        help="Save this prospect's info for future use"
-    )
-    
-    # Import preset
-    uploaded = st.file_uploader(
-        "📂 Load Saved Prospect Preset",
-        type="json",
-        help="Upload a previously saved prospect preset"
-    )
-    
-    if uploaded:
-        load_preset_into_state(uploaded)
-        st.rerun()
-
-
-def render_prompts_tab() -> None:
-    """Render the prompt generation tab."""
-    workflow_mode = st.radio(
-        "Choose Workflow",
-        [
-            "🚀 Full 5-Prompt Workflow (Recommended)",
-            "🔧 Individual Prompt Builder",
-        ],
-        horizontal=True,
-    )
-    
-    if workflow_mode == "🚀 Full 5-Prompt Workflow (Recommended)":
-        render_full_workflow()
-    else:
-        render_individual_prompt_builder()
-
-
-def render_full_workflow() -> None:
-    """Render the full 5-prompt workflow generator."""
-    st.markdown("### 🎯 Complete Sales Prospecting Sequence")
-    st.info(
-        "**This generates all 5 prompts in the correct order:**\n\n"
-        "1. **Phase 1**: Discovery & Compliance Research\n"
-        "2. **Phase 2**: General Counsel Psychological Profiling\n"
-        "3. **Phase 3**: Credibility-Based Email Drafting\n"
-        "4. **Sales Executive Summary**: Quick 90-second brief for busy reps\n"
-        "5. **OUS Framework**: Outcome → Understanding → Standard Analysis\n\n"
-        "Use these prompts sequentially in ChatGPT/Claude to build a complete prospect dossier."
-    )
-    
-    company_name = st.session_state.get("company_name", "")
-    
-    if st.button("✨ Generate Full Workflow", type="primary", use_container_width=True):
-        if not company_name:
-            st.error("❌ Please enter a company name to generate prompts.")
-            return
-        
-        with st.spinner("Generating 5-phase workflow..."):
-            context = get_prospect_context()
-            prompts = PromptRecipeManager.generate_full_workflow(context)
-        
-        st.success("✅ Workflow generated! Copy each prompt below and paste into your AI tool sequentially.")
-        
-        # Phase 1
-        render_prompt_expander(
-            title="📋 PROMPT 1: Discovery & Compliance Research",
-            prompt=prompts["phase1"],
-            filename=f"1_discovery_{company_name.replace(' ', '_')}.txt",
-            key_suffix="p1",
-            expanded=True,
-            usage_note="Paste this into ChatGPT/Claude. The AI will research the company and identify legal triggers."
-        )
-        
-        # Phase 2
-        render_prompt_expander(
-            title="📋 PROMPT 2: General Counsel Psychological Profiling",
-            prompt=prompts["phase2"],
-            filename=f"2_profiling_{company_name.replace(' ', '_')}.txt",
-            key_suffix="p2",
-            usage_note="After completing Prompt 1, paste this prompt PLUS the output from Prompt 1. The AI will analyze the buyer's emotional state and pain points."
-        )
-        
-        # Phase 3
-        render_prompt_expander(
-            title="📋 PROMPT 3: Credibility-Based Email Drafting",
-            prompt=prompts["phase3"],
-            filename=f"3_email_{company_name.replace(' ', '_')}.txt",
-            key_suffix="p3",
-            usage_note="After completing Prompts 1 & 2, paste this prompt PLUS the outputs. The AI will draft your cold outreach email."
-        )
-        
-        # Phase 4 (Sales Summary)
-        st.markdown("---")
-        render_prompt_expander(
-            title="📋 PROMPT 4: Sales Executive Summary (90-Second Brief)",
-            prompt=prompts["summary"],
-            filename=f"4_summary_{company_name.replace(' ', '_')}.txt",
-            key_suffix="p4",
-            expanded=True,
-            usage_note=(
-                "**🎯 NEW: For Time-Strapped Sales Reps** - "
-                "After completing Prompts 1-3, paste this prompt PLUS all previous outputs. "
-                "The AI will create a one-page cheat sheet that distills everything into a 90-second brief. "
-                "**Why this matters:** Your sales team won't read 3 pages of research. "
-                "They WILL read a one-page summary that tells them exactly what to say on the call."
+        # Load preset
+        if st.session_state.get('saved_presets'):
+            st.markdown("**Load a preset:**")
+            preset_to_load = st.selectbox(
+                "Saved presets:",
+                options=list(st.session_state.saved_presets.keys()),
+                key="preset_selector"
             )
-        )
-        
-        # Phase 5 (OUS)
-        render_prompt_expander(
-            title="📋 PROMPT 5: OUS Framework Analysis",
-            prompt=prompts["ous"],
-            filename=f"5_ous_{company_name.replace(' ', '_')}.txt",
-            key_suffix="p5",
-            usage_note="Use this prompt to apply the Outcome → Understanding → Standard lens to all your findings. This helps you refine your positioning."
-        )
-
-
-def render_individual_prompt_builder() -> None:
-    """Render the individual prompt builder."""
-    st.markdown("### 🔧 Build Individual Prompts")
-    
-    recipe_choice = st.selectbox(
-        "Select Prompt Type",
-        PromptRecipeManager.get_recipe_names(),
-        help="Choose which specific prompt you want to generate"
-    )
-    
-    company_name = st.session_state.get("company_name", "")
-    
-    if st.button("✨ Generate Prompt", type="primary", use_container_width=True):
-        if not company_name:
-            st.error("❌ Please enter a company name.")
-            return
-        
-        with st.spinner("Generating prompt..."):
-            context = get_prospect_context()
-            prompt = PromptRecipeManager.generate_prompt(recipe_choice, context)
-        
-        st.success("✅ Prompt generated!")
-        st.code(prompt, language="markdown")
-        
-        filename = f"{recipe_choice.replace(' ', '_').replace(':', '')}_{company_name.replace(' ', '_')}.txt"
-        st.download_button(
-            "📥 Download Prompt",
-            prompt,
-            file_name=filename,
-            mime="text/plain",
-            key="download_individual",
-        )
-
-
-def render_writing_checker_tab() -> None:
-    """Render the plain English writing checker tab."""
-    st.markdown("## ✍️ Plain English Writing Checker")
-    st.markdown(
-        "**Paste your draft email or message below.** "
-        "This tool will flag zombie nouns, jargon, and passive voice based on Zinsser's Principles."
-    )
-    
-    draft_text = st.text_area(
-        "Your Draft Text:",
-        height=250,
-        placeholder=(
-            "Paste your email draft here...\n\n"
-            "Example:\n"
-            "'We are pleased to facilitate the implementation of our robust solution "
-            "to optimize your legal workflows and leverage synergies...'"
-        ),
-        key="draft_text"
-    )
-    
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        check_button = st.button("🔍 Check My Writing", type="primary", use_container_width=True)
-    
-    if check_button:
-        if not draft_text:
-            st.error("❌ Please paste some text to check.")
-            return
-        
-        with st.spinner("Analyzing your writing..."):
-            analysis = check_plain_english(draft_text)
-        
-        # Display score
-        grade, emoji = analysis.grade_info
-        st.markdown("---")
-        st.markdown(f"### {emoji} Writing Quality Score: {analysis.score}/100 ({grade})")
-        
-        # Display issues
-        if analysis.has_issues:
-            st.warning("⚠️ **Issues Found - See below for suggestions**")
             
-            # Zombie words
-            if analysis.zombie_words:
-                st.markdown("#### 🧟 Zombie Nouns / Jargon Detected")
-                st.markdown("Replace these corporate buzzwords with plain English:")
-                
-                for issue in analysis.zombie_words:
-                    st.markdown(f"- ❌ **'{issue.text}'** → ✅ **'{issue.suggestion}'**")
+            col1, col2 = st.columns(2)
             
-            # Passive voice
-            if analysis.passive_voice:
-                st.markdown("#### 🔄 Passive Voice Detected")
-                st.markdown("Switch to active voice to sound more human:")
-                
-                for issue in analysis.passive_voice:
-                    with st.expander(f"📝 {issue.text[:60]}..."):
-                        st.markdown(f"**Full sentence:** {issue.text}")
-                        st.markdown(f"**Issue:** {issue.suggestion}")
-                        st.markdown("**Fix:** Rewrite using active voice (subject does the action)")
-        else:
-            st.success("✅ **Great job!** No major issues found. Your writing is clear and direct.")
+            with col1:
+                if st.button("📂 Load", use_container_width=True):
+                    load_preset_into_state(st.session_state.saved_presets[preset_to_load])
+                    st.success("✅ Preset loaded!")
+                    st.rerun()
+            
+            with col2:
+                if st.button("📥 Export", use_container_width=True):
+                    preset_bytes = export_preset_bytes(st.session_state.saved_presets[preset_to_load])
+                    st.download_button(
+                        label="Download",
+                        data=preset_bytes,
+                        file_name=f"{preset_to_load.replace(' ', '_')}.json",
+                        mime="application/json",
+                        use_container_width=True
+                    )
         
-        # Writing tips
         st.markdown("---")
-        with st.expander("💡 How to Improve This Draft"):
-            st.markdown(get_writing_tips())
+        
+        # Help section
+        with st.expander("ℹ️ How This Works"):
+            st.markdown("""
+            **The OUS Framework:**
+            
+            1. **Outcome**: What they want to achieve
+            2. **Unspoken**: The real concern they won't say
+            3. **Solution**: How you address the unspoken need
+            
+            **Why it works:**
+            - Focuses on insight, not features
+            - Addresses real concerns, not surface goals
+            - Positions you as advisor, not vendor
+            """)
     
-    # Always show tips
+    # ==================== MAIN CONTENT AREA ====================
+    
+    # Display selected recipe info
+    st.info(f"**{recipe.display_name}** - {recipe.description}")
+    
+    with st.expander("📋 See the Prompt Recipe"):
+        st.code(recipe.get_full_prompt(), language="markdown")
+    
     st.markdown("---")
-    with st.expander("✍️ How to Use These Insights in Your Outreach"):
-        st.markdown(get_writing_tips())
-
-
-def render_email_templates_tab() -> None:
-    """Render the email templates tab."""
-    st.markdown("## 📧 Fill-in-the-Blank Email Templates")
-    st.markdown(
-        "**After completing your OUS analysis**, use these templates as starting points. "
-        "They're pre-populated with placeholders - just replace the bracketed text with your findings."
-    )
     
-    st.info(
-        "💡 **Pro Tip:** Copy Template A or B, paste into the Plain English Checker tab, "
-        "and make sure it passes the writing test before sending!"
-    )
+    # ==================== OUS FRAMEWORK INPUTS ====================
     
-    # Template inputs
-    st.markdown("### 📝 Template Inputs (Optional)")
-    st.caption("Fill these in to generate customized templates, or use the default placeholders")
+    st.header("🎯 OUS Framework Analysis")
     
     col1, col2 = st.columns(2)
     
     with col1:
-        template_outcome = st.text_input(
-            "Outcome (from OUS analysis)",
-            placeholder="e.g., reducing outside counsel spend by 25%",
-            key="template_outcome"
+        st.subheader("🔍 Research Inputs")
+        
+        trigger_event = st.text_area(
+            "**Trigger Event** (What happened?)",
+            value=st.session_state.get('trigger_event', ''),
+            placeholder=recipe.example_inputs['trigger_event'],
+            help="What recent event or change made this prospect worth reaching out to now?",
+            height=100,
+            key='trigger_event'
         )
         
-        template_pain = st.text_input(
-            "Pain Point",
-            placeholder="e.g., junior associates spending 60% time on manual cite-checking",
-            key="template_pain"
-        )
-        
-        template_challenge = st.text_input(
-            "Specific Challenge",
-            placeholder="e.g., cross-border PDPO compliance after Shenzhen acquisition",
-            key="template_challenge"
+        outcome = st.text_area(
+            "**Outcome** (What do they want?)",
+            value=st.session_state.get('outcome', ''),
+            placeholder=recipe.example_inputs['outcome'],
+            help="What is their stated goal or desired outcome?",
+            height=100,
+            key='outcome'
         )
     
     with col2:
-        template_similar_client = st.text_input(
-            "Similar Client (anonymized)",
-            placeholder="e.g., a HK-listed fintech company",
-            key="template_similar_client"
+        st.subheader("💡 Insight Development")
+        
+        unspoken_concern = st.text_area(
+            "**Unspoken Concern** (What are they worried about?)",
+            value=st.session_state.get('unspoken_concern', ''),
+            placeholder=recipe.example_inputs['unspoken_concern'],
+            help="What's the real concern they won't say out loud?",
+            height=100,
+            key='unspoken_concern'
         )
         
-        template_solution = st.text_input(
-            "Solution Approach",
-            placeholder="e.g., automated gap detection that caught 12 issues before SFC audit",
-            key="template_solution"
-        )
-        
-        template_buyer_name = st.text_input(
-            "Buyer's First Name",
-            placeholder="[Name]",
-            key="template_buyer_name"
+        solution_angle = st.text_area(
+            "**Solution Angle** (How do you help?)",
+            value=st.session_state.get('solution_angle', ''),
+            placeholder=recipe.example_inputs['solution_angle'],
+            help="How does your solution address their unspoken concern?",
+            height=100,
+            key='solution_angle'
         )
     
-    company_name = st.session_state.get("company_name", "")
+    # Validate all fields are filled
+    all_filled = all([trigger_event, outcome, unspoken_concern, solution_angle])
     
-    if st.button("✨ Generate Templates", type="primary", use_container_width=True):
-        if not company_name:
-            st.error("❌ Please enter a company name in the sidebar first.")
-            return
-        
-        templates = EmailTemplateGenerator.generate_all_templates(
-            company_name=company_name,
-            outcome=template_outcome or "[Outcome - e.g., 'reducing outside counsel spend by 25%']",
-            pain_point=template_pain or "[Pain Point - e.g., 'junior associates spending 60% of time on manual cite-checking']",
-            specific_challenge=template_challenge or "[Specific Challenge - e.g., 'cross-border PDPO compliance after Shenzhen acquisition']",
-            similar_client=template_similar_client or "[Similar Client - e.g., 'a HK-listed fintech company']",
-            solution_approach=template_solution or "[Solution Approach - e.g., 'automated compliance gap detection']",
-            buyer_name=template_buyer_name or "[Name]",
-        )
-        
-        st.success("✅ Templates generated! Edit these to match your voice.")
-        
-        # Template A
-        template_a = templates["template_a"]
-        with st.expander(f"📧 {template_a.name}", expanded=True):
-            st.markdown(f"**When to use:** {template_a.when_to_use}")
-            full_template_a = f"Subject: {template_a.subject}\n\n{template_a.body}"
-            st.code(full_template_a, language="markdown")
-            st.download_button(
-                "📥 Download Template A",
-                full_template_a,
-                file_name=f"template_A_outcome_{company_name.replace(' ', '_')}.txt",
-                mime="text/plain",
-                key="download_template_a"
-            )
-        
-        # Template B
-        template_b = templates["template_b"]
-        with st.expander(f"📧 {template_b.name}"):
-            st.markdown(f"**When to use:** {template_b.when_to_use}")
-            full_template_b = f"Subject: {template_b.subject}\n\n{template_b.body}"
-            st.code(full_template_b, language="markdown")
-            st.download_button(
-                "📥 Download Template B",
-                full_template_b,
-                file_name=f"template_B_pain_{company_name.replace(' ', '_')}.txt",
-                mime="text/plain",
-                key="download_template_b"
-            )
-        
-        # Next steps
-        st.markdown("---")
-        st.info(
-            "💡 **Next Steps:**\n\n"
-            "1. Copy Template A or B\n"
-            "2. Replace all [bracketed placeholders] with your research findings\n"
-            "3. Paste into the **Plain English Checker** tab to verify it sounds human\n"
-            "4. Send!"
-        )
-
-
-def render_usage_guide() -> None:
-    """Render the usage guide expander."""
-    st.markdown("---")
-    with st.expander("📖 How to Use This Tool (Updated Guide)"):
-        st.markdown("""
-### 🎯 Quick Start Guide
-
-**Step 1: Enter Prospect Info (Sidebar)**
-- Enter company/law firm name
-- Paste their website or LinkedIn URL
-- Select practice area and buyer persona
-
-**Step 2: Generate Prompts (Tab 1)**
-- Use **Full Workflow** mode for complete prospect research
-- **NEW:** Prompt 4 now generates a Sales Executive Summary (90-second brief for busy reps)
-- Use prompts sequentially in ChatGPT/Claude
-
-**Step 3: Check Your Writing (Tab 2) 🆕**
-- Draft your email based on AI outputs
-- Paste into Plain English Checker
-- Fix zombie nouns and passive voice
-- Aim for score 80+ before sending
-
-**Step 4: Use Email Templates (Tab 3) 🆕**
-- Two pre-built templates based on your research
-- Template A: Outcome Hook (leads with their goal)
-- Template B: Pain Point Entry (leads with empathy)
-- Fill in bracketed placeholders with your findings
-
----
-
-### 🧠 OUS Framework Explained
-
-**O - Outcome:** What strategic business goal does the buyer need to achieve?
-- Example: "Reduce outside counsel spend by 25%"
-
-**U - Understanding Pain:** What specific operational pain is blocking that outcome?
-- Example: "Junior associates spend 60% of time on manual research"
-
-**S - Standard:** What criteria will they use to evaluate solutions?
-- Example: "Must integrate with iManage, cover HK + PRC law, deploy in <2 weeks"
-
----
-
-### ✍️ Zinsser's Principles (Built into Every Prompt)
-
-**1. Humanity** - Sound like a person, not a corporation
-- Use "I", "you", "we"
-- Show empathy
-
-**2. Clarity** - One idea per sentence
-- Use specific details (dates, numbers, names)
-- Replace abstract nouns with verbs
-
-**3. Brevity** - Cut every unnecessary word
-- Max 150 words per email
-- If you can say it in 5 words instead of 10, do it
-
-**4. Simplicity** - Use everyday language
-- Avoid jargon unless essential
-- Would a non-lawyer understand this?
-
----
-
-### ⚡ Pro Tips
-
-- **For best results:** Run prompts 1 → 2 → 3 → 4 → 5 sequentially
-- **Time saver:** Use Prompt 4 (Sales Summary) to brief your team in 90 seconds
-- **Quality check:** Use Plain English Checker on every draft before sending
-- **Template hack:** Generate both templates, pick the one that fits better, then customize
-- **Red flag:** If your email gets a writing score below 70, rewrite it
-        """)
-
-
-def render_footer() -> None:
-    """Render the footer."""
-    st.markdown("---")
-    st.caption(
-        "**Legal Tech Sales Prospecting Tool v2.0** | OUS Framework + Zinsser's Principles | "
-        "Designed for Hong Kong legal market prospecting | "
-        f"Session: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    if not all_filled:
+        st.warning("⚠️ Fill in all four fields above to generate email templates")
+        st.stop()
+    
+    # Create ProspectContext
+    context = ProspectContext(
+        trigger_event=trigger_event,
+        outcome=outcome,
+        unspoken_concern=unspoken_concern,
+        solution_angle=solution_angle
     )
+    
+    # ==================== OUS SUMMARY ====================
+    
+    st.markdown("---")
+    st.header("📊 OUS Framework Summary")
+    
+    summary_col1, summary_col2, summary_col3 = st.columns(3)
+    
+    with summary_col1:
+        st.markdown('<div class="insight-box">', unsafe_allow_html=True)
+        st.markdown("**🎯 OUTCOME**")
+        st.markdown(f"*What they want:*")
+        st.markdown(f"{outcome}")
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    with summary_col2:
+        st.markdown('<div class="warning-box">', unsafe_allow_html=True)
+        st.markdown("**🤔 UNSPOKEN**")
+        st.markdown(f"*What they're worried about:*")
+        st.markdown(f"{unspoken_concern}")
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    with summary_col3:
+        st.markdown('<div class="success-box">', unsafe_allow_html=True)
+        st.markdown("**✅ SOLUTION**")
+        st.markdown(f"*How you help:*")
+        st.markdown(f"{solution_angle}")
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # ==================== EMAIL TEMPLATES (NEW INSIGHT-DRIVEN) ====================
+    
+    st.markdown("---")
+    st.header("📧 Insight-Driven Email Templates")
+    
+    st.info("""
+    **Why these work better:**
+    - ✅ Lead with insight, not features
+    - ✅ Use specific details from your research
+    - ✅ Frame you as a peer advisor, not a vendor
+    - ✅ Clear, low-friction call to action
+    """)
+    
+    # Generate three different email styles
+    emails = generate_insight_driven_emails(context)
+    
+    # Tab interface for different email styles
+    tab1, tab2, tab3 = st.tabs([
+        "🔥 Contrarian Insight", 
+        "🤝 Peer Advisor",
+        "⏰ Timeline Hook"
+    ])
+    
+    with tab1:
+        st.markdown("**Best for:** Sophisticated prospects who are skeptical of typical sales pitches")
+        st.text_area(
+            "Email Template - Contrarian Insight:",
+            value=emails["contrarian"],
+            height=400,
+            key="email_contrarian_display"
+        )
+        
+        # Writing check
+        analysis = check_plain_english(emails["contrarian"])
+        grade_label, grade_emoji = analysis.grade_info
+        
+        st.metric(
+            label="Plain English Score",
+            value=f"{analysis.score}/100",
+            delta=grade_label
+        )
+        
+        if analysis.has_issues:
+            with st.expander("⚠️ See Writing Suggestions"):
+                if analysis.zombie_words:
+                    st.markdown("**Zombie Words Found:**")
+                    for issue in analysis.zombie_words:
+                        st.markdown(f"- Replace '{issue.text}' → '{issue.suggestion}'")
+                
+                if analysis.passive_voice:
+                    st.markdown("**Passive Voice Found:**")
+                    for issue in analysis.passive_voice[:3]:  # Show first 3
+                        st.markdown(f"- {issue.suggestion}")
+    
+    with tab2:
+        st.markdown("**Best for:** Building trust with new contacts or warm introductions")
+        st.text_area(
+            "Email Template - Peer Advisor:",
+            value=emails["peer_advisor"],
+            height=400,
+            key="email_peer_display"
+        )
+        
+        # Writing check
+        analysis = check_plain_english(emails["peer_advisor"])
+        grade_label, grade_emoji = analysis.grade_info
+        
+        st.metric(
+            label="Plain English Score",
+            value=f"{analysis.score}/100",
+            delta=grade_label
+        )
+        
+        if analysis.has_issues:
+            with st.expander("⚠️ See Writing Suggestions"):
+                if analysis.zombie_words:
+                    st.markdown("**Zombie Words Found:**")
+                    for issue in analysis.zombie_words:
+                        st.markdown(f"- Replace '{issue.text}' → '{issue.suggestion}'")
+                
+                if analysis.passive_voice:
+                    st.markdown("**Passive Voice Found:**")
+                    for issue in analysis.passive_voice[:3]:
+                        st.markdown(f"- {issue.suggestion}")
+    
+    with tab3:
+        st.markdown("**Best for:** Prospects with clear deadlines or time-sensitive trigger events")
+        st.text_area(
+            "Email Template - Timeline Hook:",
+            value=emails["timeline_hook"],
+            height=400,
+            key="email_timeline_display"
+        )
+        
+        # Writing check
+        analysis = check_plain_english(emails["timeline_hook"])
+        grade_label, grade_emoji = analysis.grade_info
+        
+        st.metric(
+            label="Plain English Score",
+            value=f"{analysis.score}/100",
+            delta=grade_label
+        )
+        
+        if analysis.has_issues:
+            with st.expander("⚠️ See Writing Suggestions"):
+                if analysis.zombie_words:
+                    st.markdown("**Zombie Words Found:**")
+                    for issue in analysis.zombie_words:
+                        st.markdown(f"- Replace '{issue.text}' → '{issue.suggestion}'")
+                
+                if analysis.passive_voice:
+                    st.markdown("**Passive Voice Found:**")
+                    for issue in analysis.passive_voice[:3]:
+                        st.markdown(f"- {issue.suggestion}")
+    
+    # ==================== CUSTOMIZATION GUIDE ====================
+    
+    with st.expander("✍️ How to Customize These Templates"):
+        st.markdown("""
+        ### Make It Your Own:
+
+        **1. Replace [bracketed placeholders]:**
+        - `[Name]` = Their actual first name (use LinkedIn)
+        - `[Your name]` = Your actual name and title
+        - Dates/times = Actual calendar slots you have open
+
+        **2. Add specific numbers:**
+        - Instead of: "This usually creates issues"
+        - Use: "We've seen this add 3-4 weeks to timelines in 60% of cases"
+
+        **3. Include a micro-case study:**
+        - "One firm in Singapore faced X, solved it with Y, got Z result"
+        - Be specific but protect client confidentiality
+
+        **4. Personalize the P.S.:**
+        - Offer a specific resource (guide, intro, data point)
+        - Makes the email valuable even if they say no
+        - Example: "P.S. - I wrote a guide on [unspoken concern] for HK firms. Want me to send it?"
+
+        **5. The subject line test:**
+        - Would YOU click on this subject line?
+        - If not, make it more specific or controversial
+        - Good: "The hidden risk in HKEX filings"
+        - Bad: "Following up" or "Quick question"
+
+        ### The Fill-In-The-Blank Checklist:
+
+        Before sending, make sure you've:
+        - [ ] Replaced ALL [bracketed text] with real details
+        - [ ] Added at least one specific number or statistic
+        - [ ] Referenced their actual trigger event (not generic)
+        - [ ] Included exact meeting times (not "sometime this week")
+        - [ ] Made the P.S. valuable on its own
+        - [ ] Checked that you sound like a peer, not a vendor
+        """)
+    
+    # ==================== WRITING TIPS ====================
+    
+    st.markdown("---")
+    
+    with st.expander("📚 Plain English Writing Guide"):
+        st.markdown(get_writing_tips())
+    
+    # ==================== FOOTER ====================
+    
+    st.markdown("---")
+    st.markdown("""
+    <div style='text-align: center; color: #6b7280; padding: 2rem 0;'>
+        <p><strong>OUS Framework</strong> - Outcome, Unspoken Concern, Solution</p>
+        <p style='font-size: 0.875rem;'>Stop selling features. Start teaching insights.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # ==================== RUN APP ====================
