@@ -1,12 +1,45 @@
-# components/writing_checker.py
-# Plain English Writing Checker - Zinsser's Principles Enforcement
+"""Plain English Writing Checker - Zinsser's Principles Enforcement."""
 from __future__ import annotations
 
 import re
-from typing import List, Tuple, Dict
+from dataclasses import dataclass
+from typing import Iterator
 
-# Zombie Nouns and Jargon Dictionary
-ZOMBIE_WORDS: Dict[str, str] = {
+
+@dataclass
+class WritingIssue:
+    """Represents a writing issue found in text."""
+    text: str
+    suggestion: str
+    category: str  # 'zombie_word' or 'passive_voice'
+
+
+@dataclass
+class WritingAnalysis:
+    """Results of plain English analysis."""
+    zombie_words: list[WritingIssue]
+    passive_voice: list[WritingIssue]
+    score: int
+    
+    @property
+    def has_issues(self) -> bool:
+        """Check if any issues were found."""
+        return bool(self.zombie_words or self.passive_voice)
+    
+    @property
+    def grade_info(self) -> tuple[str, str]:
+        """Get grade label and emoji for score."""
+        if self.score >= 90:
+            return "A - Excellent", "🟢"
+        elif self.score >= 80:
+            return "B - Good", "🟡"
+        elif self.score >= 70:
+            return "C - Fair", "🟠"
+        return "D - Needs Work", "🔴"
+
+
+# Zombie nouns mapping - extracted for clarity
+ZOMBIE_WORDS: dict[str, str] = {
     "utilization": "use",
     "utilize": "use",
     "implementation": "start using / set up",
@@ -48,84 +81,86 @@ ZOMBIE_WORDS: Dict[str, str] = {
     "scalable": "can grow / expandable",
 }
 
-# Passive Voice Patterns
-PASSIVE_PATTERNS: List[str] = [
-    r"\b(is|are|was|were|be|been|being)\s+\w+ed\b",
-    r"\b(has|have|had)\s+been\s+\w+ed\b",
-    r"\b(will|shall)\s+be\s+\w+ed\b",
+# Passive voice patterns - compiled for performance
+PASSIVE_PATTERNS = [
+    re.compile(r'\b(is|are|was|were|be|been|being)\s+\w+ed\b', re.IGNORECASE),
+    re.compile(r'\b(has|have|had)\s+been\s+\w+ed\b', re.IGNORECASE),
+    re.compile(r'\b(will|shall)\s+be\s+\w+ed\b', re.IGNORECASE),
 ]
 
+# Scoring constants
+ZOMBIE_WORD_PENALTY = 5
+PASSIVE_VOICE_PENALTY = 3
+MAX_SCORE = 100
+MIN_SCORE = 0
 
-def check_plain_english(text: str) -> Dict[str, List[Tuple[str, str]]]:
+
+def _find_zombie_words(text: str) -> Iterator[WritingIssue]:
+    """Find zombie words and jargon in text."""
+    text_lower = text.lower()
+    
+    for zombie, replacement in ZOMBIE_WORDS.items():
+        pattern = re.compile(r'\b' + re.escape(zombie) + r'\b', re.IGNORECASE)
+        if pattern.search(text_lower):
+            yield WritingIssue(
+                text=zombie,
+                suggestion=replacement,
+                category='zombie_word'
+            )
+
+
+def _find_passive_voice(text: str) -> Iterator[WritingIssue]:
+    """Find passive voice constructions in text."""
+    sentences = [s.strip() for s in re.split(r'[.!?]+', text) if s.strip()]
+    
+    for sentence in sentences:
+        for pattern in PASSIVE_PATTERNS:
+            match = pattern.search(sentence)
+            if match:
+                passive_phrase = match.group(0)
+                yield WritingIssue(
+                    text=sentence,
+                    suggestion=f"Passive voice detected: '{passive_phrase}'. Try active voice instead.",
+                    category='passive_voice'
+                )
+                break  # Only report once per sentence
+
+
+def check_plain_english(text: str) -> WritingAnalysis:
     """
     Analyze text for zombie nouns, jargon, and passive voice.
     
-    Returns:
-        Dict with keys:
-        - 'zombie_words': List of (found_word, suggested_replacement)
-        - 'passive_voice': List of (sentence_fragment, suggestion)
-        - 'score': Overall writing quality score (0-100)
-    """
-    results = {
-        "zombie_words": [],
-        "passive_voice": [],
-        "score": 100,
-    }
-    
-    text_lower = text.lower()
-    
-    # Check for zombie words
-    for zombie, replacement in ZOMBIE_WORDS.items():
-        # Use word boundaries to avoid partial matches
-        pattern = r'\b' + re.escape(zombie) + r'\b'
-        if re.search(pattern, text_lower):
-            results["zombie_words"].append((zombie, replacement))
-            results["score"] -= 5  # Deduct points for each zombie word
-    
-    # Check for passive voice
-    sentences = re.split(r'[.!?]+', text)
-    for sentence in sentences:
-        sentence = sentence.strip()
-        if not sentence:
-            continue
+    Args:
+        text: The text to analyze
         
-        for pattern in PASSIVE_PATTERNS:
-            matches = re.finditer(pattern, sentence, re.IGNORECASE)
-            for match in matches:
-                passive_phrase = match.group(0)
-                results["passive_voice"].append((
-                    sentence,
-                    f"Passive voice detected: '{passive_phrase}'. Try active voice instead."
-                ))
-                results["score"] -= 3  # Deduct points for passive voice
-    
-    # Ensure score doesn't go below 0
-    results["score"] = max(0, results["score"])
-    
-    return results
-
-
-def get_writing_score_label(score: int) -> Tuple[str, str]:
-    """
-    Convert numeric score to a letter grade and emoji.
-    
     Returns:
-        Tuple of (grade, emoji)
+        WritingAnalysis object with findings and score
     """
-    if score >= 90:
-        return "A - Excellent", "🟢"
-    elif score >= 80:
-        return "B - Good", "🟡"
-    elif score >= 70:
-        return "C - Fair", "🟠"
-    else:
-        return "D - Needs Work", "🔴"
+    if not text or not text.strip():
+        return WritingAnalysis(
+            zombie_words=[],
+            passive_voice=[],
+            score=MAX_SCORE
+        )
+    
+    zombie_words = list(_find_zombie_words(text))
+    passive_voice = list(_find_passive_voice(text))
+    
+    # Calculate score
+    score = MAX_SCORE
+    score -= len(zombie_words) * ZOMBIE_WORD_PENALTY
+    score -= len(passive_voice) * PASSIVE_VOICE_PENALTY
+    score = max(MIN_SCORE, score)
+    
+    return WritingAnalysis(
+        zombie_words=zombie_words,
+        passive_voice=passive_voice,
+        score=score
+    )
 
 
 def get_writing_tips() -> str:
-    """
-    Return a markdown-formatted guide on writing better outreach emails.
-    """
+    """Return markdown-formatted guide on writing better outreach emails."""
     return """
 ### ✍️ How to Use These Insights in Your Outreach
 
