@@ -6,7 +6,7 @@ from datetime import datetime
 import streamlit as st
 
 from components.presets import export_preset_bytes, load_preset_into_state
-from components.recipes import PromptRecipeManager, PromptRecipe, ProspectContext
+from components.recipes import PromptRecipeManager, ProspectContext
 from components.writing_checker import check_plain_english, get_writing_tips
 
 # ==================== PAGE CONFIG ====================
@@ -180,24 +180,24 @@ def main():
         # Recipe selection
         st.subheader("Select Prospect Type")
         
-        # Get recipe options safely
-        try:
-            recipe_ids = list(recipe_manager.recipes.keys())
-            recipe_names = [recipe_manager.recipes[rid].display_name for rid in recipe_ids]
-            
-            selected_index = st.selectbox(
-                "Choose a recipe:",
-                options=range(len(recipe_ids)),
-                format_func=lambda i: recipe_names[i],
-                help="Select the type of prospect you're researching"
-            )
-            
-            selected_recipe = recipe_ids[selected_index]
-            recipe = recipe_manager.recipes[selected_recipe]
-            
-        except Exception as e:
-            st.error(f"Error loading recipes: {e}")
-            st.stop()
+        # Simplified recipe selection
+        recipe_options = {
+            "ipo_hong_kong": "🏢 IPO / Public Listing (Hong Kong)",
+            "cross_border_ma": "🌏 Cross-Border M&A",
+            "regulatory_expansion": "📜 Regulatory Compliance / Expansion",
+            "litigation_defense": "⚖️ Litigation / Legal Defense",
+            "general_corporate": "🏛️ General Corporate / GC Office",
+            "private_equity": "💼 Private Equity / Portfolio Company",
+        }
+        
+        selected_recipe = st.selectbox(
+            "Choose a recipe:",
+            options=list(recipe_options.keys()),
+            format_func=lambda x: recipe_options[x],
+            help="Select the type of prospect you're researching"
+        )
+        
+        recipe = recipe_manager.get_recipe(selected_recipe)
         
         st.markdown("---")
         
