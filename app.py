@@ -6,7 +6,7 @@ from datetime import datetime
 import streamlit as st
 
 from components.presets import export_preset_bytes, load_preset_into_state
-from components.recipes import PromptRecipeManager, ProspectContext
+from components.recipes import PromptRecipeManager, PromptRecipe, ProspectContext
 from components.writing_checker import check_plain_english, get_writing_tips
 
 # ==================== PAGE CONFIG ====================
