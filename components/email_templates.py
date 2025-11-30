@@ -1,21 +1,35 @@
-# components/email_templates.py
-# Generate fill-in-the-blank email templates from OUS analysis
+"""Generate fill-in-the-blank email templates from OUS analysis."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 
-def generate_outcome_hook_template(
-    company_name: str,
-    outcome: str,
-    pain_point: str,
-    buyer_name: str = "[Name]",
-) -> str:
-    """
-    Template A: The Outcome Hook
-    Leads with what they're trying to achieve.
-    """
-    return f"""Subject: Re: {company_name}'s {outcome[:40]}...
 
-{buyer_name},
+@dataclass
+class EmailTemplate:
+    """Represents an email template."""
+    name: str
+    subject: str
+    body: str
+    when_to_use: str
+
+
+class EmailTemplateGenerator:
+    """Generates email templates from analysis data."""
+    
+    @staticmethod
+    def outcome_hook(
+        company_name: str,
+        outcome: str,
+        pain_point: str,
+        buyer_name: str = "[Name]",
+    ) -> EmailTemplate:
+        """
+        Template A: The Outcome Hook
+        Leads with what they're trying to achieve.
+        """
+        subject = f"Re: {company_name}'s {outcome[:40]}..."
+        
+        body = f"""{buyer_name},
 
 I saw {company_name} is working on {outcome}. 
 
@@ -28,24 +42,30 @@ Would it help to share how they approached this? Even if our tool isn't the righ
 Would next Tuesday at 3pm work for a quick 15-min call?
 
 Best,
-[Your Name]
-"""
-
-
-def generate_pain_point_entry_template(
-    company_name: str,
-    specific_challenge: str,
-    similar_client: str,
-    solution_approach: str,
-    buyer_name: str = "[Name]",
-) -> str:
-    """
-    Template B: The Pain Point Entry
-    Leads with empathy about their specific struggle.
-    """
-    return f"""Subject: {specific_challenge} - quick insight
-
-{buyer_name},
+[Your Name]"""
+        
+        return EmailTemplate(
+            name="Template A: Outcome Hook",
+            subject=subject,
+            body=body,
+            when_to_use="When you know their strategic goal from research"
+        )
+    
+    @staticmethod
+    def pain_point_entry(
+        company_name: str,
+        specific_challenge: str,
+        similar_client: str,
+        solution_approach: str,
+        buyer_name: str = "[Name]",
+    ) -> EmailTemplate:
+        """
+        Template B: The Pain Point Entry
+        Leads with empathy about their specific struggle.
+        """
+        subject = f"{specific_challenge} - quick insight"
+        
+        body = f"""{buyer_name},
 
 I read about {company_name}'s {specific_challenge}.
 
@@ -60,29 +80,57 @@ Would a quick 15-min call work? I'm free Tuesday at 11am or Thursday at 2pm.
 Best,
 [Your Name]
 
-P.S. Even if our solution isn't a fit, I can send you a checklist they used - it's been helpful for other firms dealing with this.
-"""
+P.S. Even if our solution isn't a fit, I can send you a checklist they used - it's been helpful for other firms dealing with this."""
+        
+        return EmailTemplate(
+            name="Template B: Pain Point Entry",
+            subject=subject,
+            body=body,
+            when_to_use="When you know their specific struggle/challenge"
+        )
+    
+    @classmethod
+    def generate_all_templates(
+        cls,
+        company_name: str,
+        outcome: str = "[Outcome - e.g., 'reducing outside counsel spend by 25%']",
+        pain_point: str = "[Pain Point - e.g., 'junior associates spending 60% of time on manual cite-checking']",
+        specific_challenge: str = "[Specific Challenge - e.g., 'cross-border PDPO compliance after Shenzhen acquisition']",
+        similar_client: str = "[Similar Client - e.g., 'a HK-listed fintech company']",
+        solution_approach: str = "[Solution Approach - e.g., 'automated compliance gap detection that caught 12 issues before their SFC audit']",
+        buyer_name: str = "[Name]",
+    ) -> dict[str, EmailTemplate]:
+        """
+        Generate both email templates with placeholders.
+        
+        Returns dict with keys: 'template_a', 'template_b'
+        """
+        return {
+            "template_a": cls.outcome_hook(
+                company_name, outcome, pain_point, buyer_name
+            ),
+            "template_b": cls.pain_point_entry(
+                company_name, specific_challenge, similar_client, solution_approach, buyer_name
+            ),
+        }
 
 
+# Backwards compatibility
 def generate_templates_from_analysis(
     company_name: str,
     outcome: str = "[Outcome - e.g., 'reducing outside counsel spend by 25%']",
     pain_point: str = "[Pain Point - e.g., 'junior associates spending 60% of time on manual cite-checking']",
     specific_challenge: str = "[Specific Challenge - e.g., 'cross-border PDPO compliance after Shenzhen acquisition']",
     similar_client: str = "[Similar Client - e.g., 'a HK-listed fintech company']",
-    solution_approach: str = "[Solution Approach - e.g., 'automated compliance gap detection that caught 12 issues before their SFC audit']",
+    solution_approach: str = "[Solution Approach - e.g., 'automated compliance gap detection']",
     buyer_name: str = "[Name]",
-) -> dict:
-    """
-    Generate both email templates with placeholders.
-    
-    Returns dict with keys: 'template_a', 'template_b'
-    """
+) -> dict[str, str]:
+    """Legacy function - returns dict with template bodies as strings."""
+    templates = EmailTemplateGenerator.generate_all_templates(
+        company_name, outcome, pain_point, specific_challenge,
+        similar_client, solution_approach, buyer_name
+    )
     return {
-        "template_a": generate_outcome_hook_template(
-            company_name, outcome, pain_point, buyer_name
-        ),
-        "template_b": generate_pain_point_entry_template(
-            company_name, specific_challenge, similar_client, solution_approach, buyer_name
-        ),
+        "template_a": f"Subject: {templates['template_a'].subject}\n\n{templates['template_a'].body}",
+        "template_b": f"Subject: {templates['template_b'].subject}\n\n{templates['template_b'].body}",
     }
