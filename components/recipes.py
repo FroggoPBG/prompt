@@ -1,14 +1,12 @@
-# components/recipes.py
-# Legal Tech Sales Prospecting - OUS Framework with Zinsser's Principles
+"""Legal Tech Sales Prospecting - Prompt Recipe Management."""
 from __future__ import annotations
 
-from typing import Dict, List, Callable, Any
+from dataclasses import dataclass
+from typing import Final
 
-# -----------------------------
-# ZINSSER'S PRINCIPLES FILTER
-# -----------------------------
+# ==================== CONSTANTS ====================
 
-ZINSSER_WRITING_RULES = """
+ZINSSER_WRITING_RULES: Final[str] = """
 ═══════════════════════════════════════════════════
 WRITING STYLE ENFORCEMENT: ZINSSER'S PRINCIPLES
 ═══════════════════════════════════════════════════
@@ -71,11 +69,7 @@ FORMAT REQUIREMENTS:
 ✓ Use contractions (they're, you've, we'll) to sound human
 """
 
-# -----------------------------
-# Anti-Hallucination Preamble
-# -----------------------------
-
-ANTI_HALLUCINATION_PREAMBLE = """
+ANTI_HALLUCINATION_PREAMBLE: Final[str] = """
 CRITICAL INSTRUCTIONS:
 - Never invent company details, metrics, or legal cases not provided
 - Never fabricate dates, regulatory filings, or litigation history
@@ -84,11 +78,7 @@ CRITICAL INSTRUCTIONS:
 - Do not make claims about competitor products without evidence
 """
 
-# -----------------------------
-# Hong Kong Legal Context
-# -----------------------------
-
-HK_LEGAL_CONTEXT = """
+HK_LEGAL_CONTEXT: Final[str] = """
 HONG KONG LEGAL LANDSCAPE CONTEXT:
 You are researching prospects in Hong Kong's legal market. Key considerations:
 
@@ -117,11 +107,46 @@ Legal Buyer Personas:
 - Corporate Secretaries (governance, regulatory filing deadlines)
 """
 
-# -----------------------------
-# 3-Phase Legal Scout Strategy (WITH ZINSSER FILTER)
-# -----------------------------
 
-PHASE_1_DISCOVERY = f"""
+# ==================== DATA MODELS ====================
+
+@dataclass
+class ProspectContext:
+    """Prospect information for prompt generation."""
+    company_name: str
+    company_url: str = ""
+    practice_area: str = "General/Multiple"
+    buyer_persona: str = "General Counsel / Legal Decision Maker"
+    industry: str = ""
+    notes: str = ""
+    
+    def to_prompt_header(self) -> str:
+        """Generate the prospect context block for prompts."""
+        return f"""
+{'='*60}
+PROSPECT CONTEXT
+{'='*60}
+Company Name: {self.company_name or '[To be researched]'}
+Company Website/Source: {self.company_url or '[To be researched]'}
+Target Practice Area: {self.practice_area}
+Buyer Persona: {self.buyer_persona}
+{'='*60}
+
+{HK_LEGAL_CONTEXT}
+
+{ANTI_HALLUCINATION_PREAMBLE}
+"""
+
+
+# ==================== PROMPT TEMPLATES ====================
+
+class PromptTemplates:
+    """Collection of all prompt templates."""
+    
+    @staticmethod
+    def phase_1_discovery() -> str:
+        """Phase 1: Discovery & Compliance Research."""
+        return f"""
 {ZINSSER_WRITING_RULES}
 
 ═══════════════════════════════════════════════════
@@ -173,8 +198,11 @@ OUTPUT FORMAT (Use conversational bullets):
 
 **CONFIDENCE:** [High/Medium/Low based on available data]
 """
-
-PHASE_2_PROFILING = f"""
+    
+    @staticmethod
+    def phase_2_profiling() -> str:
+        """Phase 2: General Counsel Psychological Profiling."""
+        return f"""
 {ZINSSER_WRITING_RULES}
 
 ═══════════════════════════════════════════════════
@@ -245,8 +273,11 @@ Example:
 2. [Question that reveals how bad the pain is]
 3. [Question about what they've already tried]
 """
-
-PHASE_3_DRAFTING = f"""
+    
+    @staticmethod
+    def phase_3_email_drafting() -> str:
+        """Phase 3: Credibility-Based Email Drafting."""
+        return f"""
 {ZINSSER_WRITING_RULES}
 
 ═══════════════════════════════════════════════════
@@ -336,9 +367,11 @@ Best,
 
 **ASSOCIATE TEST:** Would a junior lawyer think "My boss should see this" or "Spam"?
 """
-
-# NEW: SALES EXECUTIVE SUMMARY
-SALES_EXEC_SUMMARY = f"""
+    
+    @staticmethod
+    def sales_exec_summary() -> str:
+        """Sales Executive Summary (Quick Brief)."""
+        return f"""
 {ZINSSER_WRITING_RULES}
 
 ═══════════════════════════════════════════════════
@@ -386,12 +419,11 @@ Example: "If we get audited and our contracts don't comply with both HK and PRC 
 **BOTTOM LINE (Go/No-Go):**
 [One sentence: Is this prospect worth pursuing? Why or why not?]
 """
-
-# -----------------------------
-# OUS Framework Integration
-# -----------------------------
-
-OUS_DISCOVERY_PROMPT = f"""
+    
+    @staticmethod
+    def ous_framework() -> str:
+        """OUS Framework Analysis."""
+        return f"""
 {ZINSSER_WRITING_RULES}
 
 ═══════════════════════════════════════════════════
@@ -472,18 +504,67 @@ When they evaluate solutions, what will be their non-negotiable requirements?
 Our Edge: [How we're the ONLY solution that meets this - be specific about what competitors can't do]"
 """
 
-# -----------------------------
-# Recipe Registry
-# -----------------------------
 
-PROMPT_RECIPES: Dict[str, str] = {
-    "Phase 1: Discovery & Compliance Research": PHASE_1_DISCOVERY,
-    "Phase 2: General Counsel Psychological Profiling": PHASE_2_PROFILING,
-    "Phase 3: Credibility-Based Email Drafting": PHASE_3_DRAFTING,
-    "Sales Executive Summary (Quick Brief)": SALES_EXEC_SUMMARY,
-    "OUS Framework Analysis": OUS_DISCOVERY_PROMPT,
-}
+# ==================== PROMPT GENERATION ====================
 
+class PromptRecipeManager:
+    """Manages prompt recipe generation."""
+    
+    RECIPES: dict[str, callable] = {
+        "Phase 1: Discovery & Compliance Research": PromptTemplates.phase_1_discovery,
+        "Phase 2: General Counsel Psychological Profiling": PromptTemplates.phase_2_profiling,
+        "Phase 3: Credibility-Based Email Drafting": PromptTemplates.phase_3_email_drafting,
+        "Sales Executive Summary (Quick Brief)": PromptTemplates.sales_exec_summary,
+        "OUS Framework Analysis": PromptTemplates.ous_framework,
+    }
+    
+    @classmethod
+    def get_recipe_names(cls) -> list[str]:
+        """Get list of available recipe names."""
+        return list(cls.RECIPES.keys())
+    
+    @classmethod
+    def generate_prompt(cls, recipe_name: str, context: ProspectContext) -> str:
+        """
+        Generate a prompt based on the selected recipe and prospect context.
+        
+        Args:
+            recipe_name: Name of the recipe to use
+            context: Prospect context information
+            
+        Returns:
+            Complete prompt string
+            
+        Raises:
+            ValueError: If recipe_name is not found
+        """
+        if recipe_name not in cls.RECIPES:
+            raise ValueError(f"Unknown recipe: {recipe_name}")
+        
+        recipe_func = cls.RECIPES[recipe_name]
+        return context.to_prompt_header() + "\n\n" + recipe_func()
+    
+    @classmethod
+    def generate_full_workflow(cls, context: ProspectContext) -> dict[str, str]:
+        """
+        Generate all prompts in sequence for a complete workflow.
+        
+        Args:
+            context: Prospect context information
+            
+        Returns:
+            Dict with keys: phase1, phase2, phase3, summary, ous
+        """
+        return {
+            "phase1": cls.generate_prompt("Phase 1: Discovery & Compliance Research", context),
+            "phase2": cls.generate_prompt("Phase 2: General Counsel Psychological Profiling", context),
+            "phase3": cls.generate_prompt("Phase 3: Credibility-Based Email Drafting", context),
+            "summary": cls.generate_prompt("Sales Executive Summary (Quick Brief)", context),
+            "ous": cls.generate_prompt("OUS Framework Analysis", context),
+        }
+
+
+# ==================== BACKWARDS COMPATIBILITY ====================
 
 def fill_recipe(
     recipe_name: str,
@@ -492,27 +573,14 @@ def fill_recipe(
     practice_area: str = "",
     buyer_persona: str = "",
 ) -> str:
-    """
-    Generate a prompt based on the selected recipe and minimal inputs.
-    """
-    base_prompt = PROMPT_RECIPES.get(recipe_name, "")
-    
-    context_block = f"""
-{'='*60}
-PROSPECT CONTEXT
-{'='*60}
-Company Name: {company_name or '[To be researched]'}
-Company Website/Source: {company_url or '[To be researched]'}
-Target Practice Area: {practice_area or 'General/Multiple'}
-Buyer Persona: {buyer_persona or 'General Counsel / Legal Decision Maker'}
-{'='*60}
-
-{HK_LEGAL_CONTEXT}
-
-{ANTI_HALLUCINATION_PREAMBLE}
-"""
-    
-    return context_block + "\n\n" + base_prompt
+    """Legacy function for backwards compatibility."""
+    context = ProspectContext(
+        company_name=company_name,
+        company_url=company_url,
+        practice_area=practice_area or "General/Multiple",
+        buyer_persona=buyer_persona or "General Counsel / Legal Decision Maker"
+    )
+    return PromptRecipeManager.generate_prompt(recipe_name, context)
 
 
 def generate_full_workflow(
@@ -520,30 +588,17 @@ def generate_full_workflow(
     company_url: str,
     practice_area: str,
     buyer_persona: str,
-) -> Dict[str, str]:
-    """
-    Generate all prompts in sequence for a complete workflow.
-    Returns a dict with keys: phase1, phase2, phase3, summary, ous
-    """
-    return {
-        "phase1": fill_recipe(
-            "Phase 1: Discovery & Compliance Research",
-            company_name, company_url, practice_area, buyer_persona
-        ),
-        "phase2": fill_recipe(
-            "Phase 2: General Counsel Psychological Profiling",
-            company_name, company_url, practice_area, buyer_persona
-        ),
-        "phase3": fill_recipe(
-            "Phase 3: Credibility-Based Email Drafting",
-            company_name, company_url, practice_area, buyer_persona
-        ),
-        "summary": fill_recipe(
-            "Sales Executive Summary (Quick Brief)",
-            company_name, company_url, practice_area, buyer_persona
-        ),
-        "ous": fill_recipe(
-            "OUS Framework Analysis",
-            company_name, company_url, practice_area, buyer_persona
-        ),
-    }
+) -> dict[str, str]:
+    """Legacy function for backwards compatibility."""
+    context = ProspectContext(
+        company_name=company_name,
+        company_url=company_url,
+        practice_area=practice_area,
+        buyer_persona=buyer_persona
+    )
+    return PromptRecipeManager.generate_full_workflow(context)
+
+
+# Export for external use
+PROMPT_RECIPES = {name: lambda ctx=name: PromptRecipeManager.RECIPES[ctx]() 
+                  for name in PromptRecipeManager.get_recipe_names()}
