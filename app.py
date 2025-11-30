@@ -76,7 +76,7 @@ def generate_insight_driven_emails(context: ProspectContext) -> dict[str, str]:
     outcome = context.outcome
     unspoken = context.unspoken_concern
     
-    # Extract company name if available
+    # Extract company hint if available
     company_hint = ""
     if "IPO" in trigger or "filing" in trigger.lower():
         company_hint = "firm going public"
@@ -178,14 +178,25 @@ def main():
         
         # Recipe selection
         st.subheader("Select Prospect Type")
-        selected_recipe = st.selectbox(
-            "Choose a recipe:",
-            options=list(recipe_manager.recipes.keys()),
-            format_func=lambda x: recipe_manager.recipes[x].display_name,
-            help="Select the type of prospect you're researching"
-        )
         
-        recipe = recipe_manager.recipes[selected_recipe]
+        # Get recipe options safely
+        try:
+            recipe_ids = list(recipe_manager.recipes.keys())
+            recipe_names = [recipe_manager.recipes[rid].display_name for rid in recipe_ids]
+            
+            selected_index = st.selectbox(
+                "Choose a recipe:",
+                options=range(len(recipe_ids)),
+                format_func=lambda i: recipe_names[i],
+                help="Select the type of prospect you're researching"
+            )
+            
+            selected_recipe = recipe_ids[selected_index]
+            recipe = recipe_manager.recipes[selected_recipe]
+            
+        except Exception as e:
+            st.error(f"Error loading recipes: {e}")
+            st.stop()
         
         st.markdown("---")
         
