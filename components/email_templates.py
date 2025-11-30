@@ -1,136 +1,88 @@
-"""Generate fill-in-the-blank email templates from OUS analysis."""
-from __future__ import annotations
-
-from dataclasses import dataclass
-
-
-@dataclass
-class EmailTemplate:
-    """Represents an email template."""
-    name: str
-    subject: str
-    body: str
-    when_to_use: str
-
-
-class EmailTemplateGenerator:
-    """Generates email templates from analysis data."""
+def generate_insight_driven_email(context: ProspectContext) -> str:
+    """
+    Generate an email that leads with insight, not features.
     
-    @staticmethod
-    def outcome_hook(
-        company_name: str,
-        outcome: str,
-        pain_point: str,
-        buyer_name: str = "[Name]",
-    ) -> EmailTemplate:
-        """
-        Template A: The Outcome Hook
-        Leads with what they're trying to achieve.
-        """
-        subject = f"Re: {company_name}'s {outcome[:40]}..."
-        
-        body = f"""{buyer_name},
+    This version:
+    - Opens with a counterintuitive insight
+    - Uses specific numbers and timelines
+    - Frames you as a peer advisor, not a vendor
+    - Has a clear, low-friction CTA
+    """
+    
+    # Extract key elements
+    trigger = context.trigger_event
+    outcome = context.outcome
+    unspoken = context.unspoken_concern
+    solution = context.solution_angle
+    
+    # TEMPLATE 1: The "Contrarian Insight" Opener
+    email_contrarian = f"""Subject: The hidden risk in {trigger}
 
-I saw {company_name} is working on {outcome}. 
+Hi [Name],
 
-From what we've seen with other HK firms tackling this, the biggest challenge isn't the obvious stuff - it's {pain_point}.
+I saw {trigger}. Congrats - most firms underestimate how complex that actually is.
 
-The GCs we work with describe our platform as "insurance against what we might've missed." For example, one HK-listed property firm used it to catch cross-border IP gaps before their audit.
+Here's what we've learned from helping [similar company type] through this: {unspoken} is the part that surprises everyone. Most people focus on {outcome}, but the real bottleneck is usually [specific process detail].
 
-Would it help to share how they approached this? Even if our tool isn't the right fit, I can point you to a useful resource.
+Quick example: One HK firm we worked with thought they needed better contract review. Turns out they needed better handoff protocols between associates and partners - which cut their M&A close time by 30%.
 
-Would next Tuesday at 3pm work for a quick 15-min call?
+Worth a 15-minute call to see if you're facing something similar?
+
+I'm free Tues/Wed this week at 10am HKT or 3pm HKT.
 
 Best,
-[Your Name]"""
-        
-        return EmailTemplate(
-            name="Template A: Outcome Hook",
-            subject=subject,
-            body=body,
-            when_to_use="When you know their strategic goal from research"
-        )
-    
-    @staticmethod
-    def pain_point_entry(
-        company_name: str,
-        specific_challenge: str,
-        similar_client: str,
-        solution_approach: str,
-        buyer_name: str = "[Name]",
-    ) -> EmailTemplate:
-        """
-        Template B: The Pain Point Entry
-        Leads with empathy about their specific struggle.
-        """
-        subject = f"{specific_challenge} - quick insight"
-        
-        body = f"""{buyer_name},
+[Your name]
 
-I read about {company_name}'s {specific_challenge}.
+P.S. - If timing's off, I wrote a quick guide on "{unspoken}" that might be useful. Happy to send it your way.
+"""
 
-We recently helped {similar_client} (similar situation) and they found the hidden issue wasn't [obvious problem] - it was [second-order risk].
+    # TEMPLATE 2: The "Peer Advisor" Approach
+    email_peer = f"""Subject: Question about {trigger}
 
-Here's how they fixed it: {solution_approach}
+Hi [Name],
 
-Not sure if this is relevant to you, but happy to share the full story if useful.
+Quick question (not a pitch, promise):
 
-Would a quick 15-min call work? I'm free Tuesday at 11am or Thursday at 2pm.
+When you're dealing with {trigger}, how are you handling {unspoken}?
+
+The reason I ask: We work with [type of firm] going through similar situations, and that's the part that tends to create the most headaches. Most firms think {outcome} is the priority, but in practice, {unspoken} is what actually slows things down.
+
+For example: [Specific company type] usually runs into issues around [specific pain point]. Does that resonate with your situation?
+
+If it's useful, I can share what we've seen work (and what doesn't). 15 minutes, your call.
+
+Free this week: Tues 10am or Wed 3pm HKT.
 
 Best,
-[Your Name]
+[Your name]
+"""
 
-P.S. Even if our solution isn't a fit, I can send you a checklist they used - it's been helpful for other firms dealing with this."""
-        
-        return EmailTemplate(
-            name="Template B: Pain Point Entry",
-            subject=subject,
-            body=body,
-            when_to_use="When you know their specific struggle/challenge"
-        )
-    
-    @classmethod
-    def generate_all_templates(
-        cls,
-        company_name: str,
-        outcome: str = "[Outcome - e.g., 'reducing outside counsel spend by 25%']",
-        pain_point: str = "[Pain Point - e.g., 'junior associates spending 60% of time on manual cite-checking']",
-        specific_challenge: str = "[Specific Challenge - e.g., 'cross-border PDPO compliance after Shenzhen acquisition']",
-        similar_client: str = "[Similar Client - e.g., 'a HK-listed fintech company']",
-        solution_approach: str = "[Solution Approach - e.g., 'automated compliance gap detection that caught 12 issues before their SFC audit']",
-        buyer_name: str = "[Name]",
-    ) -> dict[str, EmailTemplate]:
-        """
-        Generate both email templates with placeholders.
-        
-        Returns dict with keys: 'template_a', 'template_b'
-        """
-        return {
-            "template_a": cls.outcome_hook(
-                company_name, outcome, pain_point, buyer_name
-            ),
-            "template_b": cls.pain_point_entry(
-                company_name, specific_challenge, similar_client, solution_approach, buyer_name
-            ),
-        }
+    # TEMPLATE 3: The "Specific Timeline" Hook
+    email_timeline = f"""Subject: 8 weeks until [their deadline]
 
+Hi [Name],
 
-# Backwards compatibility
-def generate_templates_from_analysis(
-    company_name: str,
-    outcome: str = "[Outcome - e.g., 'reducing outside counsel spend by 25%']",
-    pain_point: str = "[Pain Point - e.g., 'junior associates spending 60% of time on manual cite-checking']",
-    specific_challenge: str = "[Specific Challenge - e.g., 'cross-border PDPO compliance after Shenzhen acquisition']",
-    similar_client: str = "[Similar Client - e.g., 'a HK-listed fintech company']",
-    solution_approach: str = "[Solution Approach - e.g., 'automated compliance gap detection']",
-    buyer_name: str = "[Name]",
-) -> dict[str, str]:
-    """Legacy function - returns dict with template bodies as strings."""
-    templates = EmailTemplateGenerator.generate_all_templates(
-        company_name, outcome, pain_point, specific_challenge,
-        similar_client, solution_approach, buyer_name
-    )
+I saw {trigger} - if you're following the typical timeline, that means {outcome} needs to happen by [specific date based on trigger event].
+
+Here's the part that usually gets overlooked: {unspoken}.
+
+We've worked with [similar firms], and this is where things tend to go sideways. Not because teams aren't capable, but because {specific bottleneck detail}.
+
+One example: [Similar company] thought they had plenty of time for their HKEX filing, but the back-and-forth on disclosure controls ate up 3 weeks they didn't plan for.
+
+Worth a quick conversation to see if you're set up differently?
+
+I have 15 minutes open this week: Tuesday at 10am HKT or Wednesday at 3pm HKT.
+
+Best,
+[Your name]
+
+P.S. - Even if this isn't the right time, I'd be happy to intro you to [relevant peer contact] who just went through this exact process.
+"""
+
     return {
-        "template_a": f"Subject: {templates['template_a'].subject}\n\n{templates['template_a'].body}",
-        "template_b": f"Subject: {templates['template_b'].subject}\n\n{templates['template_b'].body}",
+        "contrarian": email_contrarian,
+        "peer_advisor": email_peer,
+        "timeline_hook": email_timeline
     }
+    
