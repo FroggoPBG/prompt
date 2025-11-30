@@ -164,11 +164,7 @@ P.S. - Even if this isn't the right time, I'd be happy to intro you to a peer co
 def main():
     """Main application logic."""
     
-    # Header
-    st.markdown('<div class="main-header">⚖️ Legal Tech Sales Prospecting Tool</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-header">OUS Framework: Turn Research into Insight-Driven Outreach</div>', unsafe_allow_html=True)
-    
-    # ==================== SIDEBAR ====================
+ # ==================== SIDEBAR ====================
     
     with st.sidebar:
         st.header("🎯 Quick Actions")
@@ -178,14 +174,25 @@ def main():
         
         # Recipe selection
         st.subheader("Select Prospect Type")
-        selected_recipe = st.selectbox(
-            "Choose a recipe:",
-            options=list(recipe_manager.recipes.keys()),
-            format_func=lambda x: recipe_manager.recipes[x].display_name,
-            help="Select the type of prospect you're researching"
-        )
         
-        recipe = recipe_manager.recipes[selected_recipe]
+        # Get recipe options safely
+        try:
+            recipe_ids = list(recipe_manager.recipes.keys())
+            recipe_names = [recipe_manager.recipes[rid].display_name for rid in recipe_ids]
+            
+            selected_index = st.selectbox(
+                "Choose a recipe:",
+                options=range(len(recipe_ids)),
+                format_func=lambda i: recipe_names[i],
+                help="Select the type of prospect you're researching"
+            )
+            
+            selected_recipe = recipe_ids[selected_index]
+            recipe = recipe_manager.recipes[selected_recipe]
+            
+        except Exception as e:
+            st.error(f"Error loading recipes: {e}")
+            st.stop()
         
         st.markdown("---")
         
