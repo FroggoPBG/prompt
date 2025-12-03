@@ -1,75 +1,79 @@
-"""Legal Tech Sales Prospecting Tool - Main Streamlit App."""
-from __future__ import annotations
-
-from datetime import datetime
+"""
+M&A Prospecting Tool - Streamlit App
+Generates AI prompts for legal/compliance discovery research.
+"""
 
 import streamlit as st
+from datetime import datetime
+from typing import Dict, Optional
+from recipes import PromptRecipeManager
 
-from components.email_templates import EmailTemplateGenerator
-from components.presets import ProspectPreset, export_preset_bytes, load_preset_into_state
-from components.recipes import PromptRecipeManager, ProspectContext
-from components.writing_checker import check_plain_english, get_writing_tips
-
-# ==================== PAGE CONFIG ====================
+# ============================================================================
+# PAGE CONFIG
+# ============================================================================
 
 st.set_page_config(
-    page_title="Legal Tech Sales Prospecting - OUS Framework",
-    page_icon="⚖️",
+    page_title="M&A Prospecting Tool",
+    page_icon="🎯",
     layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# ==================== CONSTANTS ====================
+# ============================================================================
+# SESSION STATE INITIALIZATION
+# ============================================================================
 
-PRACTICE_AREAS = [
-    "General/Multiple",
-    "M&A and Corporate Finance",
-    "Banking & Finance",
-    "Litigation & Dispute Resolution",
-    "Intellectual Property",
-    "Employment Law",
-    "Regulatory & Compliance",
-    "Real Estate & Property",
-    "Tax & Revenue",
-]
-
-BUYER_PERSONAS = [
-    "General Counsel (In-House)",
-    "Managing Partner (Law Firm)",
-    "Senior Partner (Law Firm)",
-    "Legal Operations Director",
-    "Compliance Head",
-    "Barrister (Chambers)",
-    "Corporate Secretary",
-]
-
-# ==================== HELPER FUNCTIONS ====================
-
-def initialize_session_state() -> None:
-    """Initialize session state with default values if not present."""
+def init_session_state():
+    """Initialize all session state variables."""
     defaults = {
         "company_name": "",
-        "company_url": "",
-        "practice_area": "General/Multiple",
-        "buyer_persona": "General Counsel (In-House)",
         "industry": "",
-        "notes": "",
+        "deal_type": "",
+        "legal_entity_type": "",
+        "revenue_size": "",
+        "geographic_scope": "",
+        "additional_context": "",
+        "product_interest": "",
+        "current_phase": "phase1"
     }
+    
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
+# ============================================================================
+# UTILITY FUNCTIONS
+# ============================================================================
 
-def get_prospect_context() -> ProspectContext:
-    """Build ProspectContext from current session state."""
-    return ProspectContext(
-        company_name=st.session_state.get("company_name", ""),
-        company_url=st.session_state.get("company_url", ""),
-        practice_area=st.session_state.get("practice_area", "General/Multiple"),
-        buyer_persona=st.session_state.get("buyer_persona", "General Counsel (In-House)"),
-        industry=st.session_state.get("industry", ""),
-        notes=st.session_state.get("notes", ""),
+def get_prospect_context() -> Dict[str, str]:
+    """Extract all prospect context from session state."""
+    return {
+        "company_name": st.session_state.company_name,
+        "industry": st.session_state.industry,
+        "deal_type": st.session_state.deal_type,
+        "legal_entity_type": st.session_state.legal_entity_type,
+        "revenue_size": st.session_state.revenue_size,
+        "geographic_scope": st.session_state.geographic_scope,
+        "additional_context": st.session_state.additional_context,
+        "product_interest": st.session_state.product_interest
+    }
+
+def render_copy_button(text: str, key: str, button_label: str = "📋 Copy to Clipboard"):
+    """Render a copy-to-clipboard button."""
+    st.code(text, language="markdown", line_numbers=False)
+    if st.button(button_label, key=key, use_container_width=True):
+        st.write("✅ Copied! (Use Ctrl+C or Cmd+C to copy the text above)")
+
+def render_download_button(text: str, filename: str, key: str):
+    """Render a download button for prompt text."""
+    st.download_button(
+        label="⬇️ Download Prompt",
+        data=text,
+        file_name=filename,
+        mime="text/plain",
+        key=key,
+        use_container_width=True
     )
-
 
 def render_prompt_expander(
     title: str,
@@ -77,178 +81,361 @@ def render_prompt_expander(
     filename: str,
     key_suffix: str,
     expanded: bool = False,
-    usage_note: str = "",
-) -> None:
-    """Render a consistent prompt expander with download button."""
+    usage_note: Optional[str] = None
+):
+    """Render an expandable section with a prompt."""
     with st.expander(title, expanded=expanded):
         if usage_note:
-            st.markdown(f"**Usage:** {usage_note}")
-        st.code(prompt, language="markdown")
-        st.download_button(
-            "📥 Download Prompt",
-            prompt,
-            file_name=filename,
-            mime="text/plain",
-            key=f"download_{key_suffix}",
-        )
+            st.info(f"**How to use:** {usage_note}")
+        st.code(prompt, language="markdown", line_numbers=False)
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("📋 Copy", key=f"copy_{key_suffix}", use_container_width=True):
+                st.success("✅ Text ready to copy (use Ctrl+C / Cmd+C on the code block above)")
+        with col2:
+            render_download_button(prompt, filename, f"download_{key_suffix}")
 
+# ============================================================================
+# SIDEBAR - PROSPECT INPUT FORM
+# ============================================================================
 
-# ==================== MAIN APP ====================
-
-def main():
-    """Main application entry point."""
-    initialize_session_state()
-    
-    # ==================== HEADER ====================
-    st.title("⚖️ Legal Tech Sales Prospecting Tool")
-    st.caption(
-        "6-Phase 'Legal Scout & Empathizer' Strategy for Hong Kong Legal Market | "
-        "Now includes **Product-to-Pain Mapping** (Phase 2.5) | "
-        "**Built with Zinsser's Writing Principles**"
-    )
-    
-    # ==================== SIDEBAR ====================
-    render_sidebar()
-    
-    # ==================== MAIN CONTENT ====================
-    st.markdown("---")
-    
-    tab1, tab2, tab3 = st.tabs([
-        "🚀 Generate Prompts",
-        "✍️ Plain English Checker",
-        "📧 Email Templates"
-    ])
-    
-    with tab1:
-        render_prompts_tab()
-    
-    with tab2:
-        render_writing_checker_tab()
-    
-    with tab3:
-        render_email_templates_tab()
-    
-    # ==================== USAGE GUIDE ====================
-    render_usage_guide()
-    
-    # ==================== FOOTER ====================
-    render_footer()
-
-
-def render_sidebar() -> None:
-    """Render the sidebar with prospect input form."""
+def render_sidebar():
+    """Render the sidebar with prospect input fields."""
     with st.sidebar:
-        st.header("🎯 Prospect Information")
+        st.title("🎯 Prospect Details")
+        st.markdown("Fill in the information below to generate customized research prompts.")
         
-        # Company basics
-        st.text_input(
-            "Company/Law Firm Name*",
-            key="company_name",
-            placeholder="e.g., Oldham Li & Nie",
-            help="Enter the full legal name of the prospect"
+        st.markdown("---")
+        
+        # Company Information
+        st.subheader("📊 Company Information")
+        
+        st.session_state.company_name = st.text_input(
+            "Company Name*",
+            value=st.session_state.company_name,
+            placeholder="e.g., ABC Corporation",
+            help="The legal name of the target company"
         )
         
-        st.text_input(
-            "Company Website or Source Link",
-            key="company_url",
-            placeholder="https://www.oln-law.com",
-            help="Paste company website, LinkedIn, or any relevant URL for research"
+        st.session_state.industry = st.selectbox(
+            "Industry/Sector*",
+            options=[
+                "",
+                "Financial Services",
+                "Healthcare/Life Sciences",
+                "Technology/Software",
+                "Manufacturing",
+                "Energy/Utilities",
+                "Real Estate",
+                "Professional Services",
+                "Retail/Consumer Goods",
+                "Other"
+            ],
+            index=0 if not st.session_state.industry else None,
+            help="Primary industry sector"
+        )
+        
+        st.session_state.legal_entity_type = st.selectbox(
+            "Legal Entity Type",
+            options=[
+                "",
+                "Public Company (Listed)",
+                "Private Company",
+                "Private Equity Owned",
+                "Family Office/HNW Owned",
+                "Government Entity",
+                "Non-Profit",
+                "Partnership/LLP",
+                "Unknown"
+            ],
+            help="Legal structure of the organization"
         )
         
         st.markdown("---")
-        st.subheader("🔍 Target Context")
         
-        # Practice area and persona
-        st.selectbox(
-            "Primary Practice Area / Legal Focus",
-            PRACTICE_AREAS,
-            key="practice_area",
-            help="What legal practice area is under most pressure for this prospect?"
+        # Deal Context
+        st.subheader("🤝 Deal Context")
+        
+        st.session_state.deal_type = st.selectbox(
+            "Transaction Type",
+            options=[
+                "",
+                "M&A (Buyer)",
+                "M&A (Seller)",
+                "M&A (Target)",
+                "Private Equity Deal",
+                "Corporate Restructuring",
+                "IPO Preparation",
+                "Regulatory Compliance Project",
+                "Other/Exploratory"
+            ],
+            help="Type of transaction or engagement"
         )
         
-        st.selectbox(
-            "Buyer Persona",
-            BUYER_PERSONAS,
-            key="buyer_persona",
-            help="Who is the primary decision-maker you're targeting?"
+        st.session_state.revenue_size = st.selectbox(
+            "Company Size (Revenue)",
+            options=[
+                "",
+                "< $10M",
+                "$10M - $50M",
+                "$50M - $250M",
+                "$250M - $1B",
+                "$1B - $5B",
+                "$5B+",
+                "Unknown"
+            ],
+            help="Approximate annual revenue"
         )
         
-        # Optional fields
-        st.text_input(
-            "Industry Vertical (Optional)",
-            key="industry",
-            placeholder="e.g., Financial Services, Real Estate, Technology",
-            help="If in-house counsel, what industry is the company in?"
+        st.session_state.geographic_scope = st.multiselect(
+            "Geographic Scope",
+            options=[
+                "United Kingdom",
+                "European Union",
+                "United States",
+                "Asia-Pacific",
+                "Middle East",
+                "Latin America",
+                "Global/Multi-Regional"
+            ],
+            default=st.session_state.geographic_scope if st.session_state.geographic_scope else [],
+            help="Primary operating regions"
         )
         
-        st.text_area(
-            "Additional Context/Notes (Optional)",
-            key="notes",
-            placeholder="Any specific triggers, recent news, or context...",
-            height=100,
+        st.markdown("---")
+        
+        # Product Interest
+        st.subheader("🎯 Product Interest")
+        
+        st.session_state.product_interest = st.multiselect(
+            "LexisNexis Solutions of Interest",
+            options=[
+                "Lexis+ AI",
+                "Practical Guidance",
+                "Halsbury's Laws",
+                "Corporate Law Suite",
+                "Due Diligence Tools",
+                "Compliance & Risk Solutions",
+                "PSL (Practice Area Specific)",
+                "Not Sure/Exploratory"
+            ],
+            default=st.session_state.product_interest if st.session_state.product_interest else [],
+            help="Products or solutions relevant to this prospect"
         )
         
-        # Presets
-        render_preset_section()
+        st.markdown("---")
+        
+        # Additional Context
+        st.subheader("📝 Additional Notes")
+        
+        st.session_state.additional_context = st.text_area(
+            "Extra Context (Optional)",
+            value=st.session_state.additional_context,
+            placeholder="Any specific challenges, known triggers, or additional information...",
+            help="Free-form notes about this prospect",
+            height=100
+        )
+        
+        st.markdown("---")
+        
+        # Reset Button
+        if st.button("🔄 Reset All Fields", type="secondary", use_container_width=True):
+            for key in st.session_state.keys():
+                if key != "current_phase":
+                    st.session_state[key] = "" if isinstance(st.session_state[key], str) else []
+            st.rerun()
 
+# ============================================================================
+# MAIN CONTENT - PROMPT GENERATORS
+# ============================================================================
 
-def render_preset_section() -> None:
-    """Render the preset save/load section in sidebar."""
-    st.markdown("---")
-    st.subheader("💾 Presets")
+def render_individual_prompts():
+    """Render individual phase prompt generators."""
+    st.markdown("### 🎯 Individual Prompt Generators")
+    st.info(
+        "Generate prompts one phase at a time. Use these if you want to customize "
+        "your workflow or only need specific research stages."
+    )
+    
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "Phase 1: Discovery",
+        "Phase 2: Profiling",
+        "Phase 2.5: Solution Map",
+        "Phase 3: Email",
+        "Phase 4: Summary",
+        "Phase 5: OUS"
+    ])
     
     company_name = st.session_state.get("company_name", "")
+    context = get_prospect_context()
     
-    # Export preset
-    preset_bytes = export_preset_bytes(
-        company_name=company_name,
-        company_url=st.session_state.get("company_url", ""),
-        practice_area=st.session_state.get("practice_area", ""),
-        buyer_persona=st.session_state.get("buyer_persona", ""),
-        industry=st.session_state.get("industry", ""),
-        notes=st.session_state.get("notes", ""),
-    )
+    # Phase 1
+    with tab1:
+        st.markdown("#### 📋 Phase 1: Discovery & Risk Research")
+        st.markdown(
+            "**Purpose:** Identify legal triggers and compliance pressure points.\n\n"
+            "**What you'll get:** A comprehensive research prompt that helps you find:\n"
+            "- Recent M&A activity or corporate changes\n"
+            "- Regulatory challenges or legal disputes\n"
+            "- Privacy/cybersecurity incidents\n"
+            "- Industry-specific compliance pressures"
+        )
+        
+        if st.button("Generate Phase 1 Prompt", key="gen_p1", type="primary"):
+            if not company_name:
+                st.error("❌ Please enter a company name in the sidebar first.")
+            else:
+                with st.spinner("Generating prompt..."):
+                    prompt = PromptRecipeManager.generate_phase1(context)
+                st.success("✅ Prompt generated!")
+                render_prompt_expander(
+                    title="Your Phase 1 Prompt",
+                    prompt=prompt,
+                    filename=f"phase1_{company_name.replace(' ', '_')}.txt",
+                    key_suffix="p1_main",
+                    expanded=True
+                )
     
-    filename = f"prospect_{company_name.replace(' ', '_')}.json" if company_name else "prospect.json"
+    # Phase 2
+    with tab2:
+        st.markdown("#### 👤 Phase 2: Buyer Psychological Profiling")
+        st.markdown(
+            "**Purpose:** Understand the buyer's emotional state and pain points.\n\n"
+            "**What you'll get:** A prompt that analyzes:\n"
+            "- Emotional triggers (anxiety, urgency, fear)\n"
+            "- Decision-making pressures\n"
+            "- Stakeholder concerns\n"
+            "- Psychological buying motivations"
+        )
+        
+        if st.button("Generate Phase 2 Prompt", key="gen_p2", type="primary"):
+            if not company_name:
+                st.error("❌ Please enter a company name in the sidebar first.")
+            else:
+                with st.spinner("Generating prompt..."):
+                    prompt = PromptRecipeManager.generate_phase2(context)
+                st.success("✅ Prompt generated!")
+                render_prompt_expander(
+                    title="Your Phase 2 Prompt",
+                    prompt=prompt,
+                    filename=f"phase2_{company_name.replace(' ', '_')}.txt",
+                    key_suffix="p2_main",
+                    expanded=True,
+                    usage_note="Use this AFTER completing Phase 1. Paste the Phase 1 output along with this prompt."
+                )
     
-    st.download_button(
-        "💾 Save Prospect as Preset",
-        preset_bytes,
-        file_name=filename,
-        mime="application/json",
-        help="Save this prospect's info for future use"
-    )
+    # Phase 2.5
+    with tab3:
+        st.markdown("#### 🎯 Phase 2.5: Solution Mapping (Product-to-Pain Fit)")
+        st.markdown(
+            "**Purpose:** Map specific LexisNexis products to identified pain points.\n\n"
+            "**What you'll get:** A prompt that creates:\n"
+            "- Product-to-problem alignment\n"
+            "- Specific feature callouts\n"
+            "- Value proposition mapping\n"
+            "- Competitive positioning insights"
+        )
+        
+        if st.button("Generate Phase 2.5 Prompt", key="gen_p25", type="primary"):
+            if not company_name:
+                st.error("❌ Please enter a company name in the sidebar first.")
+            else:
+                with st.spinner("Generating prompt..."):
+                    prompt = PromptRecipeManager.generate_phase25(context)
+                st.success("✅ Prompt generated!")
+                render_prompt_expander(
+                    title="Your Phase 2.5 Prompt",
+                    prompt=prompt,
+                    filename=f"phase25_{company_name.replace(' ', '_')}.txt",
+                    key_suffix="p25_main",
+                    expanded=True,
+                    usage_note="Use this AFTER Phases 1 & 2. Paste outputs from both previous phases along with this prompt."
+                )
     
-    # Import preset
-    uploaded = st.file_uploader(
-        "📂 Load Saved Prospect Preset",
-        type="json",
-        help="Upload a previously saved prospect preset"
-    )
+    # Phase 3
+    with tab4:
+        st.markdown("#### ✉️ Phase 3: Credibility-Based Email Drafting")
+        st.markdown(
+            "**Purpose:** Create a personalized cold outreach email.\n\n"
+            "**What you'll get:** A prompt that generates:\n"
+            "- Trigger-based opening hook\n"
+            "- Specific product mentions\n"
+            "- Credibility-building language\n"
+            "- Clear call-to-action"
+        )
+        
+        if st.button("Generate Phase 3 Prompt", key="gen_p3", type="primary"):
+            if not company_name:
+                st.error("❌ Please enter a company name in the sidebar first.")
+            else:
+                with st.spinner("Generating prompt..."):
+                    prompt = PromptRecipeManager.generate_phase3(context)
+                st.success("✅ Prompt generated!")
+                render_prompt_expander(
+                    title="Your Phase 3 Prompt",
+                    prompt=prompt,
+                    filename=f"phase3_{company_name.replace(' ', '_')}.txt",
+                    key_suffix="p3_main",
+                    expanded=True,
+                    usage_note="Use this AFTER Phases 1, 2, and 2.5. Paste all previous outputs along with this prompt."
+                )
     
-    if uploaded:
-        load_preset_into_state(uploaded)
-        st.rerun()
+    # Phase 4
+    with tab5:
+        st.markdown("#### 📊 Phase 4: Sales Executive Summary")
+        st.markdown(
+            "**Purpose:** Create a 90-second brief for time-strapped sales reps.\n\n"
+            "**What you'll get:** A one-page summary containing:\n"
+            "- Key trigger events\n"
+            "- Primary pain points\n"
+            "- Recommended products\n"
+            "- Call script talking points"
+        )
+        
+        if st.button("Generate Phase 4 Prompt", key="gen_p4", type="primary"):
+            if not company_name:
+                st.error("❌ Please enter a company name in the sidebar first.")
+            else:
+                with st.spinner("Generating prompt..."):
+                    prompt = PromptRecipeManager.generate_phase4(context)
+                st.success("✅ Prompt generated!")
+                render_prompt_expander(
+                    title="Your Phase 4 Prompt",
+                    prompt=prompt,
+                    filename=f"phase4_{company_name.replace(' ', '_')}.txt",
+                    key_suffix="p4_main",
+                    expanded=True,
+                    usage_note="Use this AFTER Phases 1-3. This distills everything into a quick reference guide."
+                )
+    
+    # Phase 5
+    with tab6:
+        st.markdown("#### 🔍 Phase 5: OUS Framework Analysis")
+        st.markdown(
+            "**Purpose:** Apply the Outcome → Understanding → Standard lens.\n\n"
+            "**What you'll get:** Strategic analysis covering:\n"
+            "- Desired business outcomes\n"
+            "- Deep understanding of challenges\n"
+            "- Industry best practices and standards"
+        )
+        
+        if st.button("Generate Phase 5 Prompt", key="gen_p5", type="primary"):
+            if not company_name:
+                st.error("❌ Please enter a company name in the sidebar first.")
+            else:
+                with st.spinner("Generating prompt..."):
+                    prompt = PromptRecipeManager.generate_phase5(context)
+                st.success("✅ Prompt generated!")
+                render_prompt_expander(
+                    title="Your Phase 5 Prompt",
+                    prompt=prompt,
+                    filename=f"phase5_{company_name.replace(' ', '_')}.txt",
+                    key_suffix="p5_main",
+                    expanded=True,
+                    usage_note="Use this to refine your positioning and messaging based on all previous research."
+                )
 
-
-def render_prompts_tab() -> None:
-    """Render the prompt generation tab."""
-    workflow_mode = st.radio(
-        "Choose Workflow",
-        [
-            "🚀 Full 6-Prompt Workflow (Recommended)",
-            "🔧 Individual Prompt Builder",
-        ],
-        horizontal=True,
-    )
-    
-    if workflow_mode == "🚀 Full 6-Prompt Workflow (Recommended)":
-        render_full_workflow()
-    else:
-        render_individual_prompt_builder()
-
-
-def render_full_workflow() -> None:
+def render_full_workflow():
     """Render the full 6-prompt workflow generator."""
     st.markdown("### 🎯 Complete Sales Prospecting Sequence")
     st.info(
@@ -280,7 +467,7 @@ def render_full_workflow() -> None:
             title="📋 PROMPT 1: Discovery & Risk Research",
             prompt=prompts["phase1"],
             filename=f"1_discovery_{company_name.replace(' ', '_')}.txt",
-            key_suffix="p1",
+            key_suffix="wf_p1",
             expanded=True,
             usage_note="Paste this into ChatGPT/Claude. The AI will research the company and identify legal triggers."
         )
@@ -290,23 +477,22 @@ def render_full_workflow() -> None:
             title="📋 PROMPT 2: Buyer Psychological Profiling",
             prompt=prompts["phase2"],
             filename=f"2_profiling_{company_name.replace(' ', '_')}.txt",
-            key_suffix="p2",
-            usage_note="After completing Prompt 1, paste this prompt PLUS the output from Prompt 1. The AI will analyze the buyer's emotional state and pain points."
+            key_suffix="wf_p2",
+            usage_note="After completing Prompt 1, paste this prompt PLUS the output from Prompt 1."
         )
         
-        # Phase 2.5 (NEW)
+        # Phase 2.5 - FIXED
         st.markdown("---")
         render_prompt_expander(
             title="📋 PROMPT 2.5: 🆕 Solution Mapping (Product-to-Pain Fit)",
-            prompt=prompts["phase25"],
-            filename=f"2.5_solution_mapping_{company_name.replace(' ', '_')}.txt",
-            key_suffix="p25",
+            prompt=prompts["phase25"],  # ✅ FIXED: Changed from "phase2.5" to "phase25"
+            filename=f"2_5_solution_mapping_{company_name.replace(' ', '_')}.txt",
+            key_suffix="wf_p25",
             expanded=True,
             usage_note=(
                 "**🎯 NEW STEP: Product-to-Pain Mapping** - "
                 "After completing Prompts 1 & 2, paste this prompt PLUS the outputs from both. "
-                "The AI will map specific LexisNexis products (Lexis+ AI, Practical Guidance, Halsbury's, etc.) to their pain points. "
-                "**Why this matters:** Your Phase 3 email will now mention SPECIFIC products instead of vague 'our solution' language."
+                "The AI will map specific LexisNexis products to their pain points."
             )
         )
         
@@ -315,8 +501,8 @@ def render_full_workflow() -> None:
             title="📋 PROMPT 3: Credibility-Based Email Drafting",
             prompt=prompts["phase3"],
             filename=f"3_email_{company_name.replace(' ', '_')}.txt",
-            key_suffix="p3",
-            usage_note="After completing Prompts 1, 2, & 2.5, paste this prompt PLUS all outputs. The AI will draft your cold outreach email with specific product mentions."
+            key_suffix="wf_p3",
+            usage_note="After completing Prompts 1, 2, & 2.5, paste this prompt PLUS all outputs."
         )
         
         # Phase 4
@@ -325,14 +511,11 @@ def render_full_workflow() -> None:
             title="📋 PROMPT 4: Sales Executive Summary (90-Second Brief)",
             prompt=prompts["phase4"],
             filename=f"4_summary_{company_name.replace(' ', '_')}.txt",
-            key_suffix="p4",
+            key_suffix="wf_p4",
             expanded=False,
             usage_note=(
                 "**🎯 For Time-Strapped Sales Reps** - "
-                "After completing Prompts 1-3, paste this prompt PLUS all previous outputs. "
-                "The AI will create a one-page cheat sheet that distills everything into a 90-second brief. "
-                "**Why this matters:** Your sales team won't read 3 pages of research. "
-                "They WILL read a one-page summary that tells them exactly what to say on the call."
+                "Creates a one-page cheat sheet for quick reference before calls."
             )
         )
         
@@ -341,333 +524,77 @@ def render_full_workflow() -> None:
             title="📋 PROMPT 5: OUS Framework Analysis",
             prompt=prompts["phase5"],
             filename=f"5_ous_{company_name.replace(' ', '_')}.txt",
-            key_suffix="p5",
-            usage_note="Use this prompt to apply the Outcome → Understanding → Standard lens to all your findings. This helps you refine your positioning."
+            key_suffix="wf_p5",
+            usage_note="Final strategic analysis to refine your positioning."
         )
 
-
-def render_individual_prompt_builder() -> None:
-    """Render the individual prompt builder."""
-    st.markdown("### 🔧 Build Individual Prompts")
-    
-    recipe_choice = st.selectbox(
-        "Select Prompt Type",
-        PromptRecipeManager.get_recipe_names(),
-        help="Choose which specific prompt you want to generate"
-    )
-    
-    company_name = st.session_state.get("company_name", "")
-    
-    if st.button("✨ Generate Prompt", type="primary", use_container_width=True):
-        if not company_name:
-            st.error("❌ Please enter a company name.")
-            return
-        
-        with st.spinner("Generating prompt..."):
-            context = get_prospect_context()
-            prompt = PromptRecipeManager.generate_prompt(recipe_choice, context)
-        
-        st.success("✅ Prompt generated!")
-        st.code(prompt, language="markdown")
-        
-        filename = f"{recipe_choice.replace(' ', '_').replace(':', '').replace('.', '_')}_{company_name.replace(' ', '_')}.txt"
-        st.download_button(
-            "📥 Download Prompt",
-            prompt,
-            file_name=filename,
-            mime="text/plain",
-            key="download_individual",
-        )
-
-
-def render_writing_checker_tab() -> None:
-    """Render the plain English writing checker tab."""
-    st.markdown("## ✍️ Plain English Writing Checker")
+def render_main_content():
+    """Render the main content area."""
+    st.title("🎯 M&A Prospecting Tool")
     st.markdown(
-        "**Paste your draft email or message below.** "
-        "This tool will flag zombie nouns, jargon, and passive voice based on Zinsser's Principles."
+        "**Generate AI-powered research prompts for legal/compliance discovery and sales outreach.**"
     )
     
-    draft_text = st.text_area(
-        "Your Draft Text:",
-        height=250,
-        placeholder=(
-            "Paste your email draft here...\n\n"
-            "Example:\n"
-            "'We are pleased to facilitate the implementation of our robust solution "
-            "to optimize your legal workflows and leverage synergies...'"
-        ),
-        key="draft_text"
-    )
-    
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        check_button = st.button("🔍 Check My Writing", type="primary", use_container_width=True)
-    
-    if check_button:
-        if not draft_text:
-            st.error("❌ Please paste some text to check.")
-            return
-        
-        with st.spinner("Analyzing your writing..."):
-            analysis = check_plain_english(draft_text)
-        
-        # Display score
-        grade, emoji = analysis.grade_info
-        st.markdown("---")
-        st.markdown(f"### {emoji} Writing Quality Score: {analysis.score}/100 ({grade})")
-        
-        # Display issues
-        if analysis.has_issues:
-            st.warning("⚠️ **Issues Found - See below for suggestions**")
-            
-            # Zombie words
-            if analysis.zombie_words:
-                st.markdown("#### 🧟 Zombie Nouns / Jargon Detected")
-                st.markdown("Replace these corporate buzzwords with plain English:")
-                
-                for issue in analysis.zombie_words:
-                    st.markdown(f"- ❌ **'{issue.text}'** → ✅ **'{issue.suggestion}'**")
-            
-            # Passive voice
-            if analysis.passive_voice:
-                st.markdown("#### 🔄 Passive Voice Detected")
-                st.markdown("Switch to active voice to sound more human:")
-                
-                for issue in analysis.passive_voice:
-                    with st.expander(f"📝 {issue.text[:60]}..."):
-                        st.markdown(f"**Full sentence:** {issue.text}")
-                        st.markdown(f"**Issue:** {issue.suggestion}")
-                        st.markdown("**Fix:** Rewrite using active voice (subject does the action)")
-        else:
-            st.success("✅ **Great job!** No major issues found. Your writing is clear and direct.")
-        
-        # Writing tips
-        st.markdown("---")
-        with st.expander("💡 How to Improve This Draft"):
-            st.markdown(get_writing_tips())
-    
-    # Always show tips
     st.markdown("---")
-    with st.expander("✍️ How to Use These Insights in Your Outreach"):
-        st.markdown(get_writing_tips())
-
-
-def render_email_templates_tab() -> None:
-    """Render the email templates tab."""
-    st.markdown("## 📧 Fill-in-the-Blank Email Templates")
-    st.markdown(
-        "**After completing your OUS analysis**, use these templates as starting points. "
-        "They're pre-populated with placeholders - just replace the bracketed text with your findings."
-    )
     
-    st.info(
-        "💡 **Pro Tip:** Copy Template A or B, paste into the Plain English Checker tab, "
-        "and make sure it passes the writing test before sending!"
-    )
-    
-    # Template inputs
-    st.markdown("### 📝 Template Inputs (Optional)")
-    st.caption("Fill these in to generate customized templates, or use the default placeholders")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        template_outcome = st.text_input(
-            "Outcome (from OUS analysis)",
-            placeholder="e.g., reducing outside counsel spend by 25%",
-            key="template_outcome"
+    # Check if basic info is filled
+    if not st.session_state.company_name:
+        st.warning(
+            "⚠️ **Get Started:** Fill in the prospect details in the sidebar to generate prompts."
         )
-        
-        template_pain = st.text_input(
-            "Pain Point",
-            placeholder="e.g., junior associates spending 60% time on manual cite-checking",
-            key="template_pain"
-        )
-        
-        template_challenge = st.text_input(
-            "Specific Challenge",
-            placeholder="e.g., cross-border PDPO compliance after Shenzhen acquisition",
-            key="template_challenge"
-        )
-    
-    with col2:
-        template_similar_client = st.text_input(
-            "Similar Client (anonymized)",
-            placeholder="e.g., a HK-listed fintech company",
-            key="template_similar_client"
-        )
-        
-        template_solution = st.text_input(
-            "Solution Approach",
-            placeholder="e.g., automated gap detection that caught 12 issues before SFC audit",
-            key="template_solution"
-        )
-        
-        template_buyer_name = st.text_input(
-            "Buyer's First Name",
-            placeholder="[Name]",
-            key="template_buyer_name"
-        )
-    
-    company_name = st.session_state.get("company_name", "")
-    
-    if st.button("✨ Generate Templates", type="primary", use_container_width=True):
-        if not company_name:
-            st.error("❌ Please enter a company name in the sidebar first.")
-            return
-        
-        templates = EmailTemplateGenerator.generate_all_templates(
-            company_name=company_name,
-            outcome=template_outcome or "[Outcome - e.g., 'reducing outside counsel spend by 25%']",
-            pain_point=template_pain or "[Pain Point - e.g., 'junior associates spending 60% of time on manual cite-checking']",
-            specific_challenge=template_challenge or "[Specific Challenge - e.g., 'cross-border PDPO compliance after Shenzhen acquisition']",
-            similar_client=template_similar_client or "[Similar Client - e.g., 'a HK-listed fintech company']",
-            solution_approach=template_solution or "[Solution Approach - e.g., 'automated compliance gap detection']",
-            buyer_name=template_buyer_name or "[Name]",
-        )
-        
-        st.success("✅ Templates generated! Edit these to match your voice.")
-        
-        # Template A
-        template_a = templates["template_a"]
-        with st.expander(f"📧 {template_a.name}", expanded=True):
-            st.markdown(f"**When to use:** {template_a.when_to_use}")
-            full_template_a = f"Subject: {template_a.subject}\n\n{template_a.body}"
-            st.code(full_template_a, language="markdown")
-            st.download_button(
-                "📥 Download Template A",
-                full_template_a,
-                file_name=f"template_A_outcome_{company_name.replace(' ', '_')}.txt",
-                mime="text/plain",
-                key="download_template_a"
-            )
-        
-        # Template B
-        template_b = templates["template_b"]
-        with st.expander(f"📧 {template_b.name}"):
-            st.markdown(f"**When to use:** {template_b.when_to_use}")
-            full_template_b = f"Subject: {template_b.subject}\n\n{template_b.body}"
-            st.code(full_template_b, language="markdown")
-            st.download_button(
-                "📥 Download Template B",
-                full_template_b,
-                file_name=f"template_B_pain_{company_name.replace(' ', '_')}.txt",
-                mime="text/plain",
-                key="download_template_b"
-            )
-        
-        # Next steps
-        st.markdown("---")
         st.info(
-            "💡 **Next Steps:**\n\n"
-            "1. Copy Template A or B\n"
-            "2. Replace all [bracketed placeholders] with your research findings\n"
-            "3. Paste into the **Plain English Checker** tab to verify it sounds human\n"
-            "4. Send!"
+            "This tool creates customized prompts that you can paste into ChatGPT or Claude "
+            "to research prospects, identify triggers, and craft personalized outreach."
         )
-
-
-def render_usage_guide() -> None:
-    """Render the usage guide expander."""
+        return
+    
+    # Display current prospect summary
+    with st.container():
+        st.markdown("#### 📊 Current Prospect")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Company", st.session_state.company_name)
+        with col2:
+            st.metric("Industry", st.session_state.industry or "Not specified")
+        with col3:
+            st.metric("Deal Type", st.session_state.deal_type or "Not specified")
+    
     st.markdown("---")
-    with st.expander("📖 How to Use This Tool (Updated Guide)"):
-        st.markdown("""
-### 🎯 Quick Start Guide
-
-**Step 1: Enter Prospect Info (Sidebar)**
-- Enter company/law firm name
-- Paste their website or LinkedIn URL
-- Select practice area and buyer persona
-
-**Step 2: Generate Prompts (Tab 1)**
-- Use **Full Workflow** mode for complete prospect research
-- **NEW:** Prompt 2.5 now maps specific LexisNexis products to their pain
-- **NEW:** Prompt 4 generates a Sales Executive Summary (90-second brief for busy reps)
-- Use prompts sequentially in ChatGPT/Claude
-
-**Step 3: Check Your Writing (Tab 2) 🆕**
-- Draft your email based on AI outputs
-- Paste into Plain English Checker
-- Fix zombie nouns and passive voice
-- Aim for score 80+ before sending
-
-**Step 4: Use Email Templates (Tab 3) 🆕**
-- Two pre-built templates based on your research
-- Template A: Outcome Hook (leads with their goal)
-- Template B: Pain Point Entry (leads with empathy)
-- Fill in bracketed placeholders with your findings
-
----
-
-### 🆕 What's New: Phase 2.5 (Solution Mapping)
-
-**Why it matters:** Before, prompts just said "our platform" generically. Now Phase 2.5 maps specific LexisNexis products to the prospect's pain.
-
-**Example:**
-- **Before:** "Our platform can help with compliance"
-- **After:** "Lexis+ Practical Guidance's Data Protection module has bilingual checklists that flag PDPO deadline risks automatically"
-
-**When to use it:** Always! Run Phase 2.5 after Phase 2 (Buyer Psychology) and before Phase 3 (Email Drafting).
-
----
-
-### 🧠 OUS Framework Explained
-
-**O - Outcome:** What strategic business goal does the buyer need to achieve?
-- Example: "Reduce outside counsel spend by 25%"
-
-**U - Understanding Pain:** What specific operational pain is blocking that outcome?
-- Example: "Junior associates spend 60% of time on manual research"
-
-**S - Standard:** What criteria will they use to evaluate solutions?
-- Example: "Must integrate with iManage, cover HK + PRC law, deploy in <2 weeks"
-
----
-
-### ✍️ Zinsser's Principles (Built into Every Prompt)
-
-**1. Humanity** - Sound like a person, not a corporation
-- Use "I", "you", "we"
-- Show empathy
-
-**2. Clarity** - One idea per sentence
-- Use specific details (dates, numbers, names)
-- Replace abstract nouns with verbs
-
-**3. Brevity** - Cut every unnecessary word
-- Max 150 words per email
-- If you can say it in 5 words instead of 10, do it
-
-**4. Simplicity** - Use everyday language
-- Avoid jargon unless essential
-- Would a non-lawyer understand this?
-
----
-
-### ⚡ Pro Tips
-
-- **For best results:** Run prompts 1 → 2 → 2.5 → 3 → 4 → 5 sequentially
-- **Time saver:** Use Prompt 4 (Sales Summary) to brief your team in 90 seconds
-- **Quality check:** Use Plain English Checker on every draft before sending
-- **Template hack:** Generate both templates, pick the one that fits better, then customize
-- **Red flag:** If your email gets a writing score below 70, rewrite it
-- **Product specificity:** Always mention specific LexisNexis products (from Phase 2.5) in your emails
-        """)
-
-
-def render_footer() -> None:
-    """Render the footer."""
-    st.markdown("---")
-    st.caption(
-        "**Legal Tech Sales Prospecting Tool v3.0** | 6-Phase Workflow with Product Mapping | "
-        "OUS Framework + Zinsser's Principles | "
-        "Designed for Hong Kong legal market prospecting | "
-        f"Session: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+    
+    # Main workflow options
+    workflow_mode = st.radio(
+        "Choose your workflow:",
+        options=["Full Workflow (All 6 Phases)", "Individual Prompts"],
+        horizontal=True,
+        help="Full Workflow generates all prompts at once. Individual Prompts lets you generate one phase at a time."
     )
+    
+    st.markdown("---")
+    
+    if workflow_mode == "Full Workflow (All 6 Phases)":
+        render_full_workflow()
+    else:
+        render_individual_prompts()
 
+# ============================================================================
+# MAIN APP
+# ============================================================================
 
-# ==================== RUN APP ====================
+def main():
+    """Main application entry point."""
+    init_session_state()
+    render_sidebar()
+    render_main_content()
+    
+    # Footer
+    st.markdown("---")
+    st.markdown(
+        "<div style='text-align: center; color: #666; font-size: 0.9em;'>"
+        "M&A Prospecting Tool | Built for LexisNexis Sales Teams | December 2025"
+        "</div>",
+        unsafe_allow_html=True
+    )
 
 if __name__ == "__main__":
     main()
