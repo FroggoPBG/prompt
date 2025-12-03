@@ -102,9 +102,9 @@ def main():
     # ==================== HEADER ====================
     st.title("⚖️ Legal Tech Sales Prospecting Tool")
     st.caption(
-        "3-Phase 'Legal Scout & Empathizer' Strategy for Hong Kong Legal Market | "
-        "Generate research prompts using the OUS Framework (Outcome → Understanding → Standard) | "
-        "**Now with Zinsser's Writing Principles built in**"
+        "6-Phase 'Legal Scout & Empathizer' Strategy for Hong Kong Legal Market | "
+        "Now includes **Product-to-Pain Mapping** (Phase 2.5) | "
+        "**Built with Zinsser's Writing Principles**"
     )
     
     # ==================== SIDEBAR ====================
@@ -144,14 +144,14 @@ def render_sidebar() -> None:
         st.text_input(
             "Company/Law Firm Name*",
             key="company_name",
-            placeholder="e.g., Liu Chong Hing Investment, Mayer Brown JSM",
+            placeholder="e.g., Oldham Li & Nie",
             help="Enter the full legal name of the prospect"
         )
         
         st.text_input(
             "Company Website or Source Link",
             key="company_url",
-            placeholder="https://www.example.com or LinkedIn URL",
+            placeholder="https://www.oln-law.com",
             help="Paste company website, LinkedIn, or any relevant URL for research"
         )
         
@@ -236,28 +236,29 @@ def render_prompts_tab() -> None:
     workflow_mode = st.radio(
         "Choose Workflow",
         [
-            "🚀 Full 5-Prompt Workflow (Recommended)",
+            "🚀 Full 6-Prompt Workflow (Recommended)",
             "🔧 Individual Prompt Builder",
         ],
         horizontal=True,
     )
     
-    if workflow_mode == "🚀 Full 5-Prompt Workflow (Recommended)":
+    if workflow_mode == "🚀 Full 6-Prompt Workflow (Recommended)":
         render_full_workflow()
     else:
         render_individual_prompt_builder()
 
 
 def render_full_workflow() -> None:
-    """Render the full 5-prompt workflow generator."""
+    """Render the full 6-prompt workflow generator."""
     st.markdown("### 🎯 Complete Sales Prospecting Sequence")
     st.info(
-        "**This generates all 5 prompts in the correct order:**\n\n"
-        "1. **Phase 1**: Discovery & Compliance Research\n"
-        "2. **Phase 2**: General Counsel Psychological Profiling\n"
-        "3. **Phase 3**: Credibility-Based Email Drafting\n"
-        "4. **Sales Executive Summary**: Quick 90-second brief for busy reps\n"
-        "5. **OUS Framework**: Outcome → Understanding → Standard Analysis\n\n"
+        "**This generates all 6 prompts in the correct order:**\n\n"
+        "1. **Phase 1**: Discovery & Risk Research\n"
+        "2. **Phase 2**: Buyer Psychological Profiling\n"
+        "3. **Phase 2.5**: 🆕 Solution Mapping (Product-to-Pain Fit)\n"
+        "4. **Phase 3**: Credibility-Based Email Drafting\n"
+        "5. **Phase 4**: Sales Executive Summary (90-second brief)\n"
+        "6. **Phase 5**: OUS Framework Analysis\n\n"
         "Use these prompts sequentially in ChatGPT/Claude to build a complete prospect dossier."
     )
     
@@ -268,7 +269,7 @@ def render_full_workflow() -> None:
             st.error("❌ Please enter a company name to generate prompts.")
             return
         
-        with st.spinner("Generating 5-phase workflow..."):
+        with st.spinner("Generating 6-phase workflow..."):
             context = get_prospect_context()
             prompts = PromptRecipeManager.generate_full_workflow(context)
         
@@ -276,7 +277,7 @@ def render_full_workflow() -> None:
         
         # Phase 1
         render_prompt_expander(
-            title="📋 PROMPT 1: Discovery & Compliance Research",
+            title="📋 PROMPT 1: Discovery & Risk Research",
             prompt=prompts["phase1"],
             filename=f"1_discovery_{company_name.replace(' ', '_')}.txt",
             key_suffix="p1",
@@ -286,11 +287,27 @@ def render_full_workflow() -> None:
         
         # Phase 2
         render_prompt_expander(
-            title="📋 PROMPT 2: General Counsel Psychological Profiling",
+            title="📋 PROMPT 2: Buyer Psychological Profiling",
             prompt=prompts["phase2"],
             filename=f"2_profiling_{company_name.replace(' ', '_')}.txt",
             key_suffix="p2",
             usage_note="After completing Prompt 1, paste this prompt PLUS the output from Prompt 1. The AI will analyze the buyer's emotional state and pain points."
+        )
+        
+        # Phase 2.5 (NEW)
+        st.markdown("---")
+        render_prompt_expander(
+            title="📋 PROMPT 2.5: 🆕 Solution Mapping (Product-to-Pain Fit)",
+            prompt=prompts["phase25"],
+            filename=f"2.5_solution_mapping_{company_name.replace(' ', '_')}.txt",
+            key_suffix="p25",
+            expanded=True,
+            usage_note=(
+                "**🎯 NEW STEP: Product-to-Pain Mapping** - "
+                "After completing Prompts 1 & 2, paste this prompt PLUS the outputs from both. "
+                "The AI will map specific LexisNexis products (Lexis+ AI, Practical Guidance, Halsbury's, etc.) to their pain points. "
+                "**Why this matters:** Your Phase 3 email will now mention SPECIFIC products instead of vague 'our solution' language."
+            )
         )
         
         # Phase 3
@@ -299,19 +316,19 @@ def render_full_workflow() -> None:
             prompt=prompts["phase3"],
             filename=f"3_email_{company_name.replace(' ', '_')}.txt",
             key_suffix="p3",
-            usage_note="After completing Prompts 1 & 2, paste this prompt PLUS the outputs. The AI will draft your cold outreach email."
+            usage_note="After completing Prompts 1, 2, & 2.5, paste this prompt PLUS all outputs. The AI will draft your cold outreach email with specific product mentions."
         )
         
-        # Phase 4 (Sales Summary)
+        # Phase 4
         st.markdown("---")
         render_prompt_expander(
             title="📋 PROMPT 4: Sales Executive Summary (90-Second Brief)",
-            prompt=prompts["summary"],
+            prompt=prompts["phase4"],
             filename=f"4_summary_{company_name.replace(' ', '_')}.txt",
             key_suffix="p4",
-            expanded=True,
+            expanded=False,
             usage_note=(
-                "**🎯 NEW: For Time-Strapped Sales Reps** - "
+                "**🎯 For Time-Strapped Sales Reps** - "
                 "After completing Prompts 1-3, paste this prompt PLUS all previous outputs. "
                 "The AI will create a one-page cheat sheet that distills everything into a 90-second brief. "
                 "**Why this matters:** Your sales team won't read 3 pages of research. "
@@ -319,10 +336,10 @@ def render_full_workflow() -> None:
             )
         )
         
-        # Phase 5 (OUS)
+        # Phase 5
         render_prompt_expander(
             title="📋 PROMPT 5: OUS Framework Analysis",
-            prompt=prompts["ous"],
+            prompt=prompts["phase5"],
             filename=f"5_ous_{company_name.replace(' ', '_')}.txt",
             key_suffix="p5",
             usage_note="Use this prompt to apply the Outcome → Understanding → Standard lens to all your findings. This helps you refine your positioning."
@@ -353,7 +370,7 @@ def render_individual_prompt_builder() -> None:
         st.success("✅ Prompt generated!")
         st.code(prompt, language="markdown")
         
-        filename = f"{recipe_choice.replace(' ', '_').replace(':', '')}_{company_name.replace(' ', '_')}.txt"
+        filename = f"{recipe_choice.replace(' ', '_').replace(':', '').replace('.', '_')}_{company_name.replace(' ', '_')}.txt"
         st.download_button(
             "📥 Download Prompt",
             prompt,
@@ -565,7 +582,8 @@ def render_usage_guide() -> None:
 
 **Step 2: Generate Prompts (Tab 1)**
 - Use **Full Workflow** mode for complete prospect research
-- **NEW:** Prompt 4 now generates a Sales Executive Summary (90-second brief for busy reps)
+- **NEW:** Prompt 2.5 now maps specific LexisNexis products to their pain
+- **NEW:** Prompt 4 generates a Sales Executive Summary (90-second brief for busy reps)
 - Use prompts sequentially in ChatGPT/Claude
 
 **Step 3: Check Your Writing (Tab 2) 🆕**
@@ -579,6 +597,18 @@ def render_usage_guide() -> None:
 - Template A: Outcome Hook (leads with their goal)
 - Template B: Pain Point Entry (leads with empathy)
 - Fill in bracketed placeholders with your findings
+
+---
+
+### 🆕 What's New: Phase 2.5 (Solution Mapping)
+
+**Why it matters:** Before, prompts just said "our platform" generically. Now Phase 2.5 maps specific LexisNexis products to the prospect's pain.
+
+**Example:**
+- **Before:** "Our platform can help with compliance"
+- **After:** "Lexis+ Practical Guidance's Data Protection module has bilingual checklists that flag PDPO deadline risks automatically"
+
+**When to use it:** Always! Run Phase 2.5 after Phase 2 (Buyer Psychology) and before Phase 3 (Email Drafting).
 
 ---
 
@@ -617,11 +647,12 @@ def render_usage_guide() -> None:
 
 ### ⚡ Pro Tips
 
-- **For best results:** Run prompts 1 → 2 → 3 → 4 → 5 sequentially
+- **For best results:** Run prompts 1 → 2 → 2.5 → 3 → 4 → 5 sequentially
 - **Time saver:** Use Prompt 4 (Sales Summary) to brief your team in 90 seconds
 - **Quality check:** Use Plain English Checker on every draft before sending
 - **Template hack:** Generate both templates, pick the one that fits better, then customize
 - **Red flag:** If your email gets a writing score below 70, rewrite it
+- **Product specificity:** Always mention specific LexisNexis products (from Phase 2.5) in your emails
         """)
 
 
@@ -629,7 +660,8 @@ def render_footer() -> None:
     """Render the footer."""
     st.markdown("---")
     st.caption(
-        "**Legal Tech Sales Prospecting Tool v2.0** | OUS Framework + Zinsser's Principles | "
+        "**Legal Tech Sales Prospecting Tool v3.0** | 6-Phase Workflow with Product Mapping | "
+        "OUS Framework + Zinsser's Principles | "
         "Designed for Hong Kong legal market prospecting | "
         f"Session: {datetime.now().strftime('%Y-%m-%d %H:%M')}"
     )
