@@ -64,11 +64,6 @@ class ProspectContext:
 class PromptRecipeManager:
     """Manages all prompt recipes for sales prospecting workflow"""
     
-    @staticmethod
-    def generate_prompt(phase_name: str, context: ProspectContext, recipe_func: Callable) -> str:
-        """Generate a formatted prompt with context header"""
-        return context.to_prompt_header() + "\n\n" + recipe_func()
-    
     @classmethod
     def generate_full_workflow(cls, context: ProspectContext) -> Dict[str, str]:
         """Generate all prompts for the complete workflow"""
@@ -231,7 +226,7 @@ Analyze this opportunity using the **Opportunity, Urgency, Success** framework:
 - Implementation feasibility
 
 **Scoring:** Rate each dimension (1-10) and provide overall assessment.
-**Recommendation:** Pursue aggressively, nurture, or  deprioritize?"""
+**Recommendation:** Pursue aggressively, nurture, or deprioritize?"""
 
         # Phase 6: Qualification
         def phase6_prompt():
@@ -271,14 +266,17 @@ Assess this opportunity against qualification criteria:
 
 **Recommendation:** Qualified/Not Qualified and priority level (A/B/C)."""
 
+        # Build the prompts dictionary
+        header = context.to_prompt_header()
+        
         prompts = {
-            "phase1": cls.generate_prompt("Phase 1: Discovery & Compliance Research", context, phase1_prompt),
-            "phase2": cls.generate_prompt("Phase 2: Buyer Psychological Profiling", context, phase2_prompt),
-            "phase25": cls.generate_prompt("Phase 2.5: Solution Mapping", context, phase25_prompt),
-            "phase3": cls.generate_prompt("Phase 3: Credibility-Based Email Drafting", context, phase3_prompt),
-            "phase4": cls.generate_prompt("Phase 4: Sales Executive Summary", context, phase4_prompt),
-            "phase5": cls.generate_prompt("Phase 5: OUS Framework Analysis", context, phase5_prompt),
-            "phase6": cls.generate_prompt("Phase 6: Deal Qualification", context, phase6_prompt)
+            "phase1": header + "\n\n" + phase1_prompt(),
+            "phase2": header + "\n\n" + phase2_prompt(),
+            "phase25": header + "\n\n" + phase25_prompt(),
+            "phase3": header + "\n\n" + phase3_prompt(),
+            "phase4": header + "\n\n" + phase4_prompt(),
+            "phase5": header + "\n\n" + phase5_prompt(),
+            "phase6": header + "\n\n" + phase6_prompt()
         }
         
         return prompts
@@ -287,5 +285,4 @@ Assess this opportunity against qualification criteria:
     def get_individual_prompt(cls, phase: str, context: ProspectContext) -> str:
         """Get a single prompt by phase name"""
         all_prompts = cls.generate_full_workflow(context)
-        phase_key = f"phase{phase.replace(' ', '').replace(':', '').replace('.', '')}"
-        return all_prompts.get(phase_key, "")
+        return all_prompts.get(phase, "")
