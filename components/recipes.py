@@ -107,6 +107,58 @@ Legal Buyer Personas:
 - Corporate Secretaries (governance, regulatory filing deadlines)
 """
 
+PRODUCT_ARSENAL: Final[str] = """
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LEXISNEXIS HK PRODUCT ARSENAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DIGITAL PLATFORMS:
+
+1. Lexis+ AI (Hong Kong)
+   - AI drafting assistant ("Protégé") for contracts, pleadings, motions
+   - Document analysis: finds missing clauses, inconsistencies, citation errors
+   - Summarisation & timeline generation from document sets
+   - Natural-language prompting + firm document upload
+   - Best for: Busy lawyers needing end-to-end workflow support
+
+2. Lexis+ Hong Kong (non-AI research suite)
+   - Comprehensive case/statute/commentary search (AI/GPT-enhanced)
+   - Customizable interface (pin favorites, adjust layout)
+   - Covers: Banking, Corporate, Data Protection, Dispute Resolution, Employment, IP, Tax, Wills & Probate
+   - Best for: Generalist firms needing broad research platform
+
+3. Lexis+ Practical Guidance
+   - Peer-reviewed precedents, practice notes, checklists
+   - Bilingual templates (EN/ZH) with annotations
+   - Legislation/regulatory trackers
+   - Best for: Transactional lawyers, in-house counsel needing ready-to-use drafts
+
+PRINT PUBLICATIONS (Classic References):
+
+Foundation Works:
+- Halsbury's Laws of Hong Kong: Encyclopedic reference across 85+ subject areas
+- Annotated Ordinances of Hong Kong: ~200 statutes with section-by-section commentary
+
+Litigation Tools:
+- Atkin's Court Forms Hong Kong: Civil litigation procedural documents/forms
+- Hong Kong Cases: Law reports back to 1842 with headnotes
+- Hong Kong Public Law Reports: Judicial review, constitutional/human rights cases
+- Hong Kong Conveyancing & Property Reports: Property/land law judgments
+- Hong Kong Family Law Reports: Divorce, custody, matrimonial cases
+
+Transactional & Drafting:
+- Hong Kong Encyclopaedia of Forms and Precedents: Commercial drafting templates
+
+Procedural & Specialist Guides (Looseleafs):
+- Hong Kong Civil Court Practice: Rules of High Court/District Court annotation
+- Criminal Evidence in Hong Kong: Evidence law in criminal cases
+- Hong Kong Employment Law Manual: Employment contracts, MPF, termination
+- Other specialist looseleafs: Tax, Corporate, IP, Banking, Construction, etc.
+
+PRACTICE-AREA COVERAGE:
+Banking & Securities | Company & Corporate | Construction | Conveyancing & Property | Criminal Law | Data Protection | Dispute Resolution | Employment | Family Law | IP | Personal Injury | Public Law | Tax | Wills & Probate
+"""
+
 
 # ==================== DATA MODELS ====================
 
@@ -116,7 +168,7 @@ class ProspectContext:
     company_name: str
     company_url: str = ""
     practice_area: str = "General/Multiple"
-    buyer_persona: str = "General Counsel / Legal Decision Maker"
+    buyer_persona: str = "General Counsel (In-House)"
     industry: str = ""
     notes: str = ""
     
@@ -130,9 +182,13 @@ Company Name: {self.company_name or '[To be researched]'}
 Company Website/Source: {self.company_url or '[To be researched]'}
 Target Practice Area: {self.practice_area}
 Buyer Persona: {self.buyer_persona}
+Industry Vertical: {self.industry or '[To be researched]'}
+Additional Context: {self.notes or 'None provided'}
 {'='*60}
 
 {HK_LEGAL_CONTEXT}
+
+{PRODUCT_ARSENAL}
 
 {ANTI_HALLUCINATION_PREAMBLE}
 """
@@ -145,15 +201,15 @@ class PromptTemplates:
     
     @staticmethod
     def phase_1_discovery() -> str:
-        """Phase 1: Discovery & Compliance Research."""
+        """Phase 1: Discovery & Risk Research."""
         return f"""
 {ZINSSER_WRITING_RULES}
 
 ═══════════════════════════════════════════════════
-PHASE 1: DISCOVERY & COMPLIANCE (Automated Research)
+PHASE 1: DISCOVERY & RISK RESEARCH
 ═══════════════════════════════════════════════════
 
-YOUR ROLE: Act as a Hong Kong-based legal intelligence paralegal researcher.
+YOUR ROLE: Act as a Hong Kong-based legal intelligence researcher.
 
 OBJECTIVE: Create a "Risk Dossier" - identify specific, timely, legally relevant trigger events.
 
@@ -197,16 +253,18 @@ OUTPUT FORMAT (Use conversational bullets):
 [ ] Found triggers - worth pursuing
 
 **CONFIDENCE:** [High/Medium/Low based on available data]
+
+Begin research now.
 """
     
     @staticmethod
-    def phase_2_profiling() -> str:
-        """Phase 2: General Counsel Psychological Profiling."""
+    def phase_2_buyer_psychology() -> str:
+        """Phase 2: Buyer Psychological Profiling."""
         return f"""
 {ZINSSER_WRITING_RULES}
 
 ═══════════════════════════════════════════════════
-PHASE 2: GENERAL COUNSEL SIMULATION (Psychological Profiling)
+PHASE 2: BUYER PSYCHOLOGICAL PROFILING
 ═══════════════════════════════════════════════════
 
 YOUR ROLE: Step into the shoes of the target legal buyer. You are now roleplaying as their General Counsel / Legal Department Head / Managing Partner.
@@ -272,6 +330,149 @@ Example:
 1. [Question that shows you understand their world]
 2. [Question that reveals how bad the pain is]
 3. [Question about what they've already tried]
+
+Begin psychological profiling now.
+"""
+    
+    @staticmethod
+    def phase_25_solution_mapping() -> str:
+        """Phase 2.5: Solution Mapping (NEW)."""
+        return f"""
+{ZINSSER_WRITING_RULES}
+
+═══════════════════════════════════════════════════
+PHASE 2.5: SOLUTION MAPPING
+═══════════════════════════════════════════════════
+
+ROLE: You're a LexisNexis solutions consultant who's spent 5 years selling to HK law firms. You know the product catalog inside-out and can spot the perfect product-to-pain fit.
+
+OBJECTIVE: Match their pain (from Phase 2) to the specific LexisNexis products that solve it.
+
+INPUT: Use the Buyer Psychology output from Phase 2 + the Product Arsenal from the header above.
+
+SOLUTION-MATCHING FRAMEWORK:
+
+1. PRIMARY PAIN → PRIMARY SOLUTION
+   What's their #1 pain from Phase 2?
+   → Solved by: [Name specific LexisNexis product]
+   → Why it fits: [One sentence explaining the connection]
+   → Proof point: [Specific feature/capability that directly addresses the pain]
+   → Concrete example: [How they'd use this in their day-to-day work]
+
+2. SECONDARY PAIN → SECONDARY SOLUTION (if Phase 2 identified a second pain)
+   What's their #2 pain?
+   → Solved by: [Product name]
+   → Why it fits: [One sentence]
+   → Proof point: [Feature that helps]
+
+3. PRACTICE-AREA FIT
+   Based on Phase 1 trigger events, which practice areas are under pressure?
+   Map each to relevant LexisNexis products/modules:
+   - [Practice area 1]: [Product/module/publication that covers it] — [Why this matters for their trigger]
+   - [Practice area 2]: [Product/module/publication that covers it] — [Why this matters for their trigger]
+
+4. DIGITAL vs. PRINT RECOMMENDATION
+   Based on their buyer persona and pain, what's the right product mix?
+   - If they need speed/efficiency/collaboration → Recommend digital (Lexis+ AI, Practical Guidance)
+   - If they need authoritative depth/court citations/offline reference → Recommend print (Halsbury's, Annotated Ordinances, specialist looseleafs)
+   - Many firms need BOTH → Explain why
+
+OUTPUT FORMAT:
+
+**SOLUTION STACK FOR [COMPANY NAME]**
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIMARY RECOMMENDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Product: [Name]
+
+Addresses this pain: [Their main pain from Phase 2]
+
+Key feature they need: [Specific capability — be concrete]
+
+Example use case:
+"[Write 2-3 sentences showing exactly how they'd use this product to solve their trigger event from Phase 1. Make it vivid and specific.]"
+
+Why this beats their current approach:
+[One sentence comparing to what they're probably doing now — e.g. manual research, outdated templates, etc.]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SECONDARY RECOMMENDATION (if applicable)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Product: [Name]
+
+Addresses: [Secondary pain or complementary need]
+
+Key feature: [Specific capability]
+
+Use case: [One sentence]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRACTICE-AREA FIT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Practice area 1 under pressure from Phase 1]:
+- Relevant product/module: [Name]
+- Why it matters: [How this helps with their specific trigger event]
+
+[Practice area 2 under pressure from Phase 1]:
+- Relevant product/module: [Name]
+- Why it matters: [How this helps with their specific trigger event]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIGITAL vs. PRINT MIX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Recommended approach: [Digital-first / Print-first / Hybrid]
+
+Reasoning: [Why this mix makes sense for their firm profile and pain]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+15-MIN DEMO PLAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+(What you'd show them in a screen share to prove value fast)
+
+Minute 1-5: [Demo workflow #1 tied to their primary pain]
+- Show: [Specific feature]
+- Outcome: [What they walk away with — e.g. "see how Lexis+ AI drafts a [document type] in 2 minutes"]
+
+Minute 6-10: [Demo workflow #2 tied to their trigger event]
+- Show: [Specific feature]
+- Outcome: [Quick win — e.g. "catch 3 missing clauses in their standard [contract type]"]
+
+Minute 11-15: [ROI moment]
+- Show: [Time-saving or risk-reduction calculation]
+- Outcome: [The "aha" — e.g. "if you avoid one [regulatory penalty / litigation risk], this pays for itself"]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OBJECTION HANDLING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OBJECTION 1: "We already have [competitor / internal system / free resources]"
+Counter: [How LexisNexis is different/better for their specific situation from Phase 1-2. Be concrete — don't just say "more comprehensive." Say "Lexis+ AI's document analysis catches [specific issue they're facing] which [competitor] doesn't do."]
+
+OBJECTION 2: "Too expensive / budget constraints"
+Counter (ROI angle): [Tie to their pain. Examples: "If you avoid one PDPO penalty (HKD 500K-1M), this pays for itself." OR "If your associates save 5 hours/week on research, that's [X billable hours] recovered." Use their trigger event from Phase 1 to make this tangible.]
+
+OBJECTION 3: "We don't have time to learn a new system"
+Counter: [Address their fatigue from Phase 2. E.g. "Lexis+ AI works with natural language — no training manual needed. Your team can start drafting [document type] today using the same prompts they'd give a junior associate."]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CONFIDENCE CHECK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+How strong is this product-to-pain fit?
+[ ] Strong fit — recommended solution directly addresses their proven pain and trigger
+[ ] Moderate fit — solution helps but requires some adaptation or additional context
+[ ] Weak fit — may need to dig deeper in discovery call to confirm real pain point
+
+What assumptions are you making?
+[List any assumptions about their tech stack, budget, team size, current tools, etc. that you'd need to validate on a call]
+
+What could derail this deal?
+[Be honest — what red flags from Phase 1-2 could kill this opportunity?]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Begin solution mapping now.
 """
     
     @staticmethod
@@ -289,6 +490,8 @@ YOUR ROLE: Draft a cold outreach email that sounds like it's from a trusted lega
 OBJECTIVE: Generate a "Credibility Token" - an email that passes the "Associate Test" (would a junior lawyer forward this to their boss as relevant, not delete as spam?).
 
 TARGET REACTION: "How did they know we're dealing with this?" (creates psychological difficulty to ignore).
+
+IMPORTANT: You now have access to specific LexisNexis product names from Phase 2.5. Use them! Don't say "our platform" — say "Lexis+ AI" or "Practical Guidance."
 
 DRAFTING STRUCTURE: Hook-Pivot-Ask
 
@@ -310,20 +513,20 @@ HOOK FORMULA:
 - Hint at a non-obvious risk (creates curiosity)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-2. PIVOT (Position as Strategic Insurance)
+2. PIVOT (Position Specific Product as Strategic Insurance)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Frame your solution as risk mitigation, not efficiency.
+Frame your solution as risk mitigation, not efficiency. **Name the specific product from Phase 2.5.**
 
 Bad Example:
 "Our platform has 50+ features including AI search and contract analysis."
 (Feature dump, no emotional resonance)
 
 Good Example:
-"The GCs we work with describe our platform as 'insurance against what we might've missed.' For example, [one concrete micro-story of how it caught a gap]."
+"Lexis+ AI's document analysis feature catches missing clauses — exactly what you need when reviewing [trigger event] deals under time pressure. For example, one HK-listed property firm used it to catch cross-border IP gaps before their audit."
 
 PIVOT FORMULA:
-- Use social proof from similar buyers
-- Frame as "insurance" or "safety net"
+- Name the specific LexisNexis product
+- Tie one specific feature to their pain from Phase 2
 - Give ONE concrete micro-example (not a feature list)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -335,7 +538,7 @@ Bad Example:
 "Can I get 30 minutes on your calendar this week for a demo?"
 
 Good Example:
-"I'd love to share how [similar HK firm] tackled [specific challenge]. Even if our tool isn't the right fit, I can point you to [specific resource]. Would next Tuesday at 3pm work for a quick 15-min call?"
+"Would it help to share how [similar HK firm] approached this? Even if Lexis+ AI isn't the right fit, I can point you to a useful checklist. Would next Tuesday at 3pm work for a quick 15-min call?"
 
 ASK FORMULA:
 - Offer value FIRST
@@ -348,15 +551,15 @@ TONE REQUIREMENTS:
 ✓ Sound like a peer advisor, not a vendor
 ✓ Use contractions (I've, we're, you'll)
 ✓ Keep it conversational
-✓ Be specific (dates, names, numbers)
+✓ Be specific (dates, names, numbers, PRODUCT NAMES)
 
 OUTPUT FORMAT:
 **Subject Line:** [Specific, trigger-based, non-salesy - max 6 words]
 
 **Email Body:**
-[Hook - 2-3 sentences]
+[Hook - 2-3 sentences referencing Phase 1 trigger]
 
-[Pivot - 2-3 sentences]
+[Pivot - 2-3 sentences naming specific product from Phase 2.5 and tying to their pain]
 
 [Ask - 2 sentences]
 
@@ -366,16 +569,18 @@ Best,
 **WORD COUNT:** 100-150 words MAX
 
 **ASSOCIATE TEST:** Would a junior lawyer think "My boss should see this" or "Spam"?
+
+Begin drafting now.
 """
     
     @staticmethod
-    def sales_exec_summary() -> str:
-        """Sales Executive Summary (Quick Brief)."""
+    def phase_4_call_brief() -> str:
+        """Phase 4: Sales Executive Summary."""
         return f"""
 {ZINSSER_WRITING_RULES}
 
 ═══════════════════════════════════════════════════
-SALES EXECUTIVE SUMMARY (For Time-Strapped Reps)
+PHASE 4: SALES EXECUTIVE SUMMARY (90-Second Brief)
 ═══════════════════════════════════════════════════
 
 YOUR ROLE: You're briefing a busy sales rep who has 90 seconds to understand this prospect before a call.
@@ -385,10 +590,10 @@ OBJECTIVE: Distill ALL the research from Phases 1-3 into a "cheat sheet" that fi
 OUTPUT FORMAT:
 
 **🎯 THE 30-SECOND PITCH:**
-[In 2-3 sentences, explain: Who is this company? What legal problem did we find? Why should they care about our solution RIGHT NOW?]
+[In 2-3 sentences, explain: Who is this company? What legal problem did we find? Why should they care about our solution RIGHT NOW? **Name the specific product from Phase 2.5.**]
 
 Example:
-"They're a HK-listed property developer who just bought a Shenzhen subsidiary in Q2. Their GC is probably freaking out about cross-border IP compliance because PRC and HK have different rules. We can help them audit those contracts before their next Board meeting."
+"They're a HK-listed property developer who just bought a Shenzhen subsidiary in Q2. Their GC is probably freaking out about cross-border IP compliance because PRC and HK have different rules. Lexis+ Practical Guidance's bilingual IP templates can help them audit those contracts before their next Board meeting."
 
 **🔥 TRIGGER EVENT (Why Now?):**
 - [The specific recent event that creates urgency - with date]
@@ -403,13 +608,18 @@ Example: "If we get audited and our contracts don't comply with both HK and PRC 
 1. [Their #1 priority: Budget/Speed/Risk] - [Why in 5 words]
 2. [Their #2 priority] - [Why in 5 words]
 
+**🎁 RECOMMENDED SOLUTION (from Phase 2.5):**
+- Primary product: [Name from Phase 2.5]
+- Why it fits: [One sentence]
+- Quick win: [What they could achieve in first week]
+
 **❓ QUESTIONS TO ASK ON THE CALL:**
 1. [Diagnostic question]
 2. [Severity question]
 3. [Past attempts question]
 
 **📧 EMAIL HOOK TO USE:**
-"I saw you [specific trigger]. We've helped other HK [industry] companies with [their exact pain]. Want to chat?"
+"I saw you [specific trigger]. [Specific product name] has [specific feature] — perfect for your [exact pain]. Want to chat?"
 
 **⏱️ TIME SENSITIVITY:**
 [ ] HIGH - They need to act in next 30-60 days
@@ -418,19 +628,21 @@ Example: "If we get audited and our contracts don't comply with both HK and PRC 
 
 **BOTTOM LINE (Go/No-Go):**
 [One sentence: Is this prospect worth pursuing? Why or why not?]
+
+Begin summary now.
 """
     
     @staticmethod
-    def ous_framework() -> str:
-        """OUS Framework Analysis."""
+    def phase_5_ous_framework() -> str:
+        """Phase 5: OUS Framework Analysis."""
         return f"""
 {ZINSSER_WRITING_RULES}
 
 ═══════════════════════════════════════════════════
-OUS FRAMEWORK: OUTCOME → UNDERSTANDING → STANDARD
+PHASE 5: OUS FRAMEWORK ANALYSIS
 ═══════════════════════════════════════════════════
 
-Based on the prospect research from Phases 1-2, apply the OUS lens:
+Based on the prospect research from Phases 1-4, apply the OUS lens:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 O - OUTCOME (Strategic Business Objectives)
@@ -498,10 +710,12 @@ When they evaluate solutions, what will be their non-negotiable requirements?
 - [ ] [Certification needed]
 - [ ] [Audit trail requirement]
 
-**How We Win:**
+**How We Win (based on Phase 2.5 product mapping):**
 "The Standard: [The ONE criterion they care about most]
 
-Our Edge: [How we're the ONLY solution that meets this - be specific about what competitors can't do]"
+Our Edge with [Specific LexisNexis Product]: [How we're the ONLY solution that meets this - be specific about what competitors can't do]"
+
+Begin OUS analysis now.
 """
 
 
@@ -511,11 +725,12 @@ class PromptRecipeManager:
     """Manages prompt recipe generation."""
     
     RECIPES: dict[str, callable] = {
-        "Phase 1: Discovery & Compliance Research": PromptTemplates.phase_1_discovery,
-        "Phase 2: General Counsel Psychological Profiling": PromptTemplates.phase_2_profiling,
+        "Phase 1: Discovery & Risk Research": PromptTemplates.phase_1_discovery,
+        "Phase 2: Buyer Psychological Profiling": PromptTemplates.phase_2_buyer_psychology,
+        "Phase 2.5: Solution Mapping": PromptTemplates.phase_25_solution_mapping,
         "Phase 3: Credibility-Based Email Drafting": PromptTemplates.phase_3_email_drafting,
-        "Sales Executive Summary (Quick Brief)": PromptTemplates.sales_exec_summary,
-        "OUS Framework Analysis": PromptTemplates.ous_framework,
+        "Phase 4: Sales Executive Summary": PromptTemplates.phase_4_call_brief,
+        "Phase 5: OUS Framework Analysis": PromptTemplates.phase_5_ous_framework,
     }
     
     @classmethod
@@ -525,19 +740,7 @@ class PromptRecipeManager:
     
     @classmethod
     def generate_prompt(cls, recipe_name: str, context: ProspectContext) -> str:
-        """
-        Generate a prompt based on the selected recipe and prospect context.
-        
-        Args:
-            recipe_name: Name of the recipe to use
-            context: Prospect context information
-            
-        Returns:
-            Complete prompt string
-            
-        Raises:
-            ValueError: If recipe_name is not found
-        """
+        """Generate a prompt based on the selected recipe and prospect context."""
         if recipe_name not in cls.RECIPES:
             raise ValueError(f"Unknown recipe: {recipe_name}")
         
@@ -546,59 +749,12 @@ class PromptRecipeManager:
     
     @classmethod
     def generate_full_workflow(cls, context: ProspectContext) -> dict[str, str]:
-        """
-        Generate all prompts in sequence for a complete workflow.
-        
-        Args:
-            context: Prospect context information
-            
-        Returns:
-            Dict with keys: phase1, phase2, phase3, summary, ous
-        """
+        """Generate all 6 prompts in sequence for a complete workflow."""
         return {
-            "phase1": cls.generate_prompt("Phase 1: Discovery & Compliance Research", context),
-            "phase2": cls.generate_prompt("Phase 2: General Counsel Psychological Profiling", context),
+            "phase1": cls.generate_prompt("Phase 1: Discovery & Risk Research", context),
+            "phase2": cls.generate_prompt("Phase 2: Buyer Psychological Profiling", context),
+            "phase25": cls.generate_prompt("Phase 2.5: Solution Mapping", context),
             "phase3": cls.generate_prompt("Phase 3: Credibility-Based Email Drafting", context),
-            "summary": cls.generate_prompt("Sales Executive Summary (Quick Brief)", context),
-            "ous": cls.generate_prompt("OUS Framework Analysis", context),
+            "phase4": cls.generate_prompt("Phase 4: Sales Executive Summary", context),
+            "phase5": cls.generate_prompt("Phase 5: OUS Framework Analysis", context),
         }
-
-
-# ==================== BACKWARDS COMPATIBILITY ====================
-
-def fill_recipe(
-    recipe_name: str,
-    company_name: str = "",
-    company_url: str = "",
-    practice_area: str = "",
-    buyer_persona: str = "",
-) -> str:
-    """Legacy function for backwards compatibility."""
-    context = ProspectContext(
-        company_name=company_name,
-        company_url=company_url,
-        practice_area=practice_area or "General/Multiple",
-        buyer_persona=buyer_persona or "General Counsel / Legal Decision Maker"
-    )
-    return PromptRecipeManager.generate_prompt(recipe_name, context)
-
-
-def generate_full_workflow(
-    company_name: str,
-    company_url: str,
-    practice_area: str,
-    buyer_persona: str,
-) -> dict[str, str]:
-    """Legacy function for backwards compatibility."""
-    context = ProspectContext(
-        company_name=company_name,
-        company_url=company_url,
-        practice_area=practice_area,
-        buyer_persona=buyer_persona
-    )
-    return PromptRecipeManager.generate_full_workflow(context)
-
-
-# Export for external use
-PROMPT_RECIPES = {name: lambda ctx=name: PromptRecipeManager.RECIPES[ctx]() 
-                  for name in PromptRecipeManager.get_recipe_names()}
