@@ -3,10 +3,16 @@ M&A Prospecting Tool - Streamlit App
 Generates AI prompts for legal/compliance discovery research.
 """
 
-import streamlit as st
+from __future__ import annotations
+
 from datetime import datetime
-from typing import Dict, Optional
-from recipes import PromptRecipeManager
+
+import streamlit as st
+
+from components.email_templates import EmailTemplateGenerator
+from components.presets import ProspectPreset, export_preset_bytes, load_preset_into_state
+from components.recipes import PromptRecipeManager, ProspectContext
+from components.writing_checker import check_plain_english, get_writing_tips
 
 # ============================================================================
 # PAGE CONFIG
