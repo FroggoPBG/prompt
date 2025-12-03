@@ -462,18 +462,18 @@ def render_full_workflow():
             st.error("❌ Please enter a company name to generate prompts.")
             return
         
-     465        with st.spinner("Generating 6-phase workflow..."):
-466            context = ProspectContext(
-467                company_name=st.session_state.get('company_name', ''),
-468                industry_sector=st.session_state.get('industry_sector', ''),
-469                transaction_type=st.session_state.get('transaction_type', ''),
-470                legal_entity_type=st.session_state.get('legal_entity_type', ''),
-471                transaction_size=st.session_state.get('transaction_size', ''),
-472                geographic_scope=st.session_state.get('geographic_scope', ''),
-473                deal_context=st.session_state.get('deal_context', ''),
-474                additional_notes=st.session_state.get('additional_notes', '')
-475            )
-476            prompts = PromptRecipeManager.generate_full_workflow(context)
+    with st.spinner("Generating 6-phase workflow..."):
+            context = ProspectContext(
+                company_name=st.session_state.get('company_name', ''),
+                industry_sector=st.session_state.get('industry_sector', ''),
+                transaction_type=st.session_state.get('transaction_type', ''),
+                legal_entity_type=st.session_state.get('legal_entity_type', ''),
+                transaction_size=st.session_state.get('transaction_size', ''),
+                geographic_scope=st.session_state.get('geographic_scope', ''),
+                deal_context=st.session_state.get('deal_context', ''),
+                additional_notes=st.session_state.get('additional_notes', '')
+            )
+            prompts = PromptRecipeManager.generate_full_workflow(context)
         
         st.success("✅ Workflow generated! Copy each prompt below and paste into your AI tool sequentially.")
         
