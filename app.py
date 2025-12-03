@@ -443,17 +443,19 @@ def render_individual_prompts():
 
 def render_full_workflow():
     """Render the full 6-prompt workflow generator."""
+    
     st.markdown("### 🎯 Complete Sales Prospecting Sequence")
-    st.info(
-        "**This generates all 6 prompts in the correct order:**\n\n"
-        "1. **Phase 1**: Discovery & Risk Research\n"
-        "2. **Phase 2**: Buyer Psychological Profiling\n"
-        "3. **Phase 2.5**: 🆕 Solution Mapping (Product-to-Pain Fit)\n"
-        "4. **Phase 3**: Credibility-Based Email Drafting\n"
-        "5. **Phase 4**: Sales Executive Summary (90-second brief)\n"
-        "6. **Phase 5**: OUS Framework Analysis\n\n"
-        "Use these prompts sequentially in ChatGPT/Claude to build a complete prospect dossier."
-    )
+    
+    st.info("""
+    **This generates all 6 prompts in the correct order:**\n\n
+    "1. **Phase 1**: Discovery & Risk Research\n"
+    "2. **Phase 2**: Buyer Psychological Profiling\n"
+    "3. **Phase 2.5**: 📋 Solution Mapping (Product-to-Pain Fit)\n"
+    "4. **Phase 3**: Credibility-Based Email Drafting\n"
+    "5. **Phase 4**: Sales Executive Summary (90-second brief)\n"
+    "6. **Phase 5**: OUS Framework Analysis\n\n"
+    "Use these prompts sequentially in ChatGPT/Claude to build a complete prospect dossier."
+    """)
     
     company_name = st.session_state.get("company_name", "")
     
@@ -462,7 +464,7 @@ def render_full_workflow():
             st.error("❌ Please enter a company name to generate prompts.")
             return
         
-   with st.spinner("Generating 6-phase workflow..."):
+        with st.spinner("Generating 6-phase workflow..."):
             context = ProspectContext(
                 company_name=st.session_state.get('company_name', ''),
                 industry_sector=st.session_state.get('industry_sector', ''),
@@ -476,6 +478,18 @@ def render_full_workflow():
             prompts = PromptRecipeManager.generate_full_workflow(context)
         
         st.success("✅ Workflow generated! Copy each prompt below and paste into your AI tool sequentially.")
+        
+        # Display prompts
+        for i, (phase_name, prompt) in enumerate(prompts.items(), 1):
+            with st.expander(f"**Phase {i}: {phase_name}**", expanded=(i == 1)):
+                st.code(prompt, language="markdown")
+                st.download_button(
+                    label=f"📥 Download Phase {i}",
+                    data=prompt,
+                    file_name=f"phase_{i}_{phase_name.lower().replace(' ', '_')}.txt",
+                    mime="text/plain",
+                    key=f"download_full_{i}"
+                )
         
         # Phase 1
         render_prompt_expander(
