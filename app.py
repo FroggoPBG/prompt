@@ -463,7 +463,16 @@ def render_full_workflow():
             return
         
         with st.spinner("Generating 6-phase workflow..."):
-            context = get_prospect_context()
+           context = ProspectContext(
+    company_name=st.session_state.get('company_name', ''),
+    industry_sector=st.session_state.get('industry_sector', ''),
+    transaction_type=st.session_state.get('transaction_type', ''),
+    legal_entity_type=st.session_state.get('legal_entity_type', ''),
+    transaction_size=st.session_state.get('transaction_size', ''),
+    geographic_scope=st.session_state.get('geographic_scope', ''),
+    deal_context=st.session_state.get('deal_context', ''),
+    additional_notes=st.session_state.get('additional_notes', '')
+)
             prompts = PromptRecipeManager.generate_full_workflow(context)
         
         st.success("✅ Workflow generated! Copy each prompt below and paste into your AI tool sequentially.")
