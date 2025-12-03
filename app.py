@@ -462,7 +462,7 @@ def render_full_workflow():
             st.error("❌ Please enter a company name to generate prompts.")
             return
         
-    with st.spinner("Generating 6-phase workflow..."):
+   with st.spinner("Generating 6-phase workflow..."):
             context = ProspectContext(
                 company_name=st.session_state.get('company_name', ''),
                 industry_sector=st.session_state.get('industry_sector', ''),
