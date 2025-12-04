@@ -241,121 +241,47 @@ Create a 90-second executive summary for the {context.company_name or 'this'} op
 
 **Format for quick scanning—use bullets, keep sections tight. No fluff.**"""
 
-        # Phase 5: OUS Framework Analysis
+        # Phase 5: OUS Framework Analysis (CORRECTED)
         def phase5_prompt():
             return f"""**Phase 5: OUS Framework Analysis**
 
 Analyze this opportunity using the OUS framework. **For each score (1-10), provide specific evidence or reasoning.**
 
-**OPPORTUNITY (weight: 40%)**
-- Deal size potential for {context.industry_sector or 'this sector'} (with stated assumptions): **Score:** ___ / **Evidence:**
-- Strategic fit with our capabilities: **Score:** ___ / **Evidence:**
-- Competitive landscape favorability: **Score:** ___ / **Evidence:**
-- Expansion potential beyond initial deal: **Score:** ___ / **Evidence:**
+**OUTCOME (weight: 35%)**
+*Strategic objectives and long-term goals the customer seeks to achieve through the solution*
 
-**URGENCY (weight: 30%)**
-- External time pressure (regulatory, market, competitive): **Score:** ___ / **Evidence:**
-- Internal drivers (budget cycles, initiatives, pain severity): **Score:** ___ / **Evidence:**
-- Cost of status quo for them: **Score:** ___ / **Evidence:**
-- Risk of losing to competitor: **Score:** ___ / **Evidence:**
+- Strategic goals this solution would support (efficiency, growth, compliance, competitiveness): **Score:** ___ / **Evidence:**
+- Alignment with {context.company_name or 'the firm'}'s stated priorities or strategic initiatives: **Score:** ___ / **Evidence:**
+- Long-term value potential beyond immediate problem-solving: **Score:** ___ / **Evidence:**
+- Executive visibility and sponsorship potential: **Score:** ___ / **Evidence:**
 
-**SUCCESS PROBABILITY (weight: 30%)**
-- Access to decision-makers: **Score:** ___ / **Evidence:**
-- Budget availability signals: **Score:** ___ / **Evidence:**
-- Solution-problem fit quality: **Score:** ___ / **Evidence:**
-- Implementation feasibility: **Score:** ___ / **Evidence:**
-- Cultural/organizational fit: **Score:** ___ / **Evidence:**
+**Outcome Subscore:** ___ / 10
 
-**Scoring & Decision Rules:**
-- **8+ overall:** Pursue aggressively, prioritize resources, fast-track
-- **6-8 overall:** Pursue with standard effort, nurture relationship
-- **Below 6:** Deprioritize unless new information emerges
+---
 
-**Calculate weighted overall score and provide clear recommendation with next actions.**"""
+**UNDERSTANDING PAIN (weight: 35%)**
+*Identification and in-depth understanding of the customer's primary challenges and pain points*
 
-        # Phase 6: Qualification
-        def phase6_prompt():
-            return f"""**Phase 6: Deal Qualification (BANT+ Framework)**
+- Severity of pain points we can address (1=minor annoyance, 10=critical business issue): **Score:** ___ / **Evidence:**
+- Cost of status quo (wasted time, lost revenue, compliance risk, competitive disadvantage): **Score:** ___ / **Evidence:**
+- Urgency/time pressure to solve this pain: **Score:** ___ / **Evidence:**
+- Our ability to articulate their pain better than they can (shows deep understanding): **Score:** ___ / **Evidence:**
 
-Assess {context.company_name or 'this opportunity'} against qualification criteria.
+**Understanding Pain Subscore:** ___ / 10
 
-**IMPORTANT: This is pre-conversation analysis—all assessments are hypotheses to validate in discovery.**
+---
 
-**BUDGET**
-- Likely budget range for {context.transaction_type or 'this type of engagement'} (based on firm size/type)
-- Probable budget holder and approval process
-- Signals of financial health or constraint
-- **Confidence level:** High / Medium / Low
+**SELECTION PROCESS (weight: 30%)**
+*Standards and requirements the customer uses to evaluate and compare potential solutions*
 
-**AUTHORITY**
-- Probable decision-maker role/title
-- Likely influencers and potential blockers
-- Expected process complexity
-- **Confidence level:** High / Medium / Low
+- Clarity on their evaluation criteria and decision process: **Score:** ___ / **Evidence:**
+- Our competitive positioning against their stated requirements: **Score:** ___ / **Evidence:**
+- Decision-maker access and influence: **Score:** ___ / **Evidence:**
+- Budget availability and approval process favorability: **Score:** ___ / **Evidence:**
+- Technical/compliance requirements alignment: **Score:** ___ / **Evidence:**
 
-**NEED**
-- Estimated pain severity (1-10) with reasoning
-- Probable alternatives they're considering
-- Fit between our solution and their situation (1-10)
-- **Confidence level:** High / Medium / Low
+**Selection Process Subscore:** ___ / 10
 
-**TIMELINE**
-- Likely decision timeline for this purchase type
-- Known deadlines or events that might accelerate
-- Factors that could cause delays
-- **Confidence level:** High / Medium / Low
+---
 
-**ADDITIONAL FACTORS**
-- Competitive exposure (who else is probably pursuing them?)
-- Political or relationship dynamics we should know about
-- Technical or compliance requirements affecting fit
-- Cultural considerations
-
-**QUALIFICATION ASSESSMENT:**
-- ✅ **Likely Qualified:** Strong signals across BANT—pursue actively
-- ⚠️ **Uncertain:** Mixed signals—prioritize validation in early conversations
-- ❌ **Likely Unqualified:** Weak signals—deprioritize unless new information emerges
-
-**Priority Level:** A (hot) / B (warm) / C (cold)
-
-**Key Validation Questions for First Conversation:**
-1. [Question to validate budget]
-2. [Question to validate authority]
-3. [Question to validate need]
-4. [Question to validate timeline]
-
-**Recommended Next Actions:**"""
-
-        # Build the prompts dictionary
-        header = context.to_prompt_header()
-        
-        prompts = {
-            "phase1": header + "\n\n" + phase1_prompt(),
-            "phase2": header + "\n\n" + phase2_prompt(),
-            "phase25": header + "\n\n" + phase25_prompt(),
-            "phase3": header + "\n\n" + phase3_prompt(),
-            "phase4": header + "\n\n" + phase4_prompt(),
-            "phase5": header + "\n\n" + phase5_prompt(),
-            "phase6": header + "\n\n" + phase6_prompt()
-        }
-        
-        return prompts
-    
-    @classmethod
-    def get_individual_prompt(cls, phase: str, context: ProspectContext) -> str:
-        """Get a single prompt by phase name"""
-        all_prompts = cls.generate_full_workflow(context)
-        return all_prompts.get(phase, "")
-    
-    @classmethod
-    def get_phase_names(cls) -> Dict[str, str]:
-        """Return phase IDs and display names"""
-        return {
-            "phase1": "Phase 1: Discovery & Compliance Research",
-            "phase2": "Phase 2: Decision-Making Dynamics",
-            "phase25": "Phase 2.5: Pain Point Hypothesis & Solution Mapping",
-            "phase3": "Phase 3: Credibility-Based Email Outreach",
-            "phase4": "Phase 4: Sales Executive Summary",
-            "phase5": "Phase 5: OUS Framework Analysis",
-            "phase6": "Phase 6: Deal Qualification (BANT+)"
-        }
+**OVERALL OUS SCORE CALCULATION:**
