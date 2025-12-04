@@ -241,17 +241,17 @@ Create a 90-second executive summary for the {context.company_name or 'this'} op
 
 **Format for quick scanning—use bullets, keep sections tight. No fluff.**"""
 
-        # Phase 5: OUS Framework Analysis (CORRECTED)
-        def phase5_prompt():
-            return f"""**Phase 5: OUS Framework Analysis**
+       # Phase 5: OUS Framework Analysis (CORRECTED)
+def phase5_prompt():
+    return f"""**Phase 5: OUS Framework Analysis**
 
 Analyze this opportunity using the OUS framework. **For each score (1-10), provide specific evidence or reasoning.**
 
 **OUTCOME (weight: 35%)**
-*Strategic objectives and long-term goals the customer seeks to achieve through the solution*
+*Strategic objectives and long-term goals the customer seeks to achieve*
 
-- Strategic goals this solution would support (efficiency, growth, compliance, competitiveness): **Score:** ___ / **Evidence:**
-- Alignment with {context.company_name or 'the firm'}'s stated priorities or strategic initiatives: **Score:** ___ / **Evidence:**
+- Strategic goals this solution would support (efficiency, growth, compliance, etc.): **Score:** ___ / **Evidence:**
+- Alignment with firm's stated priorities or strategic initiatives: **Score:** ___ / **Evidence:**
 - Long-term value potential beyond immediate problem-solving: **Score:** ___ / **Evidence:**
 - Executive visibility and sponsorship potential: **Score:** ___ / **Evidence:**
 
@@ -260,25 +260,25 @@ Analyze this opportunity using the OUS framework. **For each score (1-10), provi
 ---
 
 **UNDERSTANDING PAIN (weight: 35%)**
-*Identification and in-depth understanding of the customer's primary challenges and pain points*
+*Identification and in-depth understanding of the customer's primary challenges*
 
-- Severity of pain points we can address (1=minor annoyance, 10=critical business issue): **Score:** ___ / **Evidence:**
-- Cost of status quo (wasted time, lost revenue, compliance risk, competitive disadvantage): **Score:** ___ / **Evidence:**
+- Severity of pain points we can address (1=minor annoyance, 10=critical): **Score:** ___ / **Evidence:**
+- Cost of status quo (wasted time, lost revenue, compliance risk): **Score:** ___ / **Evidence:**
 - Urgency/time pressure to solve this pain: **Score:** ___ / **Evidence:**
-- Our ability to articulate their pain better than they can (shows deep understanding): **Score:** ___ / **Evidence:**
+- Our ability to articulate their pain better than they can: **Score:** ___ / **Evidence:**
 
 **Understanding Pain Subscore:** ___ / 10
 
 ---
 
 **SELECTION PROCESS (weight: 30%)**
-*Standards and requirements the customer uses to evaluate and compare potential solutions*
+*Standards and requirements the customer uses to evaluate solutions*
 
-- Clarity on their evaluation criteria and decision process: **Score:** ___ / **Evidence:**
-- Our competitive positioning against their stated requirements: **Score:** ___ / **Evidence:**
+- Clarity on their evaluation criteria and process: **Score:** ___ / **Evidence:**
+- Our competitive positioning against their requirements: **Score:** ___ / **Evidence:**
 - Decision-maker access and influence: **Score:** ___ / **Evidence:**
-- Budget availability and approval process favorability: **Score:** ___ / **Evidence:**
-- Technical/compliance requirements alignment: **Score:** ___ / **Evidence:**
+- Budget availability and approval process: **Score:** ___ / **Evidence:**
+- Technical/compliance requirements we can meet: **Score:** ___ / **Evidence:**
 
 **Selection Process Subscore:** ___ / 10
 
