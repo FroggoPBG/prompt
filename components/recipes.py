@@ -26,32 +26,32 @@ class ProspectContext:
         self.company_products = company_products
     
     def to_prompt_header(self) -> str:
-    """Convert context to formatted header for prompts"""
-    header_parts = []
-    
-    if self.company_name:
-        header_parts.append(f"**Company:** {self.company_name}")
-    if self.industry_sector:
-        header_parts.append(f"**Industry:** {self.industry_sector}")
-    if self.transaction_type:
-        header_parts.append(f"**Transaction Type:** {self.transaction_type}")
-    if self.legal_entity_type:
-        header_parts.append(f"**Legal Entity:** {self.legal_entity_type}")
-    if self.transaction_size:
-        header_parts.append(f"**Transaction Size:** {self.transaction_size}")
-    if self.geographic_scope:
-        header_parts.append(f"**Geographic Scope:** {self.geographic_scope}")
-    if self.deal_context:
-        header_parts.append(f"**Deal Context:** {self.deal_context}")
-    if self.company_products:
-        header_parts.append(f"\n**Our Products/Services:**\n{self.company_products}")
-    if self.additional_notes:
-        header_parts.append(f"**Additional Notes:** {self.additional_notes}")
-    
-    header = "\n".join(header_parts) if header_parts else "**General Sales Prospecting Context**"
-    header += "\n\n---\n\n"
-    
-    return header
+        """Convert context to formatted header for prompts"""
+        header_parts = []
+        
+        if self.company_name:
+            header_parts.append(f"**Company:** {self.company_name}")
+        if self.industry_sector:
+            header_parts.append(f"**Industry:** {self.industry_sector}")
+        if self.transaction_type:
+            header_parts.append(f"**Transaction Type:** {self.transaction_type}")
+        if self.legal_entity_type:
+            header_parts.append(f"**Legal Entity:** {self.legal_entity_type}")
+        if self.transaction_size:
+            header_parts.append(f"**Transaction Size:** {self.transaction_size}")
+        if self.geographic_scope:
+            header_parts.append(f"**Geographic Scope:** {self.geographic_scope}")
+        if self.deal_context:
+            header_parts.append(f"**Deal Context:** {self.deal_context}")
+        if self.company_products:
+            header_parts.append(f"\n**Our Products/Services:**\n{self.company_products}")
+        if self.additional_notes:
+            header_parts.append(f"**Additional Notes:** {self.additional_notes}")
+        
+        header = "\n".join(header_parts) if header_parts else "**General Sales Prospecting Context**"
+        header += "\n\n---\n\n"
+        
+        return header
     
     @classmethod
     def from_dict(cls, data: dict) -> 'ProspectContext':
@@ -64,7 +64,8 @@ class ProspectContext:
             transaction_size=data.get('transaction_size', ''),
             geographic_scope=data.get('geographic_scope', ''),
             deal_context=data.get('deal_context', ''),
-            additional_notes=data.get('additional_notes', '')
+            additional_notes=data.get('additional_notes', ''),
+            company_products=data.get('company_products', '')
         )
 
 
