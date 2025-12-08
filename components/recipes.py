@@ -76,11 +76,11 @@ class PromptRecipeManager:
     def generate_full_workflow(cls, context: ProspectContext) -> Dict[str, str]:
         """Generate all prompts for the complete workflow"""
         
-        # Phase 1: Discovery
-        def phase1_prompt():
-            return f"""**Phase 1: Discovery & Compliance Research**
+        header = context.to_prompt_header()
+        
+        phase1 = header + """**Phase 1: Discovery & Compliance Research**
 
-Research {context.company_name or 'the target company'} to inform our engagement strategy:
+Research the target company to inform our engagement strategy:
 
 1. **Business Model & Operations**
    - Core practice areas and service offerings
@@ -106,22 +106,20 @@ Research {context.company_name or 'the target company'} to inform our engagement
 
 **For each section, distinguish clearly between verified facts (with sources) and reasonable inferences.**"""
 
-        # Phase 2: Decision-Making Dynamics
-        def phase2_prompt():
-            return f"""**Phase 2: Decision-Making Dynamics Analysis**
+        phase2 = header + """**Phase 2: Decision-Making Dynamics Analysis**
 
-Analyze typical decision-making dynamics for a firm like {context.company_name or 'this firm'} when evaluating {context.company_products or 'solutions in this category'}:
+Analyze typical decision-making dynamics for this firm when evaluating solutions:
 
 1. **Stakeholder Mapping**
    - Likely decision-making roles (who typically holds authority for this purchase type)
    - Probable influencers and gatekeepers
    - How decisions typically flow in firms of this size and structure
 
-2. **Decision-Making Characteristics (Hypotheses to Validate)**
+2. **Decision-Making Characteristics**
    - Typical risk tolerance for this firm profile
    - Expected decision-making style (consensus vs. top-down, data-driven vs. relationship-driven)
    - Priority concerns likely given their practice mix and market position
-   - Cultural and regional factors affecting how they evaluate vendors (e.g., Hong Kong: partner hierarchy, face considerations, relationship-driven BD)
+   - Cultural and regional factors affecting how they evaluate vendors
 
 3. **Communication Expectations**
    - Appropriate channels for initial outreach
@@ -136,13 +134,11 @@ Analyze typical decision-making dynamics for a firm like {context.company_name o
 
 **Note: These are working hypotheses based on firm type and market context. Validate and refine through actual conversations.**"""
 
-        # Phase 2.5: Solution Mapping
-        def phase25_prompt():
-            return f"""**Phase 2.5: Pain Point Hypothesis & Solution Mapping**
+        phase25 = header + """**Phase 2.5: Pain Point Hypothesis & Solution Mapping**
 
 **Part A: Pain Point Hypothesis**
 
-Based on {context.company_name or 'the firm'}'s profile, practice areas, and market position, identify likely operational challenges:
+Based on the firm's profile, practice areas, and market position, identify likely operational challenges:
 
 1. **Workflow Pain Points**
    - Where does this type of firm typically experience inefficiency?
@@ -158,7 +154,7 @@ Based on {context.company_name or 'the firm'}'s profile, practice areas, and mar
    - Where is regulatory change creating new demands?
 
 4. **Resource Constraints**
-   - What limitations come from their mid-tier size?
+   - What limitations come from their size?
    - Where are they likely stretched thin?
 
 **Rank pain points by probable severity and urgency.**
@@ -177,19 +173,13 @@ For each identified pain point above, map to our capabilities:
 
 **Note: These are hypothesized pain points. Create discovery questions to validate in first conversation.**"""
 
-        # Phase 3: Credibility-Based Email Drafting
-        def phase3_prompt():
-            return f"""**Phase 3: Credibility-Based Email Outreach**
+        phase3 = header + """**Phase 3: Credibility-Based Email Outreach**
 
-Draft initial outreach emails for {context.company_name or 'the target firm'}, customized for different stakeholder types.
-
-**Context:**
-- We sell: {context.company_products or '[brief product description]'}
-- Primary value: [one sentence on core benefit]
+Draft initial outreach emails customized for different stakeholder types.
 
 **Version A: Senior Partner / Managing Partner**
 - **Tone:** Peer-to-peer, respectful of their expertise and time
-- **Hook:** Reference their practice strength, directory ranking, or a market trend affecting their work (if no recent news, use these fallbacks)
+- **Hook:** Reference their practice strength, directory ranking, or a market trend affecting their work
 - **Value prop:** Focus on client delivery and competitive positioning
 - **CTA:** Suggest a brief conversation, not a demo
 - **Avoid:** Jargon, making it about us, asking for too much too soon
@@ -208,21 +198,19 @@ Draft initial outreach emails for {context.company_name or 'the target firm'}, c
 - One clear ask, not multiple options
 - Make it easy to say yes"""
 
-        # Phase 4: Sales Executive Summary
-        def phase4_prompt():
-            return f"""**Phase 4: Sales Executive Summary**
+        phase4 = header + """**Phase 4: Sales Executive Summary**
 
-Create a 90-second executive summary for the {context.company_name or 'this'} opportunity:
+Create a 90-second executive summary for this opportunity:
 
 1. **Account Snapshot**
    - Firm profile (size, practice focus, positioning)
    - Why they're a fit for us
-   - **Estimated** deal size (state assumptions clearly)
+   - Estimated deal size (state assumptions clearly)
 
 2. **Strategic Rationale**
    - Top 2-3 pain points we can likely address
    - Why now (urgency factors, if any)
-   - Decision-maker profile (**Known:** [facts] / **Assumed:** [inferences])
+   - Decision-maker profile (Known vs Assumed)
 
 3. **Recommended Approach**
    - Lead practice area or use case to emphasize
@@ -241,17 +229,14 @@ Create a 90-second executive summary for the {context.company_name or 'this'} op
 
 **Format for quick scanning—use bullets, keep sections tight. No fluff.**"""
 
-       # Phase 5: OUS Framework Analysis (CORRECTED)
-def phase5_prompt():
-    return f"""**Phase 5: OUS Framework Analysis**
+        phase5 = header + """**Phase 5: OUS Framework Analysis**
 
-Analyze this opportunity using the OUS framework. **For each score (1-10), provide specific evidence or reasoning.**
+Analyze this opportunity using the OUS framework. For each score (1-10), provide specific evidence or reasoning.
 
 **OUTCOME (weight: 35%)**
-*Strategic objectives and long-term goals the customer seeks to achieve*
 
-- Strategic goals this solution would support (efficiency, growth, compliance, etc.): **Score:** ___ / **Evidence:**
-- Alignment with firm's stated priorities or strategic initiatives: **Score:** ___ / **Evidence:**
+- Strategic goals this solution would support: **Score:** ___ / **Evidence:**
+- Alignment with stated priorities or strategic initiatives: **Score:** ___ / **Evidence:**
 - Long-term value potential beyond immediate problem-solving: **Score:** ___ / **Evidence:**
 - Executive visibility and sponsorship potential: **Score:** ___ / **Evidence:**
 
@@ -260,28 +245,120 @@ Analyze this opportunity using the OUS framework. **For each score (1-10), provi
 ---
 
 **UNDERSTANDING PAIN (weight: 35%)**
-*Identification and in-depth understanding of the customer's primary challenges*
 
-- Severity of pain points we can address (1=minor annoyance, 10=critical): **Score:** ___ / **Evidence:**
-- Cost of status quo (wasted time, lost revenue, compliance risk): **Score:** ___ / **Evidence:**
+- Severity of pain points we can address (1=minor annoyance, 10=critical business issue): **Score:** ___ / **Evidence:**
+- Cost of status quo (wasted time, lost revenue, compliance risk, competitive disadvantage): **Score:** ___ / **Evidence:**
 - Urgency/time pressure to solve this pain: **Score:** ___ / **Evidence:**
-- Our ability to articulate their pain better than they can: **Score:** ___ / **Evidence:**
+- Our ability to articulate their pain better than they can (shows deep understanding): **Score:** ___ / **Evidence:**
 
 **Understanding Pain Subscore:** ___ / 10
 
 ---
 
 **SELECTION PROCESS (weight: 30%)**
-*Standards and requirements the customer uses to evaluate solutions*
 
-- Clarity on their evaluation criteria and process: **Score:** ___ / **Evidence:**
-- Our competitive positioning against their requirements: **Score:** ___ / **Evidence:**
+- Clarity on their evaluation criteria and decision process: **Score:** ___ / **Evidence:**
+- Our competitive positioning against their stated requirements: **Score:** ___ / **Evidence:**
 - Decision-maker access and influence: **Score:** ___ / **Evidence:**
-- Budget availability and approval process: **Score:** ___ / **Evidence:**
-- Technical/compliance requirements we can meet: **Score:** ___ / **Evidence:**
+- Budget availability and approval process favorability: **Score:** ___ / **Evidence:**
+- Technical/compliance requirements alignment: **Score:** ___ / **Evidence:**
 
 **Selection Process Subscore:** ___ / 10
 
 ---
 
-**OVERALL OUS SCORE CALCULATION:**
+**OVERALL OUS SCORE:**
+Overall = (Outcome × 0.35) + (Understanding Pain × 0.35) + (Selection Process × 0.30)
+
+**Overall Score:** ___ / 10
+
+**Decision Rules:**
+- 8+ overall: Pursue aggressively
+- 6-8 overall: Pursue with standard effort
+- Below 6: Deprioritize or qualify out
+
+**RECOMMENDATION:**
+[Based on the overall score, provide clear next actions and resource allocation guidance]
+
+**KEY GAPS TO ADDRESS:**
+[What critical information is missing? What needs validation in first conversation?]"""
+
+        phase6 = header + """**Phase 6: Deal Qualification (BANT+ Framework)**
+
+Assess this opportunity against qualification criteria.
+
+**IMPORTANT: This is pre-conversation analysis—all assessments are hypotheses to validate in discovery.**
+
+**BUDGET**
+- Likely budget range for this type of engagement (based on firm size/type)
+- Probable budget holder and approval process
+- Signals of financial health or constraint
+- **Confidence level:** High / Medium / Low
+
+**AUTHORITY**
+- Probable decision-maker role/title
+- Likely influencers and potential blockers
+- Expected process complexity
+- **Confidence level:** High / Medium / Low
+
+**NEED**
+- Estimated pain severity (1-10) with reasoning
+- Probable alternatives they're considering
+- Fit between our solution and their situation (1-10)
+- **Confidence level:** High / Medium / Low
+
+**TIMELINE**
+- Likely decision timeline for this purchase type
+- Known deadlines or events that might accelerate
+- Factors that could cause delays
+- **Confidence level:** High / Medium / Low
+
+**ADDITIONAL FACTORS**
+- Competitive exposure (who else is probably pursuing them?)
+- Political or relationship dynamics we should know about
+- Technical or compliance requirements affecting fit
+- Cultural considerations
+
+**QUALIFICATION ASSESSMENT:**
+- ✅ **Likely Qualified:** Strong signals across BANT—pursue actively
+- ⚠️ **Uncertain:** Mixed signals—prioritize validation in early conversations
+- ❌ **Likely Unqualified:** Weak signals—deprioritize unless new information emerges
+
+**Priority Level:** A (hot) / B (warm) / C (cold)
+
+**Key Validation Questions for First Conversation:**
+1. [Question to validate budget]
+2. [Question to validate authority]
+3. [Question to validate need]
+4. [Question to validate timeline]
+
+**Recommended Next Actions:**"""
+
+        return {
+            "phase1": phase1,
+            "phase2": phase2,
+            "phase25": phase25,
+            "phase3": phase3,
+            "phase4": phase4,
+            "phase5": phase5,
+            "phase6": phase6
+        }
+    
+    @classmethod
+    def get_individual_prompt(cls, phase: str, context: ProspectContext) -> str:
+        """Get a single prompt by phase name"""
+        all_prompts = cls.generate_full_workflow(context)
+        return all_prompts.get(phase, "")
+    
+    @classmethod
+    def get_phase_names(cls) -> Dict[str, str]:
+        """Return phase IDs and display names"""
+        return {
+            "phase1": "Phase 1: Discovery & Compliance Research",
+            "phase2": "Phase 2: Decision-Making Dynamics",
+            "phase25": "Phase 2.5: Pain Point Hypothesis & Solution Mapping",
+            "phase3": "Phase 3: Credibility-Based Email Outreach",
+            "phase4": "Phase 4: Sales Executive Summary",
+            "phase5": "Phase 5: OUS Framework Analysis",
+            "phase6": "Phase 6: Deal Qualification (BANT+)"
+        }
