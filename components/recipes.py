@@ -1,3 +1,4 @@
+
 from typing import Dict, Optional, Callable
 
 class ProspectContext:
@@ -183,10 +184,12 @@ Target Practice Area: """ + (context.industry_sector or "General/Multiple") + ""
 Buyer Persona: """ + (context.legal_entity_type or "General Counsel (In-House)") + """
 
 ============================================================
-HONG KONG LEGAL LANDSCAPE CONTEXT:
+HONG KONG LEGAL LANDSCAPE CONTEXT
+============================================================
+
 You are researching prospects in Hong Kong's legal market. Key considerations:
 
-Practice Areas Common in HK:
+**Practice Areas Common in HK:**
 - M&A and Corporate Finance (IPOs on HKEX, cross-border deals with China)
 - Banking & Finance (regulatory compliance, HKMA oversight)
 - Litigation & Dispute Resolution (HKIAC arbitration, cross-border disputes)
@@ -196,7 +199,7 @@ Practice Areas Common in HK:
 - Real Estate & Property (land leases, property development)
 - Tax & Revenue (IRD compliance, transfer pricing)
 
-Recent Legal Trends in HK (2024-2025):
+**Recent Legal Trends in HK (2024-2025):**
 - National Security Law implications for corporate governance
 - PDPO amendments (data privacy strengthening)
 - ESG reporting requirements for listed companies
@@ -204,49 +207,55 @@ Recent Legal Trends in HK (2024-2025):
 - Crypto/digital asset regulatory framework development
 - Cybersecurity and data localization pressures
 
-Legal Buyer Personas:
+**Legal Buyer Personas:**
 - Law Firm Partners (billable hours pressure, client retention anxiety)
 - In-House General Counsel (compliance risk, resource constraints)
 - Barristers (case research efficiency, precedent access)
 - Corporate Secretaries (governance, regulatory filing deadlines)
 
-CRITICAL INSTRUCTIONS:
+============================================================
+CRITICAL SAFETY INSTRUCTIONS
+============================================================
+
+**CRITICAL INSTRUCTIONS:**
 - Never invent company details, metrics, or legal cases not provided
 - Never fabricate dates, regulatory filings, or litigation history
 - If information is missing, state "requires further research" instead of guessing
 - All legal compliance references must be verifiable
 - Do not make claims about competitor products without evidence
 
-═══════════════════════════════════════════════════
+============================================================
 WRITING STYLE ENFORCEMENT: ZINSSER'S PRINCIPLES
-═══════════════════════════════════════════════════
+============================================================
+
 You are NOT writing a formal report. You are briefing a busy sales colleague who has 2 minutes to read this.
 
-MANDATORY RULES:
+**MANDATORY RULES:**
 
-1. HUMANITY
-- Write like you're talking to a friend over coffee
-- Use "I", "you", "we" freely
-- Show empathy: "This sounds stressful" NOT "This presents challenges"
+1. **HUMANITY**
+   - Write like you're talking to a friend over coffee
+   - Use "I", "you", "we" freely
+   - Show empathy: "This sounds stressful" NOT "This presents challenges"
 
-2. CLARITY
-- One idea per sentence
-- Use specific details: "3 regulatory filings in Q2" NOT "multiple compliance requirements"
-- Replace abstract nouns with verbs: "They need to reduce costs" NOT "Cost reduction is a priority"
+2. **CLARITY**
+   - One idea per sentence
+   - Use specific details: "3 regulatory filings in Q2" NOT "multiple compliance requirements"
+   - Replace abstract nouns with verbs: "They need to reduce costs" NOT "Cost reduction is a priority"
 
-3. BREVITY
-- Maximum sentence length: 20 words
-- Cut every unnecessary word
-- If you can say it in 5 words instead of 10, do it
+3. **BREVITY**
+   - Maximum sentence length: 20 words
+   - Cut every unnecessary word
+   - If you can say it in 5 words instead of 10, do it
 
-4. SIMPLICITY
-- Use everyday language
-- Avoid industry jargon unless it's essential
-- Test: Would a non-lawyer understand this?
+4. **SIMPLICITY**
+   - Use everyday language
+   - Avoid industry jargon unless it's essential
+   - Test: Would a non-lawyer understand this?
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-BANNED WORDS (Replace with plain English):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
+
+**BANNED WORDS (Replace with plain English):**
+
 ❌ utilization → ✅ use
 ❌ implementation → ✅ start using / set up
 ❌ facilitate → ✅ help / make easier
@@ -260,85 +269,94 @@ BANNED WORDS (Replace with plain English):
 ❌ endeavor → ✅ try
 ❌ ascertain → ✅ find out
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-BANNED PHRASES (Use active voice):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
+
+**BANNED PHRASES (Use active voice):**
+
 ❌ "has been identified" → ✅ "we found" / "they discovered"
 ❌ "is being considered" → ✅ "they're thinking about"
 ❌ "was implemented" → ✅ "they started using"
 ❌ "will be facilitated by" → ✅ "X will help with"
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-FORMAT REQUIREMENTS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
+
+**FORMAT REQUIREMENTS:**
+
 ✓ Use short bullets (1-2 sentences max per bullet)
 ✓ Add specific numbers, dates, names whenever possible
 ✓ Write in present tense when possible
 ✓ Start bullets with verbs when listing actions
 ✓ Use contractions (they're, you've, we'll) to sound human
 
-═══════════════════════════════════════════════════
+============================================================
 PHASE 3: CREDIBILITY-BASED EMAIL DRAFTING
-═══════════════════════════════════════════════════
-YOUR ROLE: Draft a cold outreach email that sounds like it's from a trusted legal advisor, not a salesperson.
+============================================================
 
-OBJECTIVE: Generate a "Credibility Token" - an email that passes the "Associate Test" (would a junior lawyer forward this to their boss as relevant, not delete as spam?).
+**YOUR ROLE:** Draft a cold outreach email that sounds like it's from a trusted legal advisor, not a salesperson.
 
-TARGET REACTION: "How did they know we're dealing with this?" (creates psychological difficulty to ignore).
+**OBJECTIVE:** Generate a "Credibility Token" - an email that passes the "Associate Test" (would a junior lawyer forward this to their boss as relevant, not delete as spam?).
 
-DRAFTING STRUCTURE: Hook-Pivot-Ask
+**TARGET REACTION:** "How did they know we're dealing with this?" (creates psychological difficulty to ignore).
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. HOOK (Validate the Risk)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+**DRAFTING STRUCTURE: Hook-Pivot-Ask**
+
+---
+
+### 1. HOOK (Validate the Risk)
+
 Lead with THEIR context, not YOUR product.
 
-Bad Example: "Hi [Name], we offer AI-powered legal research that saves time." (Generic, salesy, immediately deleted)
+**Bad Example:** "Hi [Name], we offer AI-powered legal research that saves time." (Generic, salesy, immediately deleted)
 
-Good Example: "[Name], I saw [Company] just [specific trigger event from Phase 1]. From what we've seen with other HK [industry] companies dealing with [specific challenge], the biggest hidden risk isn't [obvious problem] - it's [nuanced second-order risk]."
+**Good Example:** "[Name], I saw [Company] just [specific trigger event from Phase 1]. From what we've seen with other HK [industry] companies dealing with [specific challenge], the biggest hidden risk isn't [obvious problem] - it's [nuanced second-order risk]."
 
-HOOK FORMULA:
+**HOOK FORMULA:**
 - Reference the specific trigger (proves you did homework)
 - Acknowledge the complexity (shows respect)
 - Hint at a non-obvious risk (creates curiosity)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-2. PIVOT (Position as Strategic Insurance)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
+
+### 2. PIVOT (Position as Strategic Insurance)
+
 Frame your solution as risk mitigation, not efficiency.
 
-Bad Example: "Our platform has 50+ features including AI search and contract analysis." (Feature dump, no emotional resonance)
+**Bad Example:** "Our platform has 50+ features including AI search and contract analysis." (Feature dump, no emotional resonance)
 
-Good Example: "The GCs we work with describe our platform as 'insurance against what we might've missed.' For example, [one concrete micro-story of how it caught a gap]."
+**Good Example:** "The GCs we work with describe our platform as 'insurance against what we might've missed.' For example, [one concrete micro-story of how it caught a gap]."
 
-PIVOT FORMULA:
+**PIVOT FORMULA:**
 - Use social proof from similar buyers
 - Frame as "insurance" or "safety net"
 - Give ONE concrete micro-example (not a feature list)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-3. ASK (Low-Pressure Strategic Conversation)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
+
+### 3. ASK (Low-Pressure Strategic Conversation)
+
 Invite discussion, not a demo.
 
-Bad Example: "Can I get 30 minutes on your calendar this week for a demo?"
+**Bad Example:** "Can I get 30 minutes on your calendar this week for a demo?"
 
-Good Example: "I'd love to share how [similar HK firm] tackled [specific challenge]. Even if our tool isn't the right fit, I can point you to [specific resource]. Would next Tuesday at 3pm work for a quick 15-min call?"
+**Good Example:** "I'd love to share how [similar HK firm] tackled [specific challenge]. Even if our tool isn't the right fit, I can point you to [specific resource]. Would next Tuesday at 3pm work for a quick 15-min call?"
 
-ASK FORMULA:
+**ASK FORMULA:**
 - Offer value FIRST
 - Give optionality ("even if not a fit")
 - Be specific with time (15 min, exact slot)
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TONE REQUIREMENTS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
+
+**TONE REQUIREMENTS:**
+
 ✓ Sound like a peer advisor, not a vendor
 ✓ Use contractions (I've, we're, you'll)
 ✓ Keep it conversational
 ✓ Be specific (dates, names, numbers)
 
-OUTPUT FORMAT:
+---
+
+**OUTPUT FORMAT:**
 
 **Subject Line:** [Specific, trigger-based, non-salesy - max 6 words]
 
@@ -501,6 +519,41 @@ Assess this opportunity against qualification criteria.
             "phase5": phase5,
             "phase6": phase6
         }
+    
+    @classmethod
+    def generate_phase1(cls, context: ProspectContext) -> str:
+        """Generate Phase 1 prompt"""
+        return cls.generate_full_workflow(context)["phase1"]
+    
+    @classmethod
+    def generate_phase2(cls, context: ProspectContext) -> str:
+        """Generate Phase 2 prompt"""
+        return cls.generate_full_workflow(context)["phase2"]
+    
+    @classmethod
+    def generate_phase25(cls, context: ProspectContext) -> str:
+        """Generate Phase 2.5 prompt"""
+        return cls.generate_full_workflow(context)["phase25"]
+    
+    @classmethod
+    def generate_phase3(cls, context: ProspectContext) -> str:
+        """Generate Phase 3 prompt"""
+        return cls.generate_full_workflow(context)["phase3"]
+    
+    @classmethod
+    def generate_phase4(cls, context: ProspectContext) -> str:
+        """Generate Phase 4 prompt"""
+        return cls.generate_full_workflow(context)["phase4"]
+    
+    @classmethod
+    def generate_phase5(cls, context: ProspectContext) -> str:
+        """Generate Phase 5 prompt"""
+        return cls.generate_full_workflow(context)["phase5"]
+    
+    @classmethod
+    def generate_phase6(cls, context: ProspectContext) -> str:
+        """Generate Phase 6 prompt"""
+        return cls.generate_full_workflow(context)["phase6"]
     
     @classmethod
     def get_individual_prompt(cls, phase: str, context: ProspectContext) -> str:
