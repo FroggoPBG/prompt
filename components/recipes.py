@@ -173,30 +173,188 @@ For each identified pain point above, map to our capabilities:
 
 **Note: These are hypothesized pain points. Create discovery questions to validate in first conversation.**"""
 
-        phase3 = header + """**Phase 3: Credibility-Based Email Outreach**
+        # NEW PHASE 3 - Hong Kong Legal Market Version
+        phase3 = """============================================================
+PROSPECT CONTEXT
+============================================================
+Company Name: """ + context.company_name + """
+Company Website/Source: [To be filled in]
+Target Practice Area: """ + (context.industry_sector or "General/Multiple") + """
+Buyer Persona: """ + (context.legal_entity_type or "General Counsel (In-House)") + """
 
-Draft initial outreach emails customized for different stakeholder types.
+============================================================
+HONG KONG LEGAL LANDSCAPE CONTEXT:
+You are researching prospects in Hong Kong's legal market. Key considerations:
 
-**Version A: Senior Partner / Managing Partner**
-- **Tone:** Peer-to-peer, respectful of their expertise and time
-- **Hook:** Reference their practice strength, directory ranking, or a market trend affecting their work
-- **Value prop:** Focus on client delivery and competitive positioning
-- **CTA:** Suggest a brief conversation, not a demo
-- **Avoid:** Jargon, making it about us, asking for too much too soon
+Practice Areas Common in HK:
+- M&A and Corporate Finance (IPOs on HKEX, cross-border deals with China)
+- Banking & Finance (regulatory compliance, HKMA oversight)
+- Litigation & Dispute Resolution (HKIAC arbitration, cross-border disputes)
+- Intellectual Property (patent litigation, trademark disputes)
+- Employment Law (Labour Tribunal, MPF compliance)
+- Regulatory & Compliance (SFC regulations, data privacy PDPO)
+- Real Estate & Property (land leases, property development)
+- Tax & Revenue (IRD compliance, transfer pricing)
 
-**Version B: Senior Associate / Team Lead**
-- **Tone:** Collegial, empathetic to workload pressures
-- **Hook:** Reference a practical challenge in their practice area
-- **Value prop:** Focus on time savings and reduced friction
-- **CTA:** Offer to show how it works in their context
-- **Avoid:** Over-promising, feature dumping, generic pain points
+Recent Legal Trends in HK (2024-2025):
+- National Security Law implications for corporate governance
+- PDPO amendments (data privacy strengthening)
+- ESG reporting requirements for listed companies
+- Cross-border Greater Bay Area (GBA) legal integration
+- Crypto/digital asset regulatory framework development
+- Cybersecurity and data localization pressures
 
-**Requirements for All Versions:**
-- Under 150 words each
-- No buzzwords or vendor-speak
-- Specific to their situation (not a template that could go to any law firm)
-- One clear ask, not multiple options
-- Make it easy to say yes"""
+Legal Buyer Personas:
+- Law Firm Partners (billable hours pressure, client retention anxiety)
+- In-House General Counsel (compliance risk, resource constraints)
+- Barristers (case research efficiency, precedent access)
+- Corporate Secretaries (governance, regulatory filing deadlines)
+
+CRITICAL INSTRUCTIONS:
+- Never invent company details, metrics, or legal cases not provided
+- Never fabricate dates, regulatory filings, or litigation history
+- If information is missing, state "requires further research" instead of guessing
+- All legal compliance references must be verifiable
+- Do not make claims about competitor products without evidence
+
+═══════════════════════════════════════════════════
+WRITING STYLE ENFORCEMENT: ZINSSER'S PRINCIPLES
+═══════════════════════════════════════════════════
+You are NOT writing a formal report. You are briefing a busy sales colleague who has 2 minutes to read this.
+
+MANDATORY RULES:
+
+1. HUMANITY
+- Write like you're talking to a friend over coffee
+- Use "I", "you", "we" freely
+- Show empathy: "This sounds stressful" NOT "This presents challenges"
+
+2. CLARITY
+- One idea per sentence
+- Use specific details: "3 regulatory filings in Q2" NOT "multiple compliance requirements"
+- Replace abstract nouns with verbs: "They need to reduce costs" NOT "Cost reduction is a priority"
+
+3. BREVITY
+- Maximum sentence length: 20 words
+- Cut every unnecessary word
+- If you can say it in 5 words instead of 10, do it
+
+4. SIMPLICITY
+- Use everyday language
+- Avoid industry jargon unless it's essential
+- Test: Would a non-lawyer understand this?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BANNED WORDS (Replace with plain English):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ utilization → ✅ use
+❌ implementation → ✅ start using / set up
+❌ facilitate → ✅ help / make easier
+❌ optimization → ✅ improve / make better
+❌ leverage → ✅ use
+❌ synergy → ✅ teamwork / working together
+❌ functionality → ✅ features / what it does
+❌ operationalize → ✅ do / make happen
+❌ utilize → ✅ use
+❌ commence → ✅ start
+❌ endeavor → ✅ try
+❌ ascertain → ✅ find out
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BANNED PHRASES (Use active voice):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ "has been identified" → ✅ "we found" / "they discovered"
+❌ "is being considered" → ✅ "they're thinking about"
+❌ "was implemented" → ✅ "they started using"
+❌ "will be facilitated by" → ✅ "X will help with"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FORMAT REQUIREMENTS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ Use short bullets (1-2 sentences max per bullet)
+✓ Add specific numbers, dates, names whenever possible
+✓ Write in present tense when possible
+✓ Start bullets with verbs when listing actions
+✓ Use contractions (they're, you've, we'll) to sound human
+
+═══════════════════════════════════════════════════
+PHASE 3: CREDIBILITY-BASED EMAIL DRAFTING
+═══════════════════════════════════════════════════
+YOUR ROLE: Draft a cold outreach email that sounds like it's from a trusted legal advisor, not a salesperson.
+
+OBJECTIVE: Generate a "Credibility Token" - an email that passes the "Associate Test" (would a junior lawyer forward this to their boss as relevant, not delete as spam?).
+
+TARGET REACTION: "How did they know we're dealing with this?" (creates psychological difficulty to ignore).
+
+DRAFTING STRUCTURE: Hook-Pivot-Ask
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. HOOK (Validate the Risk)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Lead with THEIR context, not YOUR product.
+
+Bad Example: "Hi [Name], we offer AI-powered legal research that saves time." (Generic, salesy, immediately deleted)
+
+Good Example: "[Name], I saw [Company] just [specific trigger event from Phase 1]. From what we've seen with other HK [industry] companies dealing with [specific challenge], the biggest hidden risk isn't [obvious problem] - it's [nuanced second-order risk]."
+
+HOOK FORMULA:
+- Reference the specific trigger (proves you did homework)
+- Acknowledge the complexity (shows respect)
+- Hint at a non-obvious risk (creates curiosity)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. PIVOT (Position as Strategic Insurance)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Frame your solution as risk mitigation, not efficiency.
+
+Bad Example: "Our platform has 50+ features including AI search and contract analysis." (Feature dump, no emotional resonance)
+
+Good Example: "The GCs we work with describe our platform as 'insurance against what we might've missed.' For example, [one concrete micro-story of how it caught a gap]."
+
+PIVOT FORMULA:
+- Use social proof from similar buyers
+- Frame as "insurance" or "safety net"
+- Give ONE concrete micro-example (not a feature list)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. ASK (Low-Pressure Strategic Conversation)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Invite discussion, not a demo.
+
+Bad Example: "Can I get 30 minutes on your calendar this week for a demo?"
+
+Good Example: "I'd love to share how [similar HK firm] tackled [specific challenge]. Even if our tool isn't the right fit, I can point you to [specific resource]. Would next Tuesday at 3pm work for a quick 15-min call?"
+
+ASK FORMULA:
+- Offer value FIRST
+- Give optionality ("even if not a fit")
+- Be specific with time (15 min, exact slot)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TONE REQUIREMENTS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ Sound like a peer advisor, not a vendor
+✓ Use contractions (I've, we're, you'll)
+✓ Keep it conversational
+✓ Be specific (dates, names, numbers)
+
+OUTPUT FORMAT:
+
+**Subject Line:** [Specific, trigger-based, non-salesy - max 6 words]
+
+**Email Body:**
+[Hook - 2-3 sentences]
+
+[Pivot - 2-3 sentences]
+
+[Ask - 2 sentences]
+
+Best,
+[Your Name]
+
+**WORD COUNT:** 100-150 words MAX
+
+**ASSOCIATE TEST:** Would a junior lawyer think "My boss should see this" or "Spam"?"""
 
         phase4 = header + """**Phase 4: Sales Executive Summary**
 
@@ -357,7 +515,7 @@ Assess this opportunity against qualification criteria.
             "phase1": "Phase 1: Discovery & Compliance Research",
             "phase2": "Phase 2: Decision-Making Dynamics",
             "phase25": "Phase 2.5: Pain Point Hypothesis & Solution Mapping",
-            "phase3": "Phase 3: Credibility-Based Email Outreach",
+            "phase3": "Phase 3: Credibility-Based Email Outreach (HK Legal Market)",
             "phase4": "Phase 4: Sales Executive Summary",
             "phase5": "Phase 5: OUS Framework Analysis",
             "phase6": "Phase 6: Deal Qualification (BANT+)"
