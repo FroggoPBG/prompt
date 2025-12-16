@@ -6,6 +6,7 @@ Generates AI prompts for legal/compliance discovery research.
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Dict, Optional
 
 import streamlit as st
 
@@ -37,9 +38,9 @@ def init_session_state():
         "deal_type": "",
         "legal_entity_type": "",
         "revenue_size": "",
-        "geographic_scope": "",
+        "geographic_scope": [],
         "additional_context": "",
-        "product_interest": "",
+        "product_interest": [],
         "current_phase": "phase1"
     }
     
@@ -51,18 +52,19 @@ def init_session_state():
 # UTILITY FUNCTIONS
 # ============================================================================
 
-def get_prospect_context() -> Dict[str, str]:
+def get_prospect_context() -> ProspectContext:
     """Extract all prospect context from session state."""
-    return {
-        "company_name": st.session_state.company_name,
-        "industry": st.session_state.industry,
-        "deal_type": st.session_state.deal_type,
-        "legal_entity_type": st.session_state.legal_entity_type,
-        "revenue_size": st.session_state.revenue_size,
-        "geographic_scope": st.session_state.geographic_scope,
-        "additional_context": st.session_state.additional_context,
-        "product_interest": st.session_state.product_interest
-    }
+    return ProspectContext(
+        company_name=st.session_state.get('company_name', ''),
+        industry_sector=st.session_state.get('industry', ''),
+        transaction_type=st.session_state.get('deal_type', ''),
+        legal_entity_type=st.session_state.get('legal_entity_type', ''),
+        transaction_size=st.session_state.get('revenue_size', ''),
+        geographic_scope=", ".join(st.session_state.get('geographic_scope', [])),
+        deal_context=st.session_state.get('deal_type', ''),
+        additional_notes=st.session_state.get('additional_context', ''),
+        company_products=", ".join(st.session_state.get('product_interest', []))
+    )
 
 def render_copy_button(text: str, key: str, button_label: str = "📋 Copy to Clipboard"):
     """Render a copy-to-clipboard button."""
@@ -119,42 +121,44 @@ def render_sidebar():
         st.session_state.company_name = st.text_input(
             "Company Name*",
             value=st.session_state.company_name,
-            placeholder="e.g., ABC Corporation",
+            placeholder="e.g., OLN Law",
             help="The legal name of the target company"
         )
         
         st.session_state.industry = st.selectbox(
-            "Industry/Sector*",
+            "Practice Area / Industry*",
             options=[
                 "",
-                "Financial Services",
-                "Healthcare/Life Sciences",
-                "Technology/Software",
-                "Manufacturing",
-                "Energy/Utilities",
-                "Real Estate",
-                "Professional Services",
-                "Retail/Consumer Goods",
+                "M&A / Corporate Finance",
+                "Banking & Finance",
+                "Litigation & Dispute Resolution",
+                "Intellectual Property",
+                "Employment Law",
+                "Regulatory & Compliance",
+                "Real Estate & Property",
+                "Tax & Revenue",
+                "Private Client / Wealth",
+                "General Practice",
                 "Other"
             ],
             index=0 if not st.session_state.industry else None,
-            help="Primary industry sector"
+            help="Primary practice area or industry sector"
         )
         
         st.session_state.legal_entity_type = st.selectbox(
-            "Legal Entity Type",
+            "Buyer Persona",
             options=[
                 "",
-                "Public Company (Listed)",
-                "Private Company",
-                "Private Equity Owned",
-                "Family Office/HNW Owned",
-                "Government Entity",
-                "Non-Profit",
-                "Partnership/LLP",
+                "Law Firm Partner",
+                "General Counsel (In-House)",
+                "Legal Operations Director",
+                "Barrister",
+                "Corporate Secretary",
+                "Compliance Officer",
+                "Managing Partner",
                 "Unknown"
             ],
-            help="Legal structure of the organization"
+            help="Primary decision-maker type"
         )
         
         st.markdown("---")
@@ -163,45 +167,42 @@ def render_sidebar():
         st.subheader("🤝 Deal Context")
         
         st.session_state.deal_type = st.selectbox(
-            "Transaction Type",
+            "Engagement Type",
             options=[
                 "",
-                "M&A (Buyer)",
-                "M&A (Seller)",
-                "M&A (Target)",
-                "Private Equity Deal",
-                "Corporate Restructuring",
-                "IPO Preparation",
-                "Regulatory Compliance Project",
+                "New Business (Cold Outreach)",
+                "Existing Client (Upsell)",
+                "Competitive Displacement",
+                "Renewal Risk",
+                "Expansion (New Practice Area)",
                 "Other/Exploratory"
             ],
-            help="Type of transaction or engagement"
+            help="Type of engagement"
         )
         
         st.session_state.revenue_size = st.selectbox(
-            "Company Size (Revenue)",
+            "Firm Size",
             options=[
                 "",
-                "< $10M",
-                "$10M - $50M",
-                "$50M - $250M",
-                "$250M - $1B",
-                "$1B - $5B",
-                "$5B+",
+                "Solo / Small (1-10 lawyers)",
+                "Mid-size (11-50 lawyers)",
+                "Large (51-200 lawyers)",
+                "Major (200+ lawyers)",
+                "Magic Circle / Global",
                 "Unknown"
             ],
-            help="Approximate annual revenue"
+            help="Approximate firm size"
         )
         
         st.session_state.geographic_scope = st.multiselect(
-            "Geographic Scope",
+            "Geographic Focus",
             options=[
-                "United Kingdom",
-                "European Union",
-                "United States",
+                "Hong Kong",
+                "Mainland China",
+                "Greater Bay Area",
                 "Asia-Pacific",
-                "Middle East",
-                "Latin America",
+                "United Kingdom",
+                "United States",
                 "Global/Multi-Regional"
             ],
             default=st.session_state.geographic_scope if st.session_state.geographic_scope else [],
@@ -218,11 +219,12 @@ def render_sidebar():
             options=[
                 "Lexis+ AI",
                 "Practical Guidance",
-                "Halsbury's Laws",
-                "Corporate Law Suite",
+                "Lexis+ HK",
+                "Halsbury's Laws of Hong Kong",
+                "Company & Commercial",
+                "Litigation & Dispute Resolution",
                 "Due Diligence Tools",
-                "Compliance & Risk Solutions",
-                "PSL (Practice Area Specific)",
+                "Regulatory & Compliance",
                 "Not Sure/Exploratory"
             ],
             default=st.session_state.product_interest if st.session_state.product_interest else [],
@@ -232,14 +234,14 @@ def render_sidebar():
         st.markdown("---")
         
         # Additional Context
-        st.subheader("📝 Additional Notes")
+        st.subheader("📝 Trigger Events & Notes")
         
         st.session_state.additional_context = st.text_area(
-            "Extra Context (Optional)",
+            "Known Triggers & Context",
             value=st.session_state.additional_context,
-            placeholder="Any specific challenges, known triggers, or additional information...",
-            help="Free-form notes about this prospect",
-            height=100
+            placeholder="e.g., Won Asialaw award, hosting Arbitration Week sessions, recent lateral hire from Baker McKenzie, expanding China practice...",
+            help="Specific trigger events, news, or intelligence about this prospect",
+            height=120
         )
         
         st.markdown("---")
@@ -248,7 +250,10 @@ def render_sidebar():
         if st.button("🔄 Reset All Fields", type="secondary", use_container_width=True):
             for key in st.session_state.keys():
                 if key != "current_phase":
-                    st.session_state[key] = "" if isinstance(st.session_state[key], str) else []
+                    if isinstance(st.session_state[key], str):
+                        st.session_state[key] = ""
+                    elif isinstance(st.session_state[key], list):
+                        st.session_state[key] = []
             st.rerun()
 
 # ============================================================================
@@ -263,13 +268,15 @@ def render_individual_prompts():
         "your workflow or only need specific research stages."
     )
     
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
         "Phase 1: Discovery",
         "Phase 2: Profiling",
         "Phase 2.5: Solution Map",
+        "Phase 2.7: Competitive",
         "Phase 3: Email",
         "Phase 4: Summary",
-        "Phase 5: OUS"
+        "Phase 5: OUS",
+        "Phase 6: BANT+"
     ])
     
     company_name = st.session_state.get("company_name", "")
@@ -304,14 +311,14 @@ def render_individual_prompts():
     
     # Phase 2
     with tab2:
-        st.markdown("#### 👤 Phase 2: Buyer Psychological Profiling")
+        st.markdown("#### 👤 Phase 2: Decision-Making Dynamics")
         st.markdown(
-            "**Purpose:** Understand the buyer's emotional state and pain points.\n\n"
+            "**Purpose:** Understand the buyer's decision-making process.\n\n"
             "**What you'll get:** A prompt that analyzes:\n"
-            "- Emotional triggers (anxiety, urgency, fear)\n"
-            "- Decision-making pressures\n"
-            "- Stakeholder concerns\n"
-            "- Psychological buying motivations"
+            "- Stakeholder mapping\n"
+            "- Decision-making style\n"
+            "- Communication expectations\n"
+            "- Likely objections"
         )
         
         if st.button("Generate Phase 2 Prompt", key="gen_p2", type="primary"):
@@ -332,14 +339,14 @@ def render_individual_prompts():
     
     # Phase 2.5
     with tab3:
-        st.markdown("#### 🎯 Phase 2.5: Solution Mapping (Product-to-Pain Fit)")
+        st.markdown("#### 🎯 Phase 2.5: Pain Point & Solution Mapping")
         st.markdown(
-            "**Purpose:** Map specific LexisNexis products to identified pain points.\n\n"
+            "**Purpose:** Map specific pain points to our solutions.\n\n"
             "**What you'll get:** A prompt that creates:\n"
+            "- Pain point hypotheses\n"
             "- Product-to-problem alignment\n"
-            "- Specific feature callouts\n"
             "- Value proposition mapping\n"
-            "- Competitive positioning insights"
+            "- Discovery questions to validate"
         )
         
         if st.button("Generate Phase 2.5 Prompt", key="gen_p25", type="primary"):
@@ -358,17 +365,49 @@ def render_individual_prompts():
                     usage_note="Use this AFTER Phases 1 & 2. Paste outputs from both previous phases along with this prompt."
                 )
     
-    # Phase 3
+    # Phase 2.7 - NEW
     with tab4:
+        st.markdown("#### ⚔️ Phase 2.7: Competitive Positioning Analysis")
+        st.markdown(
+            "**Purpose:** Understand the competitive landscape before outreach.\n\n"
+            "**What you'll get:** A prompt that analyzes:\n"
+            "- Direct competitors likely targeting this prospect\n"
+            "- Indirect competitors (status quo, free resources)\n"
+            "- Our differentiation for this specific prospect\n"
+            "- Win themes and positioning strategy\n"
+            "- Discovery questions to uncover competitive situation"
+        )
+        
+        if st.button("Generate Phase 2.7 Prompt", key="gen_p27", type="primary"):
+            if not company_name:
+                st.error("❌ Please enter a company name in the sidebar first.")
+            else:
+                with st.spinner("Generating prompt..."):
+                    prompt = PromptRecipeManager.generate_phase27(context)
+                st.success("✅ Prompt generated!")
+                render_prompt_expander(
+                    title="Your Phase 2.7 Prompt",
+                    prompt=prompt,
+                    filename=f"phase27_{company_name.replace(' ', '_')}.txt",
+                    key_suffix="p27_main",
+                    expanded=True,
+                    usage_note="Use this AFTER Phases 1, 2, & 2.5. This helps you position against competitors before drafting outreach."
+                )
+    
+    # Phase 3
+    with tab5:
         st.markdown("#### ✉️ Phase 3: Credibility-Based Email Drafting")
         st.markdown(
             "**Purpose:** Create a personalized cold outreach email.\n\n"
             "**What you'll get:** A prompt that generates:\n"
-            "- Trigger-based opening hook\n"
-            "- Specific product mentions\n"
-            "- Credibility-building language\n"
-            "- Clear call-to-action"
+            "- Quality gate checks (trigger strength, pain point sources)\n"
+            "- Hook-Pivot-Ask email structure\n"
+            "- Self-assessment against 'Associate Test'\n"
+            "- Follow-up email draft\n"
+            "- Low-intel fallback if triggers are weak"
         )
+        
+        st.warning("⚠️ **New:** This phase now includes quality gates to prevent weak emails from being sent.")
         
         if st.button("Generate Phase 3 Prompt", key="gen_p3", type="primary"):
             if not company_name:
@@ -383,19 +422,20 @@ def render_individual_prompts():
                     filename=f"phase3_{company_name.replace(' ', '_')}.txt",
                     key_suffix="p3_main",
                     expanded=True,
-                    usage_note="Use this AFTER Phases 1, 2, and 2.5. Paste all previous outputs along with this prompt."
+                    usage_note="Use this AFTER Phases 1, 2, 2.5, and 2.7. Paste all previous outputs along with this prompt."
                 )
     
     # Phase 4
-    with tab5:
+    with tab6:
         st.markdown("#### 📊 Phase 4: Sales Executive Summary")
         st.markdown(
             "**Purpose:** Create a 90-second brief for time-strapped sales reps.\n\n"
             "**What you'll get:** A one-page summary containing:\n"
-            "- Key trigger events\n"
-            "- Primary pain points\n"
-            "- Recommended products\n"
-            "- Call script talking points"
+            "- Account snapshot\n"
+            "- Strategic rationale\n"
+            "- Recommended approach\n"
+            "- Key unknowns and risks\n"
+            "- Next steps"
         )
         
         if st.button("Generate Phase 4 Prompt", key="gen_p4", type="primary"):
@@ -415,14 +455,15 @@ def render_individual_prompts():
                 )
     
     # Phase 5
-    with tab6:
+    with tab7:
         st.markdown("#### 🔍 Phase 5: OUS Framework Analysis")
         st.markdown(
-            "**Purpose:** Apply the Outcome → Understanding → Standard lens.\n\n"
+            "**Purpose:** Score the opportunity using Outcome-Understanding-Selection.\n\n"
             "**What you'll get:** Strategic analysis covering:\n"
-            "- Desired business outcomes\n"
-            "- Deep understanding of challenges\n"
-            "- Industry best practices and standards"
+            "- Outcome alignment (35%)\n"
+            "- Understanding of pain (35%)\n"
+            "- Selection process favorability (30%)\n"
+            "- Overall score and recommendation"
         )
         
         if st.button("Generate Phase 5 Prompt", key="gen_p5", type="primary"):
@@ -438,23 +479,56 @@ def render_individual_prompts():
                     filename=f"phase5_{company_name.replace(' ', '_')}.txt",
                     key_suffix="p5_main",
                     expanded=True,
-                    usage_note="Use this to refine your positioning and messaging based on all previous research."
+                    usage_note="Use this to score and prioritize the opportunity based on all previous research."
+                )
+    
+    # Phase 6
+    with tab8:
+        st.markdown("#### ✅ Phase 6: Deal Qualification (BANT+)")
+        st.markdown(
+            "**Purpose:** Qualify the opportunity before investing more time.\n\n"
+            "**What you'll get:** Assessment covering:\n"
+            "- Budget likelihood\n"
+            "- Authority mapping\n"
+            "- Need severity\n"
+            "- Timeline factors\n"
+            "- Qualification recommendation"
+        )
+        
+        if st.button("Generate Phase 6 Prompt", key="gen_p6", type="primary"):
+            if not company_name:
+                st.error("❌ Please enter a company name in the sidebar first.")
+            else:
+                with st.spinner("Generating prompt..."):
+                    prompt = PromptRecipeManager.generate_phase6(context)
+                st.success("✅ Prompt generated!")
+                render_prompt_expander(
+                    title="Your Phase 6 Prompt",
+                    prompt=prompt,
+                    filename=f"phase6_{company_name.replace(' ', '_')}.txt",
+                    key_suffix="p6_main",
+                    expanded=True,
+                    usage_note="Use this to qualify the opportunity and generate discovery questions for the first call."
                 )
 
 def render_full_workflow():
-    """Render the full 6-prompt workflow generator."""
+    """Render the full 8-prompt workflow generator."""
     
     st.markdown("### 🎯 Complete Sales Prospecting Sequence")
     
     st.info("""
-    **This generates all 6 prompts in the correct order:**\n\n
-    "1. **Phase 1**: Discovery & Risk Research\n"
-    "2. **Phase 2**: Buyer Psychological Profiling\n"
-    "3. **Phase 2.5**: 📋 Solution Mapping (Product-to-Pain Fit)\n"
-    "4. **Phase 3**: Credibility-Based Email Drafting\n"
-    "5. **Phase 4**: Sales Executive Summary (90-second brief)\n"
-    "6. **Phase 5**: OUS Framework Analysis\n\n"
-    "Use these prompts sequentially in ChatGPT/Claude to build a complete prospect dossier."
+**This generates all 8 prompts in the correct order:**
+
+1. **Phase 1**: Discovery & Compliance Research
+2. **Phase 2**: Decision-Making Dynamics
+3. **Phase 2.5**: Pain Point Hypothesis & Solution Mapping
+4. **Phase 2.7**: Competitive Positioning Analysis ⚔️ *NEW*
+5. **Phase 3**: Credibility-Based Email Drafting (with quality gates)
+6. **Phase 4**: Sales Executive Summary
+7. **Phase 5**: OUS Framework Analysis
+8. **Phase 6**: Deal Qualification (BANT+)
+
+Use these prompts sequentially in ChatGPT/Claude to build a complete prospect dossier.
     """)
     
     company_name = st.session_state.get("company_name", "")
@@ -464,36 +538,15 @@ def render_full_workflow():
             st.error("❌ Please enter a company name to generate prompts.")
             return
         
-        with st.spinner("Generating 6-phase workflow..."):
-            context = ProspectContext(
-                company_name=st.session_state.get('company_name', ''),
-                industry_sector=st.session_state.get('industry_sector', ''),
-                transaction_type=st.session_state.get('transaction_type', ''),
-                legal_entity_type=st.session_state.get('legal_entity_type', ''),
-                transaction_size=st.session_state.get('transaction_size', ''),
-                geographic_scope=st.session_state.get('geographic_scope', ''),
-                deal_context=st.session_state.get('deal_context', ''),
-                additional_notes=st.session_state.get('additional_notes', '')
-            )
+        with st.spinner("Generating 8-phase workflow..."):
+            context = get_prospect_context()
             prompts = PromptRecipeManager.generate_full_workflow(context)
         
         st.success("✅ Workflow generated! Copy each prompt below and paste into your AI tool sequentially.")
         
-        # Display prompts
-        for i, (phase_name, prompt) in enumerate(prompts.items(), 1):
-            with st.expander(f"**Phase {i}: {phase_name}**", expanded=(i == 1)):
-                st.code(prompt, language="markdown")
-                st.download_button(
-                    label=f"📥 Download Phase {i}",
-                    data=prompt,
-                    file_name=f"phase_{i}_{phase_name.lower().replace(' ', '_')}.txt",
-                    mime="text/plain",
-                    key=f"download_full_{i}"
-                )
-        
         # Phase 1
         render_prompt_expander(
-            title="📋 PROMPT 1: Discovery & Risk Research",
+            title="📋 PROMPT 1: Discovery & Compliance Research",
             prompt=prompts["phase1"],
             filename=f"1_discovery_{company_name.replace(' ', '_')}.txt",
             key_suffix="wf_p1",
@@ -503,49 +556,58 @@ def render_full_workflow():
         
         # Phase 2
         render_prompt_expander(
-            title="📋 PROMPT 2: Buyer Psychological Profiling",
+            title="📋 PROMPT 2: Decision-Making Dynamics",
             prompt=prompts["phase2"],
             filename=f"2_profiling_{company_name.replace(' ', '_')}.txt",
             key_suffix="wf_p2",
             usage_note="After completing Prompt 1, paste this prompt PLUS the output from Prompt 1."
         )
         
-        # Phase 2.5 - FIXED
-        st.markdown("---")
+        # Phase 2.5
         render_prompt_expander(
-            title="📋 PROMPT 2.5: 🆕 Solution Mapping (Product-to-Pain Fit)",
-            prompt=prompts["phase25"],  # ✅ FIXED: Changed from "phase2.5" to "phase25"
+            title="📋 PROMPT 2.5: Pain Point & Solution Mapping",
+            prompt=prompts["phase25"],
             filename=f"2_5_solution_mapping_{company_name.replace(' ', '_')}.txt",
             key_suffix="wf_p25",
+            usage_note="After completing Prompts 1 & 2, paste this prompt PLUS the outputs from both."
+        )
+        
+        # Phase 2.7 - NEW
+        st.markdown("---")
+        render_prompt_expander(
+            title="📋 PROMPT 2.7: ⚔️ Competitive Positioning Analysis (NEW)",
+            prompt=prompts["phase27"],
+            filename=f"2_7_competitive_{company_name.replace(' ', '_')}.txt",
+            key_suffix="wf_p27",
             expanded=True,
             usage_note=(
-                "**🎯 NEW STEP: Product-to-Pain Mapping** - "
-                "After completing Prompts 1 & 2, paste this prompt PLUS the outputs from both. "
-                "The AI will map specific LexisNexis products to their pain points."
+                "**🆕 NEW STEP: Competitive Analysis** - "
+                "Before drafting outreach, understand who else is competing for this prospect. "
+                "Paste this prompt PLUS outputs from Phases 1, 2, & 2.5."
             )
         )
         
         # Phase 3
+        st.markdown("---")
         render_prompt_expander(
-            title="📋 PROMPT 3: Credibility-Based Email Drafting",
+            title="📋 PROMPT 3: Credibility-Based Email Drafting (with Quality Gates)",
             prompt=prompts["phase3"],
             filename=f"3_email_{company_name.replace(' ', '_')}.txt",
             key_suffix="wf_p3",
-            usage_note="After completing Prompts 1, 2, & 2.5, paste this prompt PLUS all outputs."
+            expanded=True,
+            usage_note=(
+                "**⚠️ IMPROVED:** Now includes quality gates to check trigger strength, pain point sources, "
+                "and proof point stakes before drafting. Paste all previous outputs along with this prompt."
+            )
         )
         
         # Phase 4
-        st.markdown("---")
         render_prompt_expander(
-            title="📋 PROMPT 4: Sales Executive Summary (90-Second Brief)",
+            title="📋 PROMPT 4: Sales Executive Summary",
             prompt=prompts["phase4"],
             filename=f"4_summary_{company_name.replace(' ', '_')}.txt",
             key_suffix="wf_p4",
-            expanded=False,
-            usage_note=(
-                "**🎯 For Time-Strapped Sales Reps** - "
-                "Creates a one-page cheat sheet for quick reference before calls."
-            )
+            usage_note="Creates a 90-second cheat sheet for quick reference before calls."
         )
         
         # Phase 5
@@ -554,12 +616,21 @@ def render_full_workflow():
             prompt=prompts["phase5"],
             filename=f"5_ous_{company_name.replace(' ', '_')}.txt",
             key_suffix="wf_p5",
-            usage_note="Final strategic analysis to refine your positioning."
+            usage_note="Score the opportunity using Outcome-Understanding-Selection framework."
+        )
+        
+        # Phase 6
+        render_prompt_expander(
+            title="📋 PROMPT 6: Deal Qualification (BANT+)",
+            prompt=prompts["phase6"],
+            filename=f"6_bant_{company_name.replace(' ', '_')}.txt",
+            key_suffix="wf_p6",
+            usage_note="Qualify the opportunity and generate discovery questions for the first call."
         )
 
 def render_main_content():
     """Render the main content area."""
-    st.title("🎯 M&A Prospecting Tool")
+    st.title("🎯 HK Legal Market Prospecting Tool")
     st.markdown(
         "**Generate AI-powered research prompts for legal/compliance discovery and sales outreach.**"
     )
@@ -575,33 +646,55 @@ def render_main_content():
             "This tool creates customized prompts that you can paste into ChatGPT or Claude "
             "to research prospects, identify triggers, and craft personalized outreach."
         )
+        
+        # Show workflow overview
+        with st.expander("📋 See the 8-Phase Workflow", expanded=False):
+            st.markdown("""
+| Phase | Name | Purpose |
+|-------|------|---------|
+| 1 | Discovery & Compliance Research | Find triggers and pressure points |
+| 2 | Decision-Making Dynamics | Understand how they buy |
+| 2.5 | Pain Point & Solution Mapping | Match our products to their problems |
+| 2.7 | **Competitive Positioning** ⚔️ | Know who else is in the deal |
+| 3 | Credibility-Based Email | Draft outreach that passes the "Associate Test" |
+| 4 | Sales Executive Summary | 90-second brief for before calls |
+| 5 | OUS Framework Analysis | Score and prioritize the opportunity |
+| 6 | Deal Qualification (BANT+) | Qualify before investing more time |
+            """)
         return
     
     # Display current prospect summary
     with st.container():
         st.markdown("#### 📊 Current Prospect")
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             st.metric("Company", st.session_state.company_name)
         with col2:
-            st.metric("Industry", st.session_state.industry or "Not specified")
+            st.metric("Practice Area", st.session_state.industry or "Not specified")
         with col3:
-            st.metric("Deal Type", st.session_state.deal_type or "Not specified")
+            st.metric("Buyer Persona", st.session_state.legal_entity_type or "Not specified")
+        with col4:
+            st.metric("Engagement Type", st.session_state.deal_type or "Not specified")
+    
+    # Show trigger context if provided
+    if st.session_state.additional_context:
+        st.markdown("**Known Triggers:**")
+        st.info(st.session_state.additional_context)
     
     st.markdown("---")
     
     # Main workflow options
     workflow_mode = st.radio(
         "Choose your workflow:",
-        options=["Full Workflow (All 6 Phases)", "Individual Prompts"],
+        options=["Full Workflow (All 8 Phases)", "Individual Prompts"],
         horizontal=True,
         help="Full Workflow generates all prompts at once. Individual Prompts lets you generate one phase at a time."
     )
     
     st.markdown("---")
     
-    if workflow_mode == "Full Workflow (All 6 Phases)":
+    if workflow_mode == "Full Workflow (All 8 Phases)":
         render_full_workflow()
     else:
         render_individual_prompts()
@@ -620,7 +713,7 @@ def main():
     st.markdown("---")
     st.markdown(
         "<div style='text-align: center; color: #666; font-size: 0.9em;'>"
-        "M&A Prospecting Tool | Built for LexisNexis Sales Teams | December 2025"
+        "HK Legal Market Prospecting Tool | Built for LexisNexis Sales Teams | December 2025"
         "</div>",
         unsafe_allow_html=True
     )
