@@ -1,4 +1,3 @@
-
 from typing import Dict, Optional, Callable
 
 class ProspectContext:
@@ -174,7 +173,97 @@ For each identified pain point above, map to our capabilities:
 
 **Note: These are hypothesized pain points. Create discovery questions to validate in first conversation.**"""
 
-        # NEW PHASE 3 - Hong Kong Legal Market Version
+        # NEW PHASE 2.7: Competitive Positioning Analysis
+        phase27 = header + """**Phase 2.7: Competitive Positioning Analysis**
+
+============================================================
+PURPOSE
+============================================================
+
+Before drafting outreach, understand who else is competing for this prospect's attention and budget. This shapes how we position ourselves.
+
+============================================================
+COMPETITIVE LANDSCAPE
+============================================================
+
+**1. Direct Competitors in HK Legal Tech**
+
+For each competitor likely targeting this prospect, analyze:
+
+| Competitor | Their Likely Pitch | Their Weakness | Our Counter-Position |
+|------------|-------------------|----------------|---------------------|
+| [Name] | [What they'd say] | [Where they fall short] | [How we're different] |
+
+**Common competitors in HK legal market:**
+- Thomson Reuters (Westlaw, Practical Law)
+- vLex / Fastcase
+- Wolters Kluwer
+- Local HK providers (e.g., Lexisnexis HK legacy, HKLaw)
+- AI-native startups (Harvey, CoCounsel, etc.)
+
+**2. Indirect Competitors (Status Quo)**
+
+Often the real competitor is "do nothing" or "use what we have":
+- In-house research teams
+- Existing subscriptions they're not fully using
+- Manual processes that "work well enough"
+- Free resources (HKLII, government databases)
+
+**3. Competitive Intelligence Questions**
+
+What do we need to find out in discovery?
+- What tools are they currently using?
+- What's their renewal cycle? (timing matters)
+- Who championed the current solution?
+- What frustrations exist with current tools?
+
+============================================================
+POSITIONING STRATEGY
+============================================================
+
+**4. Our Differentiation for This Specific Prospect**
+
+Based on their profile, which of our differentiators matter most?
+
+| Differentiator | Relevance to This Prospect (High/Medium/Low) | How to Frame It |
+|----------------|---------------------------------------------|-----------------|
+| AI accuracy / hallucination safeguards | | |
+| HK-specific content depth | | |
+| Practical Guidance integration | | |
+| Speed / efficiency gains | | |
+| Risk mitigation / compliance | | |
+| Training / adoption support | | |
+| Pricing / value | | |
+
+**5. Competitive Landmines to Avoid**
+
+What should we NOT say that could backfire?
+- Claims we can't substantiate
+- Feature comparisons that are outdated
+- Attacking competitors they may have relationships with
+
+**6. Win Themes for This Opportunity**
+
+Based on competitive analysis, our top 3 messages should be:
+
+1. **Primary:** [Main differentiator for this prospect]
+2. **Secondary:** [Supporting point]
+3. **Tertiary:** [Tiebreaker if they're comparing closely]
+
+============================================================
+OUTPUT REQUIREMENTS
+============================================================
+
+Provide:
+1. Competitive landscape table (filled in)
+2. Top 3 likely competitors for this specific prospect
+3. Our positioning statement (2-3 sentences tailored to this prospect)
+4. Discovery questions to uncover competitive situation
+5. Potential objections based on competitor strengths
+
+**Note: If competitor information is unknown, state "Requires discovery" rather than guessing.**"""
+
+        # IMPROVED PHASE 3 with quality gates
         phase3 = """============================================================
 PROSPECT CONTEXT
 ============================================================
@@ -223,6 +312,61 @@ CRITICAL SAFETY INSTRUCTIONS
 - If information is missing, state "requires further research" instead of guessing
 - All legal compliance references must be verifiable
 - Do not make claims about competitor products without evidence
+
+============================================================
+QUALITY GATES (MUST PASS BEFORE DRAFTING)
+============================================================
+
+**GATE 1: TRIGGER STRENGTH CHECK**
+
+Before drafting, classify the available trigger:
+
+| Strength | Definition | Examples | Action |
+|----------|------------|----------|--------|
+| **Strong** | Creates urgency or implies a problem | Litigation, regulatory deadline, leadership change, expansion, hiring surge, M&A activity | Proceed with confidence |
+| **Medium** | Shows activity but no clear pain | Award, ranking, conference speaking, thought leadership, new office | Proceed with caution—acknowledge assumptions |
+| **Weak** | Static information only | Company size, practice areas, years in business | Flag to user: "Consider finding a stronger trigger before sending" |
+
+**Current trigger strength:** [Assess and state]
+
+If trigger is Medium or Weak, include this warning in output:
+> ⚠️ **Trigger Quality Warning:** This trigger doesn't signal a clear pain point. The email relies on assumptions. Response rate may be lower than average. Consider waiting for a stronger trigger or adjusting expectations.
+
+---
+
+**GATE 2: TRIGGER STACKING**
+
+Where possible, combine two related triggers to signal deeper research:
+
+✅ **Good:** "I saw OLN win Hong Kong Law Firm of the Year again and host sessions during Arbitration Week."
+❌ **Weak:** "I saw OLN won an award recently."
+
+Check: Does the hook reference 2+ verifiable events? If not, flag for improvement.
+
+---
+
+**GATE 3: PAIN POINT SOURCE CHECK**
+
+For every pain point mentioned in the email, classify its source:
+
+| Source | Definition | Acceptable? |
+|--------|------------|-------------|
+| **Verified** | Based on something the prospect said, published, or is publicly documented | ✅ Yes |
+| **Inferred** | Reasonable guess based on role/industry norms (e.g., "partners at litigation firms often face...") | ⚠️ Yes, but must signal it's an inference |
+| **Invented** | Made up to fit the narrative with no supporting evidence | ❌ No—rewrite or remove |
+
+If any pain point is "Invented," flag the specific sentence and provide an alternative or recommend gathering more intel.
+
+---
+
+**GATE 4: PROOF POINT STAKES CHECK**
+
+Every proof point must include a measurable or time-based consequence:
+
+✅ **Good:** "One HK firm told me it caught an overlooked PRC regulation that would've delayed their deal signing by a week."
+❌ **Weak:** "One firm said it helped them catch errors."
+
+Check: Does the proof point answer "So what?" with a specific cost/time/risk saved?
 
 ============================================================
 WRITING STYLE ENFORCEMENT: ZINSSER'S PRINCIPLES
@@ -278,89 +422,94 @@ You are NOT writing a formal report. You are briefing a busy sales colleague who
 ❌ "was implemented" → ✅ "they started using"
 ❌ "will be facilitated by" → ✅ "X will help with"
 
----
-
-**FORMAT REQUIREMENTS:**
-
-✓ Use short bullets (1-2 sentences max per bullet)
-✓ Add specific numbers, dates, names whenever possible
-✓ Write in present tense when possible
-✓ Start bullets with verbs when listing actions
-✓ Use contractions (they're, you've, we'll) to sound human
-
 ============================================================
 PHASE 3: CREDIBILITY-BASED EMAIL DRAFTING
 ============================================================
 
-**YOUR ROLE:** Draft a cold outreach email that sounds like it's from a trusted legal advisor, not a salesperson.
+**YOUR ROLE:** Draft a cold outreach email that sounds like it's from a trusted advisor, not a salesperson.
 
 **OBJECTIVE:** Generate a "Credibility Token" - an email that passes the "Associate Test" (would a junior lawyer forward this to their boss as relevant, not delete as spam?).
 
 **TARGET REACTION:** "How did they know we're dealing with this?" (creates psychological difficulty to ignore).
 
-**DRAFTING STRUCTURE: Hook-Pivot-Ask**
+---
+
+### DRAFTING STRUCTURE: Hook-Pivot-Ask
 
 ---
 
-### 1. HOOK (Validate the Risk)
+#### 1. HOOK (Validate the Risk) — 2-3 sentences
 
 Lead with THEIR context, not YOUR product.
 
-**Bad Example:** "Hi [Name], we offer AI-powered legal research that saves time." (Generic, salesy, immediately deleted)
+**Requirements:**
+- Reference the specific trigger (stacked if possible)
+- Include a vivid scenario (time, situation, specific role)
+- Hint at a non-obvious, second-order risk
 
-**Good Example:** "[Name], I saw [Company] just [specific trigger event from Phase 1]. From what we've seen with other HK [industry] companies dealing with [specific challenge], the biggest hidden risk isn't [obvious problem] - it's [nuanced second-order risk]."
+**Formula:**
+"[Name], I saw [Company] [specific trigger 1] and [trigger 2 if available]. When firms hit that level of [visibility/activity/growth], the real risk isn't [obvious problem]—it's [nuanced second-order risk that affects a specific person at a specific time]."
 
-**HOOK FORMULA:**
-- Reference the specific trigger (proves you did homework)
-- Acknowledge the complexity (shows respect)
-- Hint at a non-obvious risk (creates curiosity)
+**Example (boss-approved):**
+"I saw OLN win Hong Kong Law Firm of the Year again and host sessions during Arbitration Week. That's huge. When firms hit that level of visibility, the real risk isn't the big cases—it's the quiet stuff a tired associate might miss during a 2am research sprint on a China-linked dispute or a fast M&A review."
 
 ---
 
-### 2. PIVOT (Position as Strategic Insurance)
+#### 2. PIVOT (Position as Strategic Insurance) — 2-3 sentences
 
 Frame your solution as risk mitigation, not efficiency.
 
-**Bad Example:** "Our platform has 50+ features including AI search and contract analysis." (Feature dump, no emotional resonance)
+**Requirements:**
+- Use social proof from similar buyers ("The GCs we work with...")
+- Frame as "insurance" or "safety net"—not a feature list
+- Include ONE concrete micro-story with measurable stakes
 
-**Good Example:** "The GCs we work with describe our platform as 'insurance against what we might've missed.' For example, [one concrete micro-story of how it caught a gap]."
+**Formula:**
+"The [role]s we work with describe our platform as '[memorable phrase].' [One concrete example: who + what it caught + what cost/delay it prevented]."
 
-**PIVOT FORMULA:**
-- Use social proof from similar buyers
-- Frame as "insurance" or "safety net"
-- Give ONE concrete micro-example (not a feature list)
-
----
-
-### 3. ASK (Low-Pressure Strategic Conversation)
-
-Invite discussion, not a demo.
-
-**Bad Example:** "Can I get 30 minutes on your calendar this week for a demo?"
-
-**Good Example:** "I'd love to share how [similar HK firm] tackled [specific challenge]. Even if our tool isn't the right fit, I can point you to [specific resource]. Would next Tuesday at 3pm work for a quick 15-min call?"
-
-**ASK FORMULA:**
-- Offer value FIRST
-- Give optionality ("even if not a fit")
-- Be specific with time (15 min, exact slot)
+**Example (boss-approved):**
+"The GCs and partners I work with call our platform 'the safety net for the work no one has time to double-check.' One HK firm told me it caught an overlooked PRC regulation that would've delayed their deal signing by a week."
 
 ---
 
-**TONE REQUIREMENTS:**
+#### 3. ASK (Low-Pressure Strategic Conversation) — 2 sentences
 
-✓ Sound like a peer advisor, not a vendor
-✓ Use contractions (I've, we're, you'll)
-✓ Keep it conversational
-✓ Be specific (dates, names, numbers)
+Invite discussion, not a demo. Defuse resistance.
+
+**Requirements:**
+- Offer value first
+- Include an explicit out ("even if we're not a fit")
+- Propose a specific time (day + time + duration)
+
+**Formula:**
+"I can walk you through how others handle this pressure. Even if we're not a fit, I'm happy to share what's working in HK right now. Would [Day] at [Time] work for 15 minutes?"
+
+**Example (boss-approved):**
+"I can walk you through how others handle this pressure. Even if we're not a fit, I'm happy to share what's working in HK right now. Would Tuesday at 3pm suit you for 15 minutes?"
+
+============================================================
+OUTPUT FORMAT
+============================================================
+
+**SECTION 1: QUALITY GATE RESULTS**
+
+| Gate | Status | Notes |
+|------|--------|-------|
+| Trigger Strength | [Strong/Medium/Weak] | [Details] |
+| Trigger Stacking | [Yes/No] | [What triggers were combined?] |
+| Pain Point Sources | [All Verified/Some Inferred/Contains Invented] | [Flag any issues] |
+| Proof Point Stakes | [Pass/Fail] | [Does it include measurable consequence?] |
+
+**Overall Gate Status:** [PASS / PASS WITH WARNINGS / FAIL - DO NOT SEND]
 
 ---
 
-**OUTPUT FORMAT:**
+**SECTION 2: EMAIL DRAFT**
 
-**Subject Line:** [Specific, trigger-based, non-salesy - max 6 words]
+**Subject Line:** [Specific, trigger-based, max 6 words]
 
 **Email Body:**
+
 [Hook - 2-3 sentences]
 
 [Pivot - 2-3 sentences]
@@ -370,9 +519,44 @@ Invite discussion, not a demo.
 Best,
 [Your Name]
 
-**WORD COUNT:** 100-150 words MAX
+**Word Count:** [Target: 100-150 words]
 
-**ASSOCIATE TEST:** Would a junior lawyer think "My boss should see this" or "Spam"?"""
+---
+
+**SECTION 3: ALTERNATIVE SUBJECT LINES**
+
+1. [Alternative 1]
+2. [Alternative 2]
+
+---
+
+**SECTION 4: SELF-ASSESSMENT**
+
+**Associate Test:** Would a junior lawyer forward this, or delete as spam?
+- [ ] Forward — it's relevant and credible
+- [ ] Delete — it sounds like a sales email
+- [ ] Unsure
+
+**Why:** [Explanation]
+
+---
+
+**SECTION 5: FOLLOW-UP EMAIL** (5-7 days later, 50-70 words)
+
+[Draft follow-up that adds value, not just "checking in"]
+
+---
+
+**SECTION 6: LOW-INTEL ALTERNATIVE** (If triggers are weak)
+
+If the available triggers are Medium or Weak, provide this alternative approach:
+
+> **Curiosity-Based Fallback:**
+> When you lack a strong trigger, don't fake expertise. Try:
+>
+> "[Name], I've been talking to a few HK [practice area] teams about [specific trend]. Curious whether it's hitting [Company] the same way or if you're seeing something different. Worth a 15-minute call to compare notes?"
+>
+> This works because it's honest, positions you as a peer, and invites dialogue rather than pitching."""
 
         phase4 = header + """**Phase 4: Sales Executive Summary**
 
@@ -514,6 +698,7 @@ Assess this opportunity against qualification criteria.
             "phase1": phase1,
             "phase2": phase2,
             "phase25": phase25,
+            "phase27": phase27,
             "phase3": phase3,
             "phase4": phase4,
             "phase5": phase5,
@@ -534,6 +719,11 @@ Assess this opportunity against qualification criteria.
     def generate_phase25(cls, context: ProspectContext) -> str:
         """Generate Phase 2.5 prompt"""
         return cls.generate_full_workflow(context)["phase25"]
+    
+    @classmethod
+    def generate_phase27(cls, context: ProspectContext) -> str:
+        """Generate Phase 2.7 prompt"""
+        return cls.generate_full_workflow(context)["phase27"]
     
     @classmethod
     def generate_phase3(cls, context: ProspectContext) -> str:
@@ -568,6 +758,7 @@ Assess this opportunity against qualification criteria.
             "phase1": "Phase 1: Discovery & Compliance Research",
             "phase2": "Phase 2: Decision-Making Dynamics",
             "phase25": "Phase 2.5: Pain Point Hypothesis & Solution Mapping",
+            "phase27": "Phase 2.7: Competitive Positioning Analysis",
             "phase3": "Phase 3: Credibility-Based Email Outreach (HK Legal Market)",
             "phase4": "Phase 4: Sales Executive Summary",
             "phase5": "Phase 5: OUS Framework Analysis",
