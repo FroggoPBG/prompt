@@ -1,4 +1,6 @@
 from typing import Dict, Optional, Callable
+from datetime import datetime
+
 
 class ProspectContext:
     """Context object containing all prospect information for prompt generation"""
@@ -73,10 +75,17 @@ class PromptRecipeManager:
     """Manages all prompt recipes for sales prospecting workflow"""
     
     @classmethod
+    def get_current_year(cls) -> int:
+        """Get the current year dynamically"""
+        return datetime.now().year
+    
+    @classmethod
     def generate_full_workflow(cls, context: ProspectContext) -> Dict[str, str]:
         """Generate all prompts for the complete workflow"""
         
         header = context.to_prompt_header()
+        current_year = cls.get_current_year()
+        previous_year = current_year - 1
         
         # PHASE 1
         phase1 = header + """**Phase 1: Discovery & Compliance Research**
@@ -177,13 +186,15 @@ For each identified pain point above, map to our capabilities:
 **Note: These are hypothesized pain points. Create discovery questions to validate in first conversation.**"""
 
         # PHASE 2.7 - COMPETITIVE POSITIONING
-        phase27 = header + """**Phase 2.7: Competitive Positioning Analysis**
+        phase27 = header + f"""**Phase 2.7: Competitive Positioning Analysis**
 
 ============================================================
 PURPOSE
 ============================================================
 
 Before drafting outreach, understand who else is competing for this prospect's attention and budget. This shapes how we position ourselves.
+
+**IMPORTANT: The current year is {current_year}. Ensure all competitive intelligence references current market conditions, not outdated {previous_year} information.**
 
 ============================================================
 COMPETITIVE LANDSCAPE
@@ -266,14 +277,31 @@ Provide:
 
 **Note: If competitor information is unknown, state "Requires discovery" rather than guessing.**"""
 
-        # PHASE 3 - EMAIL DRAFTING
-        phase3 = """============================================================
+        # PHASE 3 - EMAIL DRAFTING (with dynamic year)
+        phase3 = f"""============================================================
 PROSPECT CONTEXT
 ============================================================
-Company Name: """ + context.company_name + """
+Company Name: {context.company_name}
 Company Website/Source: [To be filled in]
-Target Practice Area: """ + (context.industry_sector or "General/Multiple") + """
-Buyer Persona: """ + (context.legal_entity_type or "General Counsel (In-House)") + """
+Target Practice Area: {context.industry_sector or "General/Multiple"}
+Buyer Persona: {context.legal_entity_type or "General Counsel (In-House)"}
+
+============================================================
+CRITICAL DATE CONTEXT
+============================================================
+
+**TODAY'S DATE CONTEXT:**
+- Current Year: {current_year}
+- Previous Year: {previous_year}
+
+**IMPORTANT INSTRUCTIONS ABOUT DATES:**
+- We are currently in {current_year}. 
+- Do NOT reference "{previous_year} awards" or "{previous_year} events" as if they are current news.
+- If you only have information about {previous_year} events, either:
+  1. Check if there's a {current_year} equivalent (e.g., "{current_year} Asialaw Awards")
+  2. Reference it as "recent" or "last year's" rather than presenting it as current
+  3. Use generic phrasing like "recognized as Hong Kong Law Firm of the Year"
+- When in doubt, use timeless language that doesn't date the email.
 
 ============================================================
 HONG KONG LEGAL LANDSCAPE CONTEXT
@@ -291,13 +319,15 @@ You are researching prospects in Hong Kong's legal market. Key considerations:
 - Real Estate & Property (land leases, property development)
 - Tax & Revenue (IRD compliance, transfer pricing)
 
-**Recent Legal Trends in HK (2024-2025):**
+**Recent Legal Trends in HK ({current_year}):**
 - National Security Law implications for corporate governance
 - PDPO amendments (data privacy strengthening)
 - ESG reporting requirements for listed companies
 - Cross-border Greater Bay Area (GBA) legal integration
 - Crypto/digital asset regulatory framework development
 - Cybersecurity and data localization pressures
+- AI adoption in legal research and due diligence
+- Increased regulatory scrutiny on cross-border transactions
 
 **Legal Buyer Personas:**
 - Law Firm Partners (billable hours pressure, client retention anxiety)
@@ -315,6 +345,7 @@ CRITICAL SAFETY INSTRUCTIONS
 - If information is missing, state "requires further research" instead of guessing
 - All legal compliance references must be verifiable
 - Do not make claims about competitor products without evidence
+- **DATE ACCURACY: Do not present {previous_year} events/awards as current {current_year} news. Use generic timeframes ("recently", "this past year") if exact {current_year} data is unavailable.**
 
 ============================================================
 QUALITY GATES (MUST PASS BEFORE DRAFTING)
@@ -341,8 +372,8 @@ If trigger is Medium or Weak, include this warning in output:
 
 Where possible, combine two related triggers to signal deeper research:
 
-✅ **Good:** "I saw OLN win Hong Kong Law Firm of the Year again and host sessions during Arbitration Week."
-❌ **Weak:** "I saw OLN won an award recently."
+✅ **Good:** "I saw [Firm] recognized as Hong Kong Law Firm of the Year and hosting sessions during Arbitration Week."
+❌ **Weak:** "I saw [Firm] won an award recently."
 
 Check: Does the hook reference 2+ verifiable events? If not, flag for improvement.
 
@@ -370,6 +401,15 @@ Every proof point must include a measurable or time-based consequence:
 ❌ **Weak:** "One firm said it helped them catch errors."
 
 Check: Does the proof point answer "So what?" with a specific cost/time/risk saved?
+
+---
+
+**GATE 5: DATE ACCURACY CHECK**
+
+Before finalizing the email:
+- [ ] Verify all awards/events mentioned are from {current_year} OR are described with appropriate timeframes
+- [ ] No "{previous_year}" dates presented as current news
+- [ ] If using older triggers, frame appropriately ("last year", "recently", "has been recognized as")
 
 ============================================================
 WRITING STYLE ENFORCEMENT: ZINSSER'S PRINCIPLES
@@ -449,12 +489,16 @@ Lead with THEIR context, not YOUR product.
 - Reference the specific trigger (stacked if possible)
 - Include a vivid scenario (time, situation, specific role)
 - Hint at a non-obvious, second-order risk
+- **Use current/timeless language for any awards or events**
 
 **Formula:**
 "[Name], I saw [Company] [specific trigger 1] and [trigger 2 if available]. When firms hit that level of [visibility/activity/growth], the real risk isn't [obvious problem]—it's [nuanced second-order risk that affects a specific person at a specific time]."
 
-**Example (boss-approved):**
-"I saw OLN win Hong Kong Law Firm of the Year again and host sessions during Arbitration Week. That's huge. When firms hit that level of visibility, the real risk isn't the big cases—it's the quiet stuff a tired associate might miss during a 2am research sprint on a China-linked dispute or a fast M&A review."
+**Example (using timeless language):**
+"I saw [Firm] recognized as Hong Kong Law Firm of the Year and hosting sessions during Arbitration Week. That's huge. When firms hit that level of visibility, the real risk isn't the big cases—it's the quiet stuff a tired associate might miss during a 2am research sprint on a China-linked dispute or a fast M&A review."
+
+**❌ AVOID:** "I saw [Firm] win the {previous_year} Asialaw Award" (dated)
+**✅ PREFER:** "I saw [Firm] recognized as Hong Kong Law Firm of the Year" (timeless)
 
 ---
 
@@ -470,7 +514,7 @@ Frame your solution as risk mitigation, not efficiency.
 **Formula:**
 "The [role]s we work with describe our platform as '[memorable phrase].' [One concrete example: who + what it caught + what cost/delay it prevented]."
 
-**Example (boss-approved):**
+**Example:**
 "The GCs and partners I work with call our platform 'the safety net for the work no one has time to double-check.' One HK firm told me it caught an overlooked PRC regulation that would've delayed their deal signing by a week."
 
 ---
@@ -487,7 +531,7 @@ Invite discussion, not a demo. Defuse resistance.
 **Formula:**
 "I can walk you through how others handle this pressure. Even if we're not a fit, I'm happy to share what's working in HK right now. Would [Day] at [Time] work for 15 minutes?"
 
-**Example (boss-approved):**
+**Example:**
 "I can walk you through how others handle this pressure. Even if we're not a fit, I'm happy to share what's working in HK right now. Would Tuesday at 3pm suit you for 15 minutes?"
 
 ============================================================
@@ -502,6 +546,7 @@ OUTPUT FORMAT
 | Trigger Stacking | [Yes/No] | [What triggers were combined?] |
 | Pain Point Sources | [All Verified/Some Inferred/Contains Invented] | [Flag any issues] |
 | Proof Point Stakes | [Pass/Fail] | [Does it include measurable consequence?] |
+| Date Accuracy | [Pass/Fail] | [Are all dates/events current or appropriately framed?] |
 
 **Overall Gate Status:** [PASS / PASS WITH WARNINGS / FAIL - DO NOT SEND]
 
@@ -542,6 +587,10 @@ Best,
 
 **Why:** [Explanation]
 
+**Date Check:** Are all event references current or appropriately framed?
+- [ ] Yes — all dates are {current_year} or use timeless language
+- [ ] No — contains outdated {previous_year} references (FIX BEFORE SENDING)
+
 ---
 
 **SECTION 5: FOLLOW-UP EMAIL** (5-7 days later, 50-70 words)
@@ -562,7 +611,9 @@ If the available triggers are Medium or Weak, provide this alternative approach:
 > This works because it's honest, positions you as a peer, and invites dialogue rather than pitching."""
 
         # PHASE 4
-        phase4 = header + """**Phase 4: Sales Executive Summary**
+        phase4 = header + f"""**Phase 4: Sales Executive Summary**
+
+**Current Date Context: {current_year}** - Ensure all references to events, awards, or market conditions are current.
 
 Create a 90-second executive summary for this opportunity:
 
@@ -594,7 +645,9 @@ Create a 90-second executive summary for this opportunity:
 **Format for quick scanning—use bullets, keep sections tight. No fluff.**"""
 
         # PHASE 5
-        phase5 = header + """**Phase 5: OUS Framework Analysis**
+        phase5 = header + f"""**Phase 5: OUS Framework Analysis**
+
+**Current Date Context: {current_year}**
 
 Analyze this opportunity using the OUS framework. For each score (1-10), provide specific evidence or reasoning.
 
@@ -649,7 +702,9 @@ Overall = (Outcome × 0.35) + (Understanding Pain × 0.35) + (Selection Process 
 [What critical information is missing? What needs validation in first conversation?]"""
 
         # PHASE 6
-        phase6 = header + """**Phase 6: Deal Qualification (BANT+ Framework)**
+        phase6 = header + f"""**Phase 6: Deal Qualification (BANT+ Framework)**
+
+**Current Date Context: {current_year}**
 
 Assess this opportunity against qualification criteria.
 
@@ -700,12 +755,12 @@ Assess this opportunity against qualification criteria.
 
 **Recommended Next Actions:**"""
 
-        # RETURN ALL PHASES - THIS IS THE KEY PART!
+        # RETURN ALL PHASES
         return {
             "phase1": phase1,
             "phase2": phase2,
             "phase25": phase25,
-            "phase27": phase27,  # <-- MUST BE INCLUDED
+            "phase27": phase27,
             "phase3": phase3,
             "phase4": phase4,
             "phase5": phase5,
