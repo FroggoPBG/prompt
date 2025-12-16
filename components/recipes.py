@@ -78,6 +78,7 @@ class PromptRecipeManager:
         
         header = context.to_prompt_header()
         
+        # PHASE 1
         phase1 = header + """**Phase 1: Discovery & Compliance Research**
 
 Research the target company to inform our engagement strategy:
@@ -106,6 +107,7 @@ Research the target company to inform our engagement strategy:
 
 **For each section, distinguish clearly between verified facts (with sources) and reasonable inferences.**"""
 
+        # PHASE 2
         phase2 = header + """**Phase 2: Decision-Making Dynamics Analysis**
 
 Analyze typical decision-making dynamics for this firm when evaluating solutions:
@@ -134,6 +136,7 @@ Analyze typical decision-making dynamics for this firm when evaluating solutions
 
 **Note: These are working hypotheses based on firm type and market context. Validate and refine through actual conversations.**"""
 
+        # PHASE 2.5
         phase25 = header + """**Phase 2.5: Pain Point Hypothesis & Solution Mapping**
 
 **Part A: Pain Point Hypothesis**
@@ -173,7 +176,7 @@ For each identified pain point above, map to our capabilities:
 
 **Note: These are hypothesized pain points. Create discovery questions to validate in first conversation.**"""
 
-        # NEW PHASE 2.7: Competitive Positioning Analysis
+        # PHASE 2.7 - COMPETITIVE POSITIONING
         phase27 = header + """**Phase 2.7: Competitive Positioning Analysis**
 
 ============================================================
@@ -263,7 +266,7 @@ Provide:
 
 **Note: If competitor information is unknown, state "Requires discovery" rather than guessing.**"""
 
-        # IMPROVED PHASE 3 with quality gates
+        # PHASE 3 - EMAIL DRAFTING
         phase3 = """============================================================
 PROSPECT CONTEXT
 ============================================================
@@ -558,6 +561,7 @@ If the available triggers are Medium or Weak, provide this alternative approach:
 >
 > This works because it's honest, positions you as a peer, and invites dialogue rather than pitching."""
 
+        # PHASE 4
         phase4 = header + """**Phase 4: Sales Executive Summary**
 
 Create a 90-second executive summary for this opportunity:
@@ -589,6 +593,7 @@ Create a 90-second executive summary for this opportunity:
 
 **Format for quick scanning—use bullets, keep sections tight. No fluff.**"""
 
+        # PHASE 5
         phase5 = header + """**Phase 5: OUS Framework Analysis**
 
 Analyze this opportunity using the OUS framework. For each score (1-10), provide specific evidence or reasoning.
@@ -643,6 +648,7 @@ Overall = (Outcome × 0.35) + (Understanding Pain × 0.35) + (Selection Process 
 **KEY GAPS TO ADDRESS:**
 [What critical information is missing? What needs validation in first conversation?]"""
 
+        # PHASE 6
         phase6 = header + """**Phase 6: Deal Qualification (BANT+ Framework)**
 
 Assess this opportunity against qualification criteria.
@@ -694,11 +700,12 @@ Assess this opportunity against qualification criteria.
 
 **Recommended Next Actions:**"""
 
+        # RETURN ALL PHASES - THIS IS THE KEY PART!
         return {
             "phase1": phase1,
             "phase2": phase2,
             "phase25": phase25,
-            "phase27": phase27,
+            "phase27": phase27,  # <-- MUST BE INCLUDED
             "phase3": phase3,
             "phase4": phase4,
             "phase5": phase5,
